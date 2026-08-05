@@ -17,6 +17,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getFunnelAnalytics, getProfile, listApplications, updateApplication } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { formatInterviewBadge } from '@/pages/pipelineUtils';
 import { useAuthStore } from '@/stores/auth';
 
 const MODULES = [
@@ -45,6 +46,13 @@ export function Dashboard() {
   const applications = applicationsQuery.data?.applications ?? [];
   const recent = applications.slice(0, 6);
   const funnel = funnelQuery.data;
+
+  /* Next 5 future interviews, soonest first (Phase 3). */
+  const now = Date.now();
+  const upcomingInterviews = applications
+    .filter((a) => a.interviewAt !== null && new Date(a.interviewAt).getTime() > now)
+    .sort((a, b) => new Date(a.interviewAt!).getTime() - new Date(b.interviewAt!).getTime())
+    .slice(0, 5);
 
   const stageMutation = useMutation({
     mutationFn: ({ id, stage }: { id: string; stage: Parameters<typeof updateApplication>[1]['stage'] }) =>
@@ -125,6 +133,48 @@ export function Dashboard() {
           <ActivityChart data={funnel.trend} />
         </section>
       ) : null}
+
+      {/* Upcoming interviews (Phase 3) — omitted entirely when none. */}
+      {upcomingInterviews.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <Mono size="xs" color="fog">
+                Upcoming interviews
+              </Mono>
+              <p className="mt-1 font-sans text-base font-normal text-paper">
+                Next on the calendar.
+              </p>
+            </div>
+            <Link to="/pipeline" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              Pipeline
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+          <ul className="divide-y divide-graphite rounded-card border border-graphite bg-ink-2">
+            {upcomingInterviews.map((a) => (
+              <li key={a.id}>
+                <Link
+                  to="/pipeline"
+                  className="focus-ring flex items-center gap-4 px-4 py-3 transition-quick hover:bg-ink-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-sans text-sm font-normal text-paper">
+                      {a.company ?? 'Unknown company'}
+                    </p>
+                    <p className="truncate font-sans text-xs font-normal text-text-3-dark">
+                      {a.role ?? 'Role unknown'}
+                    </p>
+                  </div>
+                  <Mono size="xs" color="ash" className="shrink-0">
+                    {formatInterviewBadge(a.interviewAt!)}
+                  </Mono>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Module tiles */}
       <section>

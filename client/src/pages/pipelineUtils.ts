@@ -96,6 +96,20 @@ export function formatFollowUpAt(iso: string, now: number = Date.now()): string 
   return 'Follow-up soon';
 }
 
+/** 'ISO' → 'AUG 12 · 14:00' — compact mono badge for interview cards. */
+export function formatInterviewBadge(iso: string): string {
+  const d = new Date(iso);
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${month} ${d.getDate()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** True when the interview is upcoming within the next 48 hours. */
+export function isInterviewSoon(iso: string, now: number = Date.now()): boolean {
+  const ms = new Date(iso).getTime() - now;
+  return ms >= 0 && ms <= 48 * 60 * 60 * 1000;
+}
+
 export { formatDateTime } from '@/lib/format';
 
 /* ── Events timeline ────────────────────────────────────────────── */

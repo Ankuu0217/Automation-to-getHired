@@ -25,7 +25,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
+  formatInterviewBadge,
   GHOSTED_STAGE,
+  isInterviewSoon,
   PIPELINE_STAGES,
   stageLabel,
   type StageMeta,
@@ -90,6 +92,18 @@ function CardBody({
             <Mono size="xs" color="cyan">
               {followUpDays <= 0 ? 'F-UP·DUE' : `F-UP·${followUpDays}D`}
             </Mono>
+          )}
+          {application.stage === 'interview' && application.interviewAt && (
+            <span
+              className={cn(
+                'inline-flex items-center rounded-pill border px-1.5 font-mono text-[10px] uppercase leading-[1.8] tracking-[-0.02em]',
+                isInterviewSoon(application.interviewAt)
+                  ? 'border-warn/40 text-warn'
+                  : 'border-graphite text-text-2-dark',
+              )}
+            >
+              {formatInterviewBadge(application.interviewAt)}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5">

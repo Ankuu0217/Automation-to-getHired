@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTimeline,
   formatDaysSinceSent,
+  formatInterviewBadge,
   formatRelativeTime,
+  isInterviewSoon,
   stageBadgeVariant,
   stageLabel,
 } from '@/pages/pipelineUtils';
@@ -23,6 +25,8 @@ function makeApplication(
     notes: '',
     emails: [],
     events: [],
+    interviewAt: null,
+    interviewNote: null,
     createdAt: '2026-07-01T09:00:00.000Z',
     ...overrides,
   };
@@ -104,5 +108,23 @@ describe('buildTimeline', () => {
 
   it('returns an empty timeline when nothing happened yet', () => {
     expect(buildTimeline(makeApplication())).toEqual([]);
+  });
+});
+
+describe('formatInterviewBadge / isInterviewSoon', () => {
+  it('formats a compact mono badge in local time', () => {
+    // Built from local-time parts so the expectation is timezone-stable.
+    const iso = new Date(2026, 7, 12, 14, 0).toISOString();
+    expect(formatInterviewBadge(iso)).toBe('AUG 12 · 14:00');
+    const single = new Date(2026, 0, 3, 9, 5).toISOString();
+    expect(formatInterviewBadge(single)).toBe('JAN 3 · 09:05');
+  });
+
+  it('flags interviews within the next 48 hours only', () => {
+    const now = new Date('2026-08-10T12:00:00.000Z').getTime();
+    expect(isInterviewSoon('2026-08-11T12:00:00.000Z', now)).toBe(true); // 24h out
+    expect(isInterviewSoon('2026-08-12T12:00:00.000Z', now)).toBe(true); // exactly 48h
+    expect(isInterviewSoon('2026-08-12T12:00:01.000Z', now)).toBe(false); // past 48h
+    expect(isInterviewSoon('2026-08-10T11:59:59.000Z', now)).toBe(false); // already past
   });
 });

@@ -245,7 +245,7 @@ export function getApplication(id: string) {
   return api<ApplicationDetailEnvelope>(`/applications/${id}`);
 }
 
-/** Stage and/or notes — at least one field (enforced server-side). */
+/** Stage, notes and/or interview fields — at least one (enforced server-side). */
 export function updateApplication(id: string, input: ApplicationUpdateInput) {
   return api<ApplicationDetailEnvelope>(`/applications/${id}`, { method: 'PATCH', body: input });
 }

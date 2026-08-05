@@ -17,7 +17,11 @@ import { AppError } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { markLatestEmailReplied } from '../services/replies';
-import { stopFollowUpSequence } from '../services/queue';
+import {
+  cancelInterviewReminder,
+  scheduleInterviewReminder,
+  stopFollowUpSequence,
+} from '../services/queue';
 
 /**
  * Applications API (SPEC §6) — Kanban data for the pipeline board plus the
@@ -69,6 +73,8 @@ function toDetail(app: IApplication, events: IEmailEvent[]): ApplicationDetailRe
     emails: app.emails.map(emailDto),
     notes: app.notes,
     events: events.map(eventDto),
+    interviewAt: iso(app.interviewAt),
+    interviewNote: app.interviewNote,
     createdAt: app.createdAt.toISOString(),
   };
 }
@@ -94,6 +100,8 @@ function toSummary(app: IApplication): ApplicationSummary {
       ? Math.max(0, Math.floor((Date.now() - last.sentAt.getTime()) / DAY_MS))
       : null,
     nextFollowUpAt: nextFollowUpAt(app),
+    interviewAt: iso(app.interviewAt),
+    interviewNote: app.interviewNote,
     lastEmail: last
       ? {
           kind: last.kind as ApplicationEmailKind,
@@ -161,21 +169,46 @@ applicationsRouter.get('/:id', async (req, res, next) => {
 });
 
 /**
- * PATCH /applications/:id — update stage and/or notes. A stage change to
- * `rejected`/`offer` stops the follow-up sequence (SPEC §5): pending
- * follow-up subdocs are cancelled and scheduled jobs removed.
+ * PATCH /applications/:id — update stage, notes and/or interview fields. A
+ * stage change to `rejected`/`offer` stops the follow-up sequence (SPEC §5):
+ * pending follow-up subdocs are cancelled and scheduled jobs removed.
+ *
+ * Interview reminder sync (Phase 3): any change touching interviewAt or the
+ * stage first cancels the previously queued `interview-reminder` job, then
+ * (re)schedules a fresh one only when the application is in stage `interview`
+ * with an interviewAt set — so moving away from interview cancels, moving TO
+ * interview with an existing date schedules, and setting/changing/clearing
+ * the date always replaces the old job. Scheduling itself skips when
+ * interviewAt − 24h is already past.
  */
 applicationsRouter.patch('/:id', validate(applicationUpdateSchema), async (req, res, next) => {
   try {
     const application = await findOwnApplication(req.userId!, req.params.id);
     const input = req.body as ApplicationUpdateInput;
+    const previousStage = application.stage;
 
     if (input.stage !== undefined) application.stage = input.stage;
     if (input.notes !== undefined) application.notes = input.notes;
+    if (input.interviewAt !== undefined) {
+      application.interviewAt = input.interviewAt === null ? null : new Date(input.interviewAt);
+    }
+    if (input.interviewNote !== undefined) application.interviewNote = input.interviewNote;
     await application.save();
 
     if (input.stage === 'rejected' || input.stage === 'offer') {
       await stopFollowUpSequence(String(application._id));
+    }
+
+    const stageChanged = input.stage !== undefined && input.stage !== previousStage;
+    if (input.interviewAt !== undefined || stageChanged) {
+      await cancelInterviewReminder(String(application._id));
+      if (application.stage === 'interview' && application.interviewAt) {
+        await scheduleInterviewReminder(
+          String(application._id),
+          String(application.userId),
+          application.interviewAt,
+        );
+      }
     }
 
     res.json(await detailEnvelope(application));

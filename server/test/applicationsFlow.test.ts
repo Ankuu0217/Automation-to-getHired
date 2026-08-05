@@ -39,7 +39,14 @@ const draftFixture: EmailDraft = {
 };
 
 let mockExtraction: JobExtraction = makeExtraction('A');
-let sendMailCalls: Array<{ to: string; html: string }> = [];
+let sendMailCalls: Array<{ to: string; subject: string; text: string; html: string }> = [];
+/** One-shot sendMail failure — consumed (and reset) by the next send. */
+let nextSendMailError: Error | null = null;
+
+/* Interview reminder scheduling spies (Phase 3) — wrappers record calls, then
+ * delegate to the real fns (no-ops under QUEUE_INLINE). */
+let interviewScheduleCalls: Array<{ applicationId: string; interviewAt: string }> = [];
+let interviewCancelCalls: string[] = [];
 
 vi.mock('../src/services/ai/provider', () => ({
   getAIProvider: () => ({
@@ -58,9 +65,29 @@ vi.mock('../src/services/mailer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/services/mailer')>();
   return {
     ...actual,
-    sendMail: async (input: { to: string; html: string }) => {
+    sendMail: async (input: { to: string; subject: string; text: string; html: string }) => {
+      if (nextSendMailError) {
+        const err = nextSendMailError;
+        nextSendMailError = null;
+        throw err;
+      }
       sendMailCalls.push(input);
       return { messageId: '<mock-msg-id@mail.gmail.com>' };
+    },
+  };
+});
+
+vi.mock('../src/services/queue', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/services/queue')>();
+  return {
+    ...actual,
+    scheduleInterviewReminder: async (applicationId: string, userId: string, interviewAt: Date) => {
+      interviewScheduleCalls.push({ applicationId, interviewAt: interviewAt.toISOString() });
+      return actual.scheduleInterviewReminder(applicationId, userId, interviewAt);
+    },
+    cancelInterviewReminder: async (applicationId: string) => {
+      interviewCancelCalls.push(applicationId);
+      return actual.cancelInterviewReminder(applicationId);
     },
   };
 });
@@ -74,6 +101,14 @@ import { createApp } from '../src/app';
 import { Application } from '../src/models/Application';
 import { EmailEvent } from '../src/models/EmailEvent';
 import { Profile } from '../src/models/Profile';
+import { User } from '../src/models/User';
+import { GmailNotConnectedError } from '../src/services/mailer';
+import { processInterviewReminder } from '../src/services/jobs/interviewReminder';
+import {
+  cancelInterviewReminder,
+  INTERVIEW_REMINDER_LEAD_MS,
+  scheduleInterviewReminder,
+} from '../src/services/queue';
 import { TRACKING_PIXEL_PNG } from '../src/services/tracking';
 import { makePdf } from './helpers/makePdf';
 
@@ -84,6 +119,7 @@ const user = { name: 'Job Tester', email: 'kanban@example.com', password: 'passw
 const otherUser = { name: 'Other User', email: 'other@example.com', password: 'password123' };
 let cookie = '';
 let otherCookie = '';
+let userId = '';
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 const RESUME_DIR = path.resolve(__dirname, '../uploads/test-resumes');
@@ -134,6 +170,7 @@ beforeAll(async () => {
   cookie = cookies(await request(app).post('/api/v1/auth/register').send(user));
   otherCookie = cookies(await request(app).post('/api/v1/auth/register').send(otherUser));
   const me = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
+  userId = me.body.user.id as string;
 
   const profile = await request(app).put('/api/v1/profile').set('Cookie', cookie).send({
     fullName: 'Job Tester',
@@ -290,6 +327,225 @@ describe('PATCH /applications/:id', () => {
       .set('Cookie', otherCookie)
       .send({ stage: 'rejected' });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /applications/:id — interview tracking (Phase 3)', () => {
+  const HOUR_MS = 60 * 60 * 1000;
+
+  it('accepts interviewAt + interviewNote, returns them, and (re)schedules the reminder', async () => {
+    const { applicationId } = await sendApplication('INT1');
+    interviewScheduleCalls = [];
+    interviewCancelCalls = [];
+
+    const interviewAt = new Date(Date.now() + 72 * HOUR_MS).toISOString();
+    const res = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'interview', interviewAt, interviewNote: 'Bring the portfolio' });
+    expect(res.status).toBe(200);
+    expect(res.body.application.interviewAt).toBe(interviewAt);
+    expect(res.body.application.interviewNote).toBe('Bring the portfolio');
+
+    // Cancel-then-reschedule: the old job is always removed first.
+    expect(interviewCancelCalls).toEqual([applicationId]);
+    expect(interviewScheduleCalls).toEqual([{ applicationId, interviewAt }]);
+  });
+
+  it('rejects an invalid interviewAt', async () => {
+    const { applicationId } = await sendApplication('INT2');
+    const res = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ interviewAt: 'next tuesday 2pm' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('clears interview fields with null and cancels the reminder without rescheduling', async () => {
+    const { applicationId } = await sendApplication('INT3');
+    const interviewAt = new Date(Date.now() + 72 * HOUR_MS).toISOString();
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'interview', interviewAt, interviewNote: 'Prep system design' });
+
+    interviewScheduleCalls = [];
+    interviewCancelCalls = [];
+    const res = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ interviewAt: null, interviewNote: null });
+    expect(res.status).toBe(200);
+    expect(res.body.application.interviewAt).toBeNull();
+    expect(res.body.application.interviewNote).toBeNull();
+    expect(interviewCancelCalls).toEqual([applicationId]);
+    expect(interviewScheduleCalls).toHaveLength(0);
+  });
+
+  it('stores interviewAt while stage is not interview but does not schedule', async () => {
+    const { applicationId } = await sendApplication('INT4'); // stage: applied
+    interviewScheduleCalls = [];
+    interviewCancelCalls = [];
+
+    const interviewAt = new Date(Date.now() + 72 * HOUR_MS).toISOString();
+    const res = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ interviewAt });
+    expect(res.status).toBe(200);
+    expect(res.body.application.stage).toBe('applied');
+    expect(res.body.application.interviewAt).toBe(interviewAt);
+    expect(interviewScheduleCalls).toHaveLength(0); // stage guard
+    expect(interviewCancelCalls).toEqual([applicationId]); // stale job still removed
+  });
+
+  it('cancels when the stage leaves interview and reschedules when it returns', async () => {
+    const { applicationId } = await sendApplication('INT5');
+    const interviewAt = new Date(Date.now() + 72 * HOUR_MS).toISOString();
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'interview', interviewAt });
+
+    interviewScheduleCalls = [];
+    interviewCancelCalls = [];
+    const away = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'hr_screen' });
+    expect(away.status).toBe(200);
+    expect(away.body.application.interviewAt).toBe(interviewAt); // date kept
+    expect(interviewCancelCalls).toEqual([applicationId]);
+    expect(interviewScheduleCalls).toHaveLength(0);
+
+    const back = await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'interview' });
+    expect(back.status).toBe(200);
+    expect(interviewScheduleCalls).toEqual([{ applicationId, interviewAt }]);
+  });
+
+  it('includes the interview fields in the list summary DTO', async () => {
+    const { applicationId } = await sendApplication('INT6');
+    const interviewAt = new Date(Date.now() + 72 * HOUR_MS).toISOString();
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}`)
+      .set('Cookie', cookie)
+      .send({ stage: 'interview', interviewAt, interviewNote: 'Round 2 with the CTO' });
+
+    const res = await request(app).get('/api/v1/applications').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+    const summary = res.body.applications.find((a: { id: string }) => a.id === applicationId);
+    expect(summary).toMatchObject({
+      stage: 'interview',
+      interviewAt,
+      interviewNote: 'Round 2 with the CTO',
+    });
+  });
+});
+
+describe('interview-reminder scheduling + job processor (Phase 3)', () => {
+  const HOUR_MS = 60 * 60 * 1000;
+
+  it('scheduleInterviewReminder targets interviewAt − 24h and skips when that is past', async () => {
+    const applicationId = '64b7f9c2e4b0a1f2c3d4e5f6';
+    const in72h = new Date(Date.now() + 72 * HOUR_MS);
+    const scheduled = await scheduleInterviewReminder(applicationId, userId, in72h);
+    expect(scheduled).not.toBeNull();
+    expect(scheduled!.remindAt.getTime()).toBe(in72h.getTime() - INTERVIEW_REMINDER_LEAD_MS);
+
+    const in2h = new Date(Date.now() + 2 * HOUR_MS);
+    expect(await scheduleInterviewReminder(applicationId, userId, in2h)).toBeNull();
+
+    // Inline mode: cancel is a no-op and must not throw.
+    await expect(cancelInterviewReminder(applicationId)).resolves.toBeUndefined();
+  });
+
+  it('emails the USER their reminder with company, role, time and note', async () => {
+    const { applicationId } = await sendApplication('REM1');
+    const interviewAt = new Date(Date.now() + 30 * HOUR_MS);
+    await Application.updateOne(
+      { _id: applicationId },
+      { $set: { stage: 'interview', interviewAt, interviewNote: 'Ask about team structure' } },
+    );
+
+    sendMailCalls = [];
+    const outcome = await processInterviewReminder({
+      applicationId,
+      userId,
+      interviewAt: interviewAt.toISOString(),
+    });
+    expect(outcome).toBe('sent');
+    expect(sendMailCalls).toHaveLength(1);
+    expect(sendMailCalls[0].to).toBe(user.email); // the user's OWN address, not HR
+    expect(sendMailCalls[0].subject).toBe('Interview with Acme REM1 tomorrow');
+    expect(sendMailCalls[0].text).toContain('Role: Backend Engineer');
+    expect(sendMailCalls[0].text).toContain('Time: ');
+    expect(sendMailCalls[0].text).toContain('Ask about team structure');
+  });
+
+  it('skips when the stage moved on, the time moved, or the interview already passed', async () => {
+    const { applicationId } = await sendApplication('REM2');
+    const interviewAt = new Date(Date.now() + 30 * HOUR_MS);
+    sendMailCalls = [];
+
+    // Stage no longer interview.
+    await Application.updateOne(
+      { _id: applicationId },
+      { $set: { stage: 'offer', interviewAt } },
+    );
+    expect(
+      await processInterviewReminder({
+        applicationId,
+        userId,
+        interviewAt: interviewAt.toISOString(),
+      }),
+    ).toBe('skipped');
+
+    // interviewAt moved since this job was queued.
+    await Application.updateOne({ _id: applicationId }, { $set: { stage: 'interview' } });
+    expect(
+      await processInterviewReminder({
+        applicationId,
+        userId,
+        interviewAt: new Date(interviewAt.getTime() + 6 * HOUR_MS).toISOString(),
+      }),
+    ).toBe('skipped');
+
+    // Interview already happened.
+    const past = new Date(Date.now() - HOUR_MS);
+    await Application.updateOne({ _id: applicationId }, { $set: { interviewAt: past } });
+    expect(
+      await processInterviewReminder({
+        applicationId,
+        userId,
+        interviewAt: past.toISOString(),
+      }),
+    ).toBe('skipped');
+
+    expect(sendMailCalls).toHaveLength(0);
+  });
+
+  it('treats a missing Gmail transport as best-effort: skipped, lastSendError untouched', async () => {
+    const { applicationId } = await sendApplication('REM3');
+    const interviewAt = new Date(Date.now() + 30 * HOUR_MS);
+    await Application.updateOne(
+      { _id: applicationId },
+      { $set: { stage: 'interview', interviewAt } },
+    );
+
+    nextSendMailError = new GmailNotConnectedError();
+    const outcome = await processInterviewReminder({
+      applicationId,
+      userId,
+      interviewAt: interviewAt.toISOString(),
+    });
+    expect(outcome).toBe('skipped'); // caught — never crashes the job runner
+
+    const dbUser = await User.findById(userId);
+    expect(dbUser!.lastSendError).toBeNull(); // reminder failures never trip the send banner
   });
 });
 

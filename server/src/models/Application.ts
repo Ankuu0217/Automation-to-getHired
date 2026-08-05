@@ -37,6 +37,10 @@ export interface IApplication extends Document {
   templateId: Types.ObjectId | null;
   emails: IApplicationEmail[];
   notes: string;
+  /** Scheduled interview time (Phase 3) — drives the 24h reminder email. */
+  interviewAt: Date | null;
+  /** Free-form interview prep note, included in the reminder email. */
+  interviewNote: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,6 +89,8 @@ const applicationSchema = new Schema<IApplication>(
     templateId: { type: Schema.Types.ObjectId, ref: 'EmailTemplate', default: null },
     emails: { type: [emailSubSchema], default: [] },
     notes: { type: String, default: '' },
+    interviewAt: { type: Date, default: null },
+    interviewNote: { type: String, default: null },
   },
   { timestamps: true },
 );

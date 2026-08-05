@@ -18,6 +18,10 @@ import {
   processSendFollowUp,
   type SendFollowUpJobData,
 } from './jobs/followups';
+import {
+  processInterviewReminder,
+  type InterviewReminderJobData,
+} from './jobs/interviewReminder';
 import { processPollReplies } from './replyDetection';
 
 /**
@@ -35,6 +39,10 @@ const SEND_EMAIL_JOB = 'send-email';
 const SEND_FOLLOWUP_JOB = 'send-followup';
 const MARK_GHOSTED_JOB = 'mark-ghosted';
 const POLL_REPLIES_JOB = 'poll-replies';
+const INTERVIEW_REMINDER_JOB = 'interview-reminder';
+
+/** Reminder emails go out this long before the interview (Phase 3). */
+export const INTERVIEW_REMINDER_LEAD_MS = 24 * 60 * 60 * 1000;
 
 /** Agenda 5 types its `mongo` option against its bundled mongodb@4 driver. */
 type AgendaMongoDb = NonNullable<ConstructorParameters<typeof Agenda>[0]>['mongo'];
@@ -133,15 +141,75 @@ export async function stopFollowUpSequence(applicationId: string): Promise<void>
 }
 
 /**
+ * Interview reminder scheduling (Phase 3). Cancel + (re)schedule are the only
+ * entry points the applications route uses: every interviewAt/stage change
+ * first cancels the previously queued job (same unique-identifier pattern as
+ * stopFollowUpSequence), then schedules a fresh one when the conditions hold.
+ *
+ * Returns the reminder time it would fire at, or null when scheduling was
+ * skipped because interviewAt − 24h is already in the past. Unlike sends,
+ * reminders are future-dated by definition and are NEVER run synchronously in
+ * QUEUE_INLINE mode — inline scheduling is a deliberate no-op (tests invoke
+ * processInterviewReminder directly), leaving the send path's inline behavior
+ * untouched.
+ */
+export async function scheduleInterviewReminder(
+  applicationId: string,
+  userId: string,
+  interviewAt: Date,
+): Promise<{ remindAt: Date } | null> {
+  const remindAt = new Date(interviewAt.getTime() - INTERVIEW_REMINDER_LEAD_MS);
+  if (remindAt.getTime() <= Date.now()) return null; // < 24h out (or past) — nothing to remind
+
+  if (env.QUEUE_INLINE || !agenda) {
+    // Inline mode: no Agenda, and a reminder must not fire during the PATCH.
+    return { remindAt };
+  }
+
+  const data: InterviewReminderJobData = {
+    applicationId,
+    userId,
+    interviewAt: interviewAt.toISOString(),
+  };
+  await agenda.schedule(remindAt, INTERVIEW_REMINDER_JOB, data);
+  logger.info({ applicationId, remindAt }, 'interview-reminder scheduled');
+  return { remindAt };
+}
+
+/** Remove any queued interview reminder for an application. Safe to repeat. */
+export async function cancelInterviewReminder(applicationId: string): Promise<void> {
+  if (agenda) {
+    await agenda.cancel({ name: INTERVIEW_REMINDER_JOB, 'data.applicationId': applicationId });
+  }
+}
+
+/**
+ * Interview reminders are best-effort: failures are logged and dropped — no
+ * retries, and NEVER recorded on User.lastSendError (that flag drives the
+ * send-pipeline reconnect banner).
+ */
+async function handleInterviewReminderJob(data: InterviewReminderJobData): Promise<void> {
+  try {
+    await processInterviewReminder(data);
+  } catch (err) {
+    logger.error({ err, applicationId: data.applicationId }, 'interview-reminder failed');
+  }
+}
+
+/**
  * Remove every scheduled job belonging to a user (account deletion): pending
- * initial sends plus all follow-ups queued for their applications. No-op in
- * QUEUE_INLINE mode (no Agenda, nothing scheduled).
+ * initial sends plus all follow-ups and interview reminders queued for their
+ * applications. No-op in QUEUE_INLINE mode (no Agenda, nothing scheduled).
  */
 export async function cancelUserJobs(userId: string, applicationIds: string[]): Promise<void> {
   if (!agenda) return;
   await agenda.cancel({ name: SEND_EMAIL_JOB, 'data.userId': userId });
   if (applicationIds.length > 0) {
     await agenda.cancel({ name: SEND_FOLLOWUP_JOB, 'data.applicationId': { $in: applicationIds } });
+    await agenda.cancel({
+      name: INTERVIEW_REMINDER_JOB,
+      'data.applicationId': { $in: applicationIds },
+    });
   }
 }
 
@@ -174,6 +242,13 @@ export async function initQueue(): Promise<void> {
     { concurrency: 2, lockLifetime: 5 * 60 * 1000 },
     async (job: Job<SendFollowUpJobData>) => {
       await handleFollowUpJob(job.attrs.data);
+    },
+  );
+  agenda.define(
+    INTERVIEW_REMINDER_JOB,
+    { concurrency: 2, lockLifetime: 5 * 60 * 1000 },
+    async (job: Job<InterviewReminderJobData>) => {
+      await handleInterviewReminderJob(job.attrs.data);
     },
   );
   agenda.define(MARK_GHOSTED_JOB, async () => {

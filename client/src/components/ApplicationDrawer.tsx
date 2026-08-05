@@ -1,4 +1,8 @@
-import type { ApplicationDetailResponse, ApplicationStage } from '@jobmail/shared';
+import type {
+  ApplicationDetailResponse,
+  ApplicationStage,
+  ApplicationUpdateInput,
+} from '@jobmail/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -12,8 +16,10 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Mono } from '@/components/Mono';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -53,6 +59,14 @@ const TIMELINE_DOT: Record<TimelineKind, string> = {
   replied: 'bg-ok',
   bounced: 'bg-danger',
 };
+
+/** ISO (or null) → datetime-local input value in the viewer's timezone. */
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function EmailThread({ application }: { application: ApplicationDetailResponse }) {
   if (application.emails.length === 0) {
@@ -177,6 +191,14 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
     setNotes(application?.notes ?? '');
   }, [application?.id, application?.notes]);
 
+  /* Interview draft (Phase 3), re-synced the same way. */
+  const [interviewAtLocal, setInterviewAtLocal] = useState('');
+  const [interviewNote, setInterviewNote] = useState('');
+  useEffect(() => {
+    setInterviewAtLocal(isoToLocalInput(application?.interviewAt ?? null));
+    setInterviewNote(application?.interviewNote ?? '');
+  }, [application?.id, application?.interviewAt, application?.interviewNote]);
+
   const onUpdated = (data: { application: ApplicationDetailResponse }) => {
     queryClient.setQueryData(['application', applicationId], data);
     void queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -204,6 +226,18 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
     onError: onMutationError('Could not save the notes.'),
   });
 
+  const interviewMutation = useMutation({
+    mutationFn: (input: ApplicationUpdateInput) =>
+      updateApplication(applicationId as string, input),
+    onSuccess: (data) => {
+      onUpdated(data);
+      toast.success(
+        data.application.interviewAt ? 'Interview saved.' : 'Interview date cleared.',
+      );
+    },
+    onError: onMutationError('Could not save the interview details.'),
+  });
+
   const repliedMutation = useMutation({
     mutationFn: () => markApplicationReplied(applicationId as string),
     onSuccess: (data) => {
@@ -215,6 +249,25 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
 
   const alreadyReplied = application?.emails.some((e) => e.repliedAt !== null) ?? false;
   const notesDirty = application !== null && notes !== application.notes;
+  const interviewDirty =
+    application !== null &&
+    (interviewAtLocal !== isoToLocalInput(application.interviewAt) ||
+      interviewNote !== (application.interviewNote ?? ''));
+  const reminderScheduled =
+    application?.interviewAt != null &&
+    new Date(application.interviewAt).getTime() > Date.now();
+
+  const saveInterview = () => {
+    interviewMutation.mutate({
+      interviewAt: interviewAtLocal ? new Date(interviewAtLocal).toISOString() : null,
+      interviewNote: interviewNote.trim() ? interviewNote : null,
+    });
+  };
+
+  const clearInterviewDate = () => {
+    setInterviewAtLocal('');
+    if (application?.interviewAt) interviewMutation.mutate({ interviewAt: null });
+  };
 
   return (
     <Sheet
@@ -290,6 +343,63 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
                 </Button>
               )}
             </div>
+
+            {/* Interview (Phase 3) — revealed while the stage is Interview. */}
+            {application.stage === 'interview' && (
+              <>
+                <Separator />
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="drawer-interview-at">Interview</Label>
+                    {interviewMutation.isPending && (
+                      <Loader2 className="size-3.5 animate-spin text-text-3-dark" />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      id="drawer-interview-at"
+                      type="datetime-local"
+                      className="w-56"
+                      value={interviewAtLocal}
+                      onChange={(e) => setInterviewAtLocal(e.target.value)}
+                    />
+                    {interviewAtLocal !== '' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={interviewMutation.isPending}
+                        onClick={clearInterviewDate}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  {reminderScheduled && (
+                    <Mono size="xs" color="fog" className="block">
+                      Reminder 24h before
+                    </Mono>
+                  )}
+                  <Textarea
+                    id="drawer-interview-note"
+                    aria-label="Interview note"
+                    rows={3}
+                    placeholder="Panel names, meeting link, prep pointers…"
+                    value={interviewNote}
+                    onChange={(e) => setInterviewNote(e.target.value)}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!interviewDirty || interviewMutation.isPending}
+                      onClick={saveInterview}
+                    >
+                      Save interview
+                    </Button>
+                  </div>
+                </section>
+              </>
+            )}
 
             <Separator />
 

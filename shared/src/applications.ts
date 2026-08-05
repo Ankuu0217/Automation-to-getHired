@@ -114,6 +114,10 @@ export const applicationSummarySchema = z.object({
    * scheduled — sequence stopped (reply/bounce/terminal stage) or none pending.
    */
   nextFollowUpAt: z.string().nullable(),
+  /** Scheduled interview time (ISO) — set from the drawer (Phase 3). */
+  interviewAt: z.string().nullable(),
+  /** Free-form interview prep note shown alongside the reminder. */
+  interviewNote: z.string().nullable(),
   createdAt: z.string(),
 });
 export type ApplicationSummary = z.infer<typeof applicationSummarySchema>;
@@ -130,19 +134,35 @@ export const applicationDetailSchema = z.object({
   emails: z.array(applicationEmailResponseSchema),
   notes: z.string(),
   events: z.array(applicationEventSchema),
+  /** Scheduled interview time (ISO) — set from the drawer (Phase 3). */
+  interviewAt: z.string().nullable(),
+  /** Free-form interview prep note shown alongside the reminder. */
+  interviewNote: z.string().nullable(),
   createdAt: z.string(),
 });
 export type ApplicationDetailResponse = z.infer<typeof applicationDetailSchema>;
 
-/** PATCH /applications/:id body — stage and/or notes (at least one). */
+/**
+ * PATCH /applications/:id body — stage, notes and/or interview fields (at
+ * least one). interviewAt/interviewNote accept null so clearing works.
+ */
 export const applicationUpdateSchema = z
   .object({
     stage: applicationStageSchema.optional(),
     notes: z.string().max(5000).optional(),
+    interviewAt: z.string().datetime({ offset: true }).nullable().optional(),
+    interviewNote: z.string().max(2000).nullable().optional(),
   })
-  .refine((v) => v.stage !== undefined || v.notes !== undefined, {
-    message: 'Provide stage and/or notes',
-  });
+  .refine(
+    (v) =>
+      v.stage !== undefined ||
+      v.notes !== undefined ||
+      v.interviewAt !== undefined ||
+      v.interviewNote !== undefined,
+    {
+      message: 'Provide stage, notes, interviewAt and/or interviewNote',
+    },
+  );
 export type ApplicationUpdateInput = z.infer<typeof applicationUpdateSchema>;
 
 export const applicationListResponseSchema = z.object({
