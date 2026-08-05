@@ -43,10 +43,11 @@
     --danger: #e08d84; /* desaturated red: dots, text, hairlines, ghost borders only */
 
     /* Radius */
-    --r-btn: 8px;
-    --r-nav: 12px;
-    --r-card: 16px;
+    --r-btn: 10px;
+    --r-nav: 14px;
+    --r-card: 20px;
     --r-card-lg: 40px;
+    --r-arrow: 14px;
     --r-pill: 9999px;
 
     /* Signature border-trace draw runs in the accent */
@@ -87,6 +88,39 @@
 }
 
 @layer components {
+  /*
+   * Landing hero backdrop: layered ink-green folds with one warm bronze
+   * bloom, drifting very slowly. Sits behind the hero render so the page
+   * never depends on a missing image. Reduced motion is handled by the
+   * global media rule below.
+   */
+  .hero-mesh {
+    position: relative;
+    background-color: #0d1a17;
+    background-image:
+      radial-gradient(90rem 60rem at 85% 15%, rgba(34, 47, 48, 0.95), transparent 62%),
+      radial-gradient(70rem 52rem at 12% 88%, rgba(21, 46, 39, 0.9), transparent 58%),
+      radial-gradient(52rem 38rem at 55% 70%, rgba(16, 34, 29, 0.9), transparent 60%);
+    overflow: hidden;
+  }
+  .hero-mesh::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    background-image:
+      radial-gradient(46rem 30rem at 68% 52%, rgba(185, 138, 94, 0.4), transparent 58%),
+      radial-gradient(26rem 16rem at 60% 46%, rgba(224, 181, 134, 0.28), transparent 55%);
+    animation: mesh-drift 24s ease-in-out infinite alternate;
+  }
+  @keyframes mesh-drift {
+    from {
+      transform: translate3d(-2%, 1%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(2%, -2%, 0) scale(1.06);
+    }
+  }
+
   /* The one focus treatment — lime signal lamp. */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-ink;

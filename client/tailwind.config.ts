@@ -68,10 +68,11 @@ export default {
         'display-xl': ['111px', { lineHeight: '1', letterSpacing: '-0.03em' }],
       },
       borderRadius: {
-        btn: '8px',
-        nav: '12px',
-        card: '16px',
+        btn: '10px',
+        nav: '14px',
+        card: '20px',
         'card-lg': '40px',
+        arrow: '14px',
         pill: '9999px',
       },
       keyframes: {
