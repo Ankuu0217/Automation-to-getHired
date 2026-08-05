@@ -1,5 +1,6 @@
 import {
   ErrorCodes,
+  type ImportJobInput,
   type JobPostResponse,
   type SendFailureCode,
   type SendJobInput,
@@ -13,6 +14,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
+  ExternalLink,
   ImageOff,
   ImagePlus,
   Mail,
@@ -36,11 +38,13 @@ import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import {
   ApiRequestError,
   generateJobEmail,
   getJob,
   getProfile,
+  importJob,
   jobScreenshotUrl,
   sendJob,
   updateJobDraft,
@@ -50,7 +54,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import {
+  MAX_IMPORT_CHARS,
   MAX_SCREENSHOT_BYTES,
+  MIN_IMPORT_CHARS,
   defaultHrEmail,
   formatBytes,
   isJobProcessing,
@@ -140,12 +146,18 @@ function StepsHeader({ current }: { current: FlowStep }) {
 
 /* ── Step 1: Upload ─────────────────────────────────────────────── */
 
+type UploadMode = 'screenshot' | 'paste';
+
 interface UploadStepProps {
   analyzing: boolean;
   analyzingPreviewUrl: string | null;
   failed: boolean;
+  /** Server-side failure reason (e.g. duplicate) — surfaced in paste mode. */
+  failureMessage: string | null;
   uploading: boolean;
+  importing: boolean;
   onUpload: (file: File) => void;
+  onImport: (input: ImportJobInput) => void;
   onReset: () => void;
   onManualEntry?: () => void;
 }
@@ -154,14 +166,21 @@ function UploadStep({
   analyzing,
   analyzingPreviewUrl,
   failed,
+  failureMessage,
   uploading,
+  importing,
   onUpload,
+  onImport,
   onReset,
   onManualEntry,
 }: UploadStepProps) {
+  const [mode, setMode] = useState<UploadMode>('screenshot');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showTrace, setShowTrace] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) {
@@ -204,8 +223,27 @@ function UploadStep({
     multiple: false,
   });
 
-  /* Analyzing — the AI wait state. */
+  const trimmedLength = pasteText.trim().length;
+  const canImport = trimmedLength >= MIN_IMPORT_CHARS && trimmedLength <= MAX_IMPORT_CHARS;
+
+  const handleImport = () => {
+    const url = sourceUrl.trim();
+    if (url) {
+      try {
+        new URL(url);
+      } catch {
+        setUrlError('Enter a full URL, including https://');
+        return;
+      }
+    }
+    setUrlError(null);
+    const rawText = pasteText.trim();
+    onImport(url ? { rawText, sourceUrl: url } : { rawText });
+  };
+
+  /* Analyzing — the AI wait state (shared by both sources). */
   if (analyzing) {
+    const pasted = mode === 'paste';
     return (
       <div className="rounded-card border border-graphite bg-ink-2 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -219,9 +257,13 @@ function UploadStep({
             <Skeleton className="h-24 w-24 shrink-0 rounded-btn bg-ink-3" />
           )}
           <div>
-            <Mono size="sm" color="pure">Analyzing screenshot</Mono>
+            <Mono size="sm" color="pure">
+              {pasted ? 'Analyzing job post' : 'Analyzing screenshot'}
+            </Mono>
             <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
-              Vision AI is reading the job post — usually a few seconds.
+              {pasted
+                ? 'Reading the pasted description — usually a few seconds.'
+                : 'Vision AI is reading the job post — usually a few seconds.'}
             </p>
             <ProcessingSequence className="mt-3" />
           </div>
@@ -232,19 +274,25 @@ function UploadStep({
 
   /* Extraction failed on the server. */
   if (failed) {
+    const pasted = mode === 'paste';
     return (
       <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
         <div className="flex items-start gap-3">
           <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
           <div className="min-w-0 flex-1">
-            <Mono size="xs" color="danger">COULDN&apos;T READ THIS ONE</Mono>
+            <Mono size="xs" color="danger">
+              {pasted ? 'COULDN’T IMPORT THIS ONE' : 'COULDN’T READ THIS ONE'}
+            </Mono>
             <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
-              We couldn&apos;t read this screenshot. Try a sharper capture — the full job post, in focus.
+              {pasted
+                ? failureMessage ??
+                  'We couldn’t process that text. Edit it and try again.'
+                : 'We couldn’t read this screenshot. Try a sharper capture — the full job post, in focus.'}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Button variant="outline" size="sm" onClick={onReset}>
-                <UploadCloud className="size-4" />
-                Try another screenshot
+                {pasted ? <RefreshCw className="size-4" /> : <UploadCloud className="size-4" />}
+                {pasted ? 'Edit the text' : 'Try another screenshot'}
               </Button>
               {onManualEntry && (
                 <Button variant="ghost" size="sm" onClick={onManualEntry}>
@@ -258,8 +306,89 @@ function UploadStep({
     );
   }
 
+  const modeTab = (value: UploadMode, label: string) => (
+    <button
+      type="button"
+      aria-pressed={mode === value}
+      onClick={() => setMode(value)}
+      className={cn(
+        'focus-ring rounded-nav px-3 py-1.5 font-mono text-[13px] uppercase tracking-[-0.02em] transition-quick',
+        mode === value
+          ? 'bg-lime text-ink'
+          : 'border border-graphite text-text-2-dark hover:bg-ink-3',
+      )}
+    >
+      {label}
+    </button>
+  );
+
+  if (mode === 'paste') {
+    return (
+      <div className="space-y-5">
+        <div role="group" aria-label="Job post source" className="flex items-center gap-2">
+          {modeTab('screenshot', 'Screenshot')}
+          {modeTab('paste', 'Paste text')}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Mono size="xs" color="fog">JOB DESCRIPTION TEXT</Mono>
+            <Mono
+              size="xs"
+              color={
+                trimmedLength > MAX_IMPORT_CHARS
+                  ? 'warn'
+                  : trimmedLength >= MIN_IMPORT_CHARS
+                    ? 'ash'
+                    : 'fog'
+              }
+            >
+              {trimmedLength} / {MAX_IMPORT_CHARS}
+            </Mono>
+          </div>
+          <Textarea
+            id="import-jd-text"
+            aria-label="Job description text"
+            rows={10}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={`Paste the full job description — at least ${MIN_IMPORT_CHARS} characters. Include the company, role, and any contact email.`}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Mono size="xs" color="fog">SOURCE URL — OPTIONAL, KEPT AS A REFERENCE</Mono>
+          <Input
+            id="import-source-url"
+            type="url"
+            placeholder="https://www.linkedin.com/jobs/view/…"
+            value={sourceUrl}
+            onChange={(e) => {
+              setSourceUrl(e.target.value);
+              setUrlError(null);
+            }}
+            aria-invalid={urlError !== null}
+          />
+          {urlError && <Mono size="xs" color="danger">{urlError}</Mono>}
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <Button disabled={!canImport || importing} onClick={handleImport}>
+            {importing ? 'Importing…' : 'Import & analyze'}
+          </Button>
+          {canImport && !importing && <ArrowSquare decorative onClick={handleImport} />}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      <div role="group" aria-label="Job post source" className="flex items-center gap-2">
+        {modeTab('screenshot', 'Screenshot')}
+        {modeTab('paste', 'Paste text')}
+      </div>
+
       <div
         {...getRootProps()}
         className={cn(
@@ -807,9 +936,25 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
-        {/* Screenshot + disclosures */}
+        {/* Screenshot (or import source link) + disclosures */}
         <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <ScreenshotThumb jobId={job.id} />
+          {job.hasScreenshot !== false ? (
+            <ScreenshotThumb jobId={job.id} />
+          ) : job.sourceUrl ? (
+            /* Text imports: the URL is a stored reference only — never fetched by the server. */
+            <a
+              href={job.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="focus-ring flex items-center gap-3 rounded-btn border border-graphite bg-ink-2 px-4 py-3 transition-quick hover:bg-ink-3"
+            >
+              <ExternalLink className="size-4 shrink-0 text-text-2-dark" />
+              <span className="min-w-0 flex-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-paper">
+                {job.sourceUrl}
+              </span>
+              <Mono size="xs" color="fog">SOURCE</Mono>
+            </a>
+          ) : null}
           {extraction?.jdText && <Disclosure title="Job description">{extraction.jdText}</Disclosure>}
           {lowConfidence && (
             <Disclosure title="Raw extracted text" mono>
@@ -1371,6 +1516,17 @@ export function NewApplication() {
     },
   });
 
+  /* Pasted-text import — same 202 → poll contract as the screenshot upload. */
+  const importMutation = useMutation({
+    mutationFn: importJob,
+    onSuccess: (data) => {
+      setJobId(data.jobPostId);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Import failed — please try again.');
+    },
+  });
+
   const handleReset = useCallback(() => {
     setJobId(null);
     setLocalPreviewUrl(null);
@@ -1436,11 +1592,18 @@ export function NewApplication() {
 
     return (
       <UploadStep
-        analyzing={uploadMutation.isPending || (jobId !== null && (jobQuery.isPending || processing))}
+        analyzing={
+          uploadMutation.isPending ||
+          importMutation.isPending ||
+          (jobId !== null && (jobQuery.isPending || processing))
+        }
         analyzingPreviewUrl={localPreviewUrl}
         failed={job?.status === 'failed'}
+        failureMessage={job?.error ?? null}
         uploading={uploadMutation.isPending}
+        importing={importMutation.isPending}
         onUpload={(file) => uploadMutation.mutate(file)}
+        onImport={(input) => importMutation.mutate(input)}
         onReset={handleReset}
         onManualEntry={handleManualEntry}
       />
@@ -1455,6 +1618,7 @@ export function NewApplication() {
     processing,
     localPreviewUrl,
     uploadMutation,
+    importMutation,
     jobQuery.refetch,
     manualEntry,
     handleReset,

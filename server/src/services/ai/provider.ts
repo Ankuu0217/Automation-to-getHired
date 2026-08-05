@@ -7,7 +7,12 @@ import type {
 } from '@jobmail/shared';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
-import { analyzeMatchWithGemini, extractWithGemini, generateEmailWithGemini } from './gemini';
+import {
+  analyzeMatchWithGemini,
+  extractTextWithGemini,
+  extractWithGemini,
+  generateEmailWithGemini,
+} from './gemini';
 import { ocrImage } from './ocr';
 import { extractFromText } from './heuristics';
 import { analyzeMatchHeuristic, generateEmailFromTemplate } from './outreach';
@@ -28,6 +33,10 @@ export interface AIProvider {
     buffer: Buffer,
     mimeType: string,
   ): Promise<{ extraction: JobExtraction; source: 'vision' | 'ocr'; rawText: string }>;
+  /** Extract from pasted job-post text (Phase 2, POST /jobs/import). Same output contract. */
+  extractJobFromText(
+    rawText: string,
+  ): Promise<{ extraction: JobExtraction; source: 'vision' | 'ocr'; rawText: string }>;
   /** Match jdText against the candidate profile (SPEC §4 Step B). */
   analyzeMatch(input: MatchAnalysisInput): Promise<JobMatch>;
   /** Draft the outreach email (SPEC §4 Step C). Output is rule-repaired before return. */
@@ -39,6 +48,14 @@ async function extractViaOcr(
   buffer: Buffer,
 ): Promise<{ extraction: JobExtraction; source: 'ocr'; rawText: string }> {
   const text = await ocrImage(buffer);
+  const { extraction, rawText } = extractFromText(text);
+  return { extraction, source: 'ocr', rawText };
+}
+
+/** Heuristics-only text pipeline (no OCR step — the text is already text). Always available. */
+function extractTextViaHeuristics(
+  text: string,
+): { extraction: JobExtraction; source: 'ocr'; rawText: string } {
   const { extraction, rawText } = extractFromText(text);
   return { extraction, source: 'ocr', rawText };
 }
@@ -57,6 +74,20 @@ class GeminiVisionProvider implements AIProvider {
         'Vision extraction failed, falling back to OCR',
       );
       return extractViaOcr(buffer);
+    }
+  }
+
+  async extractJobFromText(rawText: string) {
+    try {
+      const { extraction, rawText: modelText } = await extractTextWithGemini(rawText);
+      return { extraction, source: 'vision' as const, rawText: modelText };
+    } catch (err) {
+      // Same degradation contract as images: API down/quota/bad output → heuristics.
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Gemini text extraction failed, falling back to heuristics',
+      );
+      return extractTextViaHeuristics(rawText);
     }
   }
 
@@ -92,6 +123,10 @@ class OcrOnlyProvider implements AIProvider {
 
   async extractJobFromImage(buffer: Buffer) {
     return extractViaOcr(buffer);
+  }
+
+  async extractJobFromText(rawText: string) {
+    return extractTextViaHeuristics(rawText);
   }
 
   async analyzeMatch(input: MatchAnalysisInput): Promise<JobMatch> {

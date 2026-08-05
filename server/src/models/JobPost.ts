@@ -15,7 +15,10 @@ import type {
 export interface IJobPost extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  /** Empty string for pasted-text imports (no screenshot on disk). */
   screenshotPath: string;
+  /** Reference link supplied on text import — stored only, NEVER fetched (SSRF). */
+  sourceUrl: string | null;
   rawExtractedText: string;
   extraction: StoredExtraction | null;
   status: JobStatus;
@@ -81,7 +84,9 @@ const matchSubSchema = new Schema(
 const jobPostSchema = new Schema<IJobPost>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    screenshotPath: { type: String, required: true },
+    // Not required: pasted-text imports (POST /jobs/import) have no screenshot.
+    screenshotPath: { type: String, default: '' },
+    sourceUrl: { type: String, default: null },
     rawExtractedText: { type: String, default: '' },
     extraction: { type: extractionSubSchema, default: null },
     status: {

@@ -9,6 +9,11 @@ import type { HrEmail, JobPostResponse, JobStatus } from '@jobmail/shared';
 export const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
 export const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 
+/* ── Pasted-text import (Phase 2) — mirrors shared importJobSchema ─ */
+
+export const MIN_IMPORT_CHARS = 40;
+export const MAX_IMPORT_CHARS = 20000;
+
 /* ── Confidence (edge cases 2 + 3) ──────────────────────────────── */
 
 export type ConfidenceTier = 'high' | 'medium' | 'low';

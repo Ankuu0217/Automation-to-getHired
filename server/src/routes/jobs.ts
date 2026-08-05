@@ -9,10 +9,12 @@ import {
   ErrorCodes,
   extractionUpdateSchema,
   generateEmailSchema,
+  importJobSchema,
   LOW_MATCH_THRESHOLD,
   sendJobSchema,
   type DraftUpdateInput,
   type GenerateEmailInput,
+  type ImportJobInput,
   type JobPostResponse,
   type JobPostSummary,
   type OutreachProfileSnapshot,
@@ -30,7 +32,7 @@ import { AppError } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { generateLimiter, sendLimiter, uploadLimiter } from '../middleware/rateLimit';
-import { runExtraction } from '../services/extractionRunner';
+import { runExtraction, runTextExtraction } from '../services/extractionRunner';
 import { scheduleSendEmail } from '../services/queue';
 import { getAIProvider } from '../services/ai/provider';
 import { emailBodyToHtml } from '../services/emailRules';
@@ -80,6 +82,8 @@ function toDto(job: IJobPost): JobPostResponse {
     error: job.error,
     failureCode: job.failureCode,
     templateId: job.templateId ? String(job.templateId) : null,
+    sourceUrl: job.sourceUrl,
+    hasScreenshot: Boolean(job.screenshotPath),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };
@@ -148,6 +152,37 @@ jobsRouter.post('/upload', uploadLimiter, upload.single('screenshot'), async (re
   }
 });
 
+/**
+ * Pasted job description → async extraction (Phase 2). Mirrors /upload
+ * exactly, with a text source instead of a screenshot: the JobPost is
+ * created in 'processing' state (pasted text parked in rawExtractedText),
+ * the client polls GET /jobs/:id until the status flips, and duplicates
+ * surface the same way (extraction-time → status 'failed').
+ *
+ * `sourceUrl` is stored as a reference link only — it is NEVER fetched
+ * server-side (SSRF).
+ */
+jobsRouter.post('/import', uploadLimiter, validate(importJobSchema), async (req, res, next) => {
+  try {
+    const input = req.body as ImportJobInput;
+
+    const job = await JobPost.create({
+      userId: req.userId!,
+      rawExtractedText: input.rawText,
+      sourceUrl: input.sourceUrl ?? null,
+      status: 'processing',
+    });
+
+    // Fire-and-forget: runTextExtraction handles and persists its own errors.
+    void runTextExtraction(String(job._id));
+
+    const body: UploadJobResponse = { jobPostId: String(job._id) };
+    res.status(202).json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
 jobsRouter.get('/', async (req, res, next) => {
   try {
     const jobs = await JobPost.find({ userId: req.userId! }).sort({ createdAt: -1 }).limit(100);
@@ -170,6 +205,10 @@ jobsRouter.get('/:id', async (req, res, next) => {
 jobsRouter.get('/:id/screenshot', async (req, res, next) => {
   try {
     const job = await findOwnJob(req.userId!, req.params.id);
+    // Pasted-text imports have no screenshot on disk.
+    if (!job.screenshotPath) {
+      throw new AppError(404, ErrorCodes.NOT_FOUND, 'Screenshot not found');
+    }
     const head = Buffer.alloc(12);
     const fd = await fs.promises.open(job.screenshotPath, 'r');
     await fd.read(head, 0, 12, 0);

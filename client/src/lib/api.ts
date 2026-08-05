@@ -10,6 +10,7 @@ import type {
   FunnelAnalyticsResponse,
   GmailConnectResponse,
   GmailStatusResponse,
+  ImportJobInput,
   JobPostResponse,
   JobPostSummary,
   LoginInput,
@@ -185,6 +186,11 @@ export function uploadJobScreenshot(file: File) {
   const formData = new FormData();
   formData.append('screenshot', file);
   return api<UploadJobResponse>('/jobs/upload', { method: 'POST', body: formData });
+}
+
+/** Pasted-JD import — same 202 { jobPostId } contract as the screenshot upload. */
+export function importJob(input: ImportJobInput) {
+  return api<UploadJobResponse>('/jobs/import', { method: 'POST', body: input });
 }
 
 export function getJob(id: string) {

@@ -61,6 +61,21 @@ export const extractionUpdateSchema = z.object({
 });
 export type ExtractionUpdateInput = z.infer<typeof extractionUpdateSchema>;
 
+/**
+ * POST /jobs/import — pasted job description text (Phase 2).
+ * `sourceUrl` is a reference link only: the server stores it verbatim and
+ * NEVER fetches it (SSRF).
+ */
+export const importJobSchema = z.object({
+  rawText: z
+    .string()
+    .trim()
+    .min(40, 'Paste at least 40 characters of the job description')
+    .max(20000, 'Job description text is limited to 20,000 characters'),
+  sourceUrl: z.string().trim().url().max(2000).optional(),
+});
+export type ImportJobInput = z.infer<typeof importJobSchema>;
+
 /** Draft placeholder shape; M3 fills it via generate-email / PUT draft. */
 export const emailDraftSchema = z.object({
   subject: z.string().max(300).default(''),
@@ -151,6 +166,10 @@ export interface JobPostResponse {
   failureCode: SendFailureCode | null;
   /** EmailTemplate used for generation (null when generated freehand). */
   templateId: string | null;
+  /** Reference link supplied on text import — stored only, never fetched (SSRF). */
+  sourceUrl: string | null;
+  /** False for pasted-text imports (no screenshot to serve). */
+  hasScreenshot: boolean;
   createdAt: string;
   updatedAt: string;
 }

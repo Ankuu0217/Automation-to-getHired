@@ -219,8 +219,9 @@ export function Landing() {
 
           <div className="mt-16 flex flex-wrap items-end justify-between gap-8">
             <p className="max-w-[520px] text-body-xl font-normal text-bone">
-              We read a job post from a screenshot, write a personalized email against your resume,
-              and send it from your own Gmail — capped, tracked, and followed up on schedule.
+              We read a job post from a screenshot or pasted text, write a personalized email
+              against your resume, and send it from your own Gmail — capped, tracked, and followed
+              up on schedule.
             </p>
             <div className="flex items-center gap-3">
               <a

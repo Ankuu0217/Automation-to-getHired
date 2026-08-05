@@ -32,6 +32,30 @@ Rules:
 - If the screenshot is blurry or partially readable, still extract what you can and lower "confidence" accordingly.
 - Use null for fields you genuinely cannot determine. Never invent emails or names.`;
 
+/**
+ * Strict JSON-output prompt for pasted-text extraction (Phase 2, POST
+ * /jobs/import). Same output schema as the vision prompt — the parsing and
+ * persistence pipeline downstream is shared.
+ */
+const TEXT_EXTRACTION_PROMPT = `You are extracting structured data from the pasted text of a job posting.
+
+Respond with ONLY a JSON object matching this exact schema (no markdown, no prose):
+{
+  "company": "string|null",
+  "role": "string|null",
+  "location": "string|null",
+  "jdText": "string (full cleaned job description text)",
+  "hrName": "string|null (name of the poster/recruiter if mentioned)",
+  "hrEmails": [{ "email": "string", "confidence": 0.0-1.0 }],
+  "confidence": 0.0-1.0
+}
+
+Rules:
+- IGNORE page chrome the paste may have dragged along: navigation, cookie banners, "similar jobs", ads, footer links. Only real job content belongs in jdText.
+- hrEmails: every email address present in the job content. Score confidence higher for emails tied to a named recruiter/hiring manager, then role-based mailboxes (careers@, jobs@, hr@), then generic ones (info@).
+- If the text is truncated or noisy, still extract what you can and lower "confidence" accordingly.
+- Use null for fields you genuinely cannot determine. Never invent emails or names.`;
+
 export interface GeminiExtractionResult {
   extraction: JobExtraction;
   /** Raw model text, kept for debugging/review in rawExtractedText. */
@@ -53,6 +77,24 @@ export async function extractWithGemini(
   const result = await model.generateContent([
     EXTRACTION_PROMPT,
     { inlineData: { data: buffer.toString('base64'), mimeType } },
+  ]);
+  const text = result.response.text();
+
+  return { extraction: parseExtractionJson(text), rawText: text };
+}
+
+/**
+ * Send pasted job-post text to Gemini and parse the strict-JSON response.
+ * Throws on API errors or unparseable output — the provider layer catches
+ * and falls back to the regex heuristics.
+ */
+export async function extractTextWithGemini(rawText: string): Promise<GeminiExtractionResult> {
+  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+
+  const result = await model.generateContent([
+    TEXT_EXTRACTION_PROMPT,
+    `JOB POSTING TEXT:\n${rawText.slice(0, 20000)}`,
   ]);
   const text = result.response.text();
 

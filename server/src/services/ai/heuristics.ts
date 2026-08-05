@@ -69,8 +69,9 @@ function extractCompany(text: string): string | null {
 
 function extractRole(text: string): string | null {
   const patterns = [
-    /hiring (?:a|an|the)?\s*([A-Z][A-Za-z0-9+/# -]{2,60}?)(?:\s*(?:in|at|[-–—|])|[.!\n])/,
-    /looking for (?:a|an|the)?\s*([A-Z][A-Za-z0-9+/# -]{2,60}?)(?:\s*(?:in|at|to join|[-–—|])|[.!\n])/,
+    // "in"/"at" terminators need word boundaries: "Platform" must not stop at "Pl".
+    /hiring (?:a|an|the)?\s*([A-Z][A-Za-z0-9+/# -]{2,60}?)(?:\s+(?:in|at)\b|\s*[-–—|]|[.!\n])/,
+    /looking for (?:a|an|the)?\s*([A-Z][A-Za-z0-9+/# -]{2,60}?)(?:\s+(?:in|at|to join)\b|\s*[-–—|]|[.!\n])/,
     /(?:role|position|title|job title)[:\s]+([A-Z][A-Za-z0-9+/# -]{2,60}?)(?:\n|$)/i,
   ];
   for (const re of patterns) {
