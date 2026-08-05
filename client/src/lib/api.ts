@@ -3,6 +3,8 @@ import type {
   ApplicationDetailEnvelope,
   ApplicationListResponse,
   ApplicationUpdateInput,
+  ContactDetailEnvelope,
+  ContactsResponse,
   DraftUpdateInput,
   EmailTemplateCreateInput,
   EmailTemplateUpdateInput,
@@ -253,6 +255,16 @@ export function updateApplication(id: string, input: ApplicationUpdateInput) {
 /** Manual reply marking — sets repliedAt, advances applied → hr_screen. */
 export function markApplicationReplied(id: string) {
   return api<MarkRepliedResponse>(`/applications/${id}/mark-replied`, { method: 'POST' });
+}
+
+/* ── Phase 4: recruiter contacts (mini-CRM) ─────────────────────── */
+
+export function getContacts() {
+  return api<ContactsResponse>('/contacts');
+}
+
+export function getContact(email: string) {
+  return api<ContactDetailEnvelope>(`/contacts/${encodeURIComponent(email)}`);
 }
 
 /* ── M5: outreach templates (CRUD + per-template stats) ─────────── */

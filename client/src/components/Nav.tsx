@@ -14,6 +14,7 @@ const APP_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/pipeline', label: 'Pipeline' },
   { to: '/dispatches', label: 'Dispatches' },
+  { to: '/contacts', label: 'Contacts' },
   { to: '/templates', label: 'Templates' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/settings', label: 'Settings' },

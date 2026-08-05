@@ -1,4 +1,4 @@
-import type { Tone } from '@jobmail/shared';
+import type { RecentContactInfo, Tone } from '@jobmail/shared';
 import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 
 import { usePrevious } from '@/hooks/usePrevious';
@@ -14,6 +14,13 @@ const TONES: { value: Tone; label: string }[] = [
   { value: 'friendly', label: 'Friendly' },
 ];
 
+/** "You emailed this recruiter N days ago (Company)." — shared warn copy. */
+export function recentContactMessage(recentContact: RecentContactInfo): string {
+  const { daysAgo, company } = recentContact;
+  const when = daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+  return `You emailed this recruiter ${when}${company ? ` (${company})` : ''}.`;
+}
+
 interface ProofSheetProps {
   fromName: string;
   fromEmail: string;
@@ -27,6 +34,8 @@ interface ProofSheetProps {
   isGenerating?: boolean;
   isSending?: boolean;
   queuedAt?: string | null;
+  /** Informational double-outreach flag from the job DTO — never blocks the send. */
+  recentContact?: RecentContactInfo | null;
   className?: string;
   editing?: boolean;
   footerActions?: ReactNode;
@@ -52,6 +61,7 @@ export function ProofSheet({
   isGenerating = false,
   isSending = false,
   queuedAt,
+  recentContact,
   className,
   editing: controlledEditing,
   footerActions,
@@ -134,6 +144,18 @@ export function ProofSheet({
             ry="16"
           />
         </svg>
+      )}
+
+      {/* Double-outreach note — informational hairline, never blocks sending. */}
+      {recentContact && (
+        <div className="mb-4 rounded-btn border border-warn/40 px-4 py-3">
+          <Mono size="xs" color="warn">
+            Recent contact
+          </Mono>
+          <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
+            {recentContactMessage(recentContact)}
+          </p>
+        </div>
       )}
 
       {/* Header */}

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { RequireAuth } from '@/components/RequireAuth';
 import { Analytics } from '@/pages/Analytics';
+import { Contacts } from '@/pages/Contacts';
 import { Dashboard } from '@/pages/Dashboard';
 import { Dispatches } from '@/pages/Dispatches';
 import { Landing } from '@/pages/Landing';
@@ -41,6 +42,7 @@ export function App() {
         <Route path="/apps/new" element={<NewApplication />} />
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/dispatches" element={<Dispatches />} />
+        <Route path="/contacts" element={<Contacts />} />
         <Route path="/templates" element={<Templates />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />

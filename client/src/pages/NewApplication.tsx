@@ -32,7 +32,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Mono } from '@/components/Mono';
-import { ProofSheet } from '@/components/ProofSheet';
+import { ProofSheet, recentContactMessage } from '@/components/ProofSheet';
 import { StatusLabel } from '@/components/StatusLabel';
 import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -910,6 +910,21 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
         </div>
       )}
 
+      {/* Phase 4: double-outreach note — informational only, never blocks. */}
+      {job.recentContact && (
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
+          <div className="flex items-start gap-3">
+            <Mail className="mt-0.5 size-5 shrink-0 text-warn" />
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="warn">RECENT CONTACT</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
+                {recentContactMessage(job.recentContact)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edge case 4: duplicate warning */}
       {duplicateId !== null && (
         <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
@@ -1433,6 +1448,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
         body={editing ? editBody : current.draft.bodyText}
         attachmentName={resumeName ?? undefined}
         tone={tone}
+        recentContact={current.recentContact ?? null}
         isGenerating={busy}
         isSending={sendMutation.isPending}
         editing={editing}

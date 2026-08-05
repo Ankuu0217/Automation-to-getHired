@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SendFailureCode } from './applications.js';
 import { toneEnum, type Tone } from './auth.js';
+import type { RecentContactInfo } from './contacts.js';
 import type { TemplateGuidance } from './templates.js';
 
 /* ── Job post statuses (SPEC §3) ──────────────────────────────────
@@ -170,6 +171,12 @@ export interface JobPostResponse {
   sourceUrl: string | null;
   /** False for pasted-text imports (no screenshot to serve). */
   hasScreenshot: boolean;
+  /**
+   * Non-blocking double-outreach flag (Phase 4): set when the chosen HR email
+   * was contacted within the last 14 days on a different application.
+   * Only computed on GET /jobs/:id — other routes omit it.
+   */
+  recentContact?: RecentContactInfo | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -11,6 +11,7 @@ import {
   generateEmailSchema,
   importJobSchema,
   LOW_MATCH_THRESHOLD,
+  RECENT_CONTACT_WINDOW_DAYS,
   sendJobSchema,
   type DraftUpdateInput,
   type GenerateEmailInput,
@@ -18,6 +19,7 @@ import {
   type JobPostResponse,
   type JobPostSummary,
   type OutreachProfileSnapshot,
+  type RecentContactInfo,
   type SendJobInput,
   type SendJobResponse,
   type TemplateGuidance,
@@ -25,6 +27,7 @@ import {
   type UploadJobResponse,
 } from '@jobmail/shared';
 import { JobPost, type IJobPost } from '../models/JobPost';
+import { Application } from '../models/Application';
 import { Profile, type IProfile } from '../models/Profile';
 import { EmailTemplate, type IEmailTemplate } from '../models/EmailTemplate';
 import { User } from '../models/User';
@@ -192,10 +195,51 @@ jobsRouter.get('/', async (req, res, next) => {
   }
 });
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Double-outreach guard (Phase 4) — NON-BLOCKING, informational only.
+ * Was this job's chosen HR email already sent an email within the last
+ * 14 days on a DIFFERENT application? Returns the most recent such contact.
+ * One indexed query (userId + emails.sentAt), skipped when the job has no
+ * candidate email. Never gates the send pipeline.
+ */
+async function findRecentContact(
+  userId: string,
+  job: IJobPost,
+): Promise<RecentContactInfo | null> {
+  if (!job.hrEmail) return null;
+  const since = new Date(Date.now() - RECENT_CONTACT_WINDOW_DAYS * DAY_MS);
+  const candidates = await Application.find({
+    userId,
+    hrEmail: job.hrEmail,
+    jobPostId: { $ne: job._id },
+    'emails.sentAt': { $gte: since },
+  }).select('company emails.sentAt');
+
+  let latest: { sentAt: Date; company: string | null } | null = null;
+  for (const application of candidates) {
+    for (const email of application.emails) {
+      if (email.sentAt && email.sentAt >= since && (!latest || email.sentAt > latest.sentAt)) {
+        latest = { sentAt: email.sentAt, company: application.company };
+      }
+    }
+  }
+  if (!latest) return null;
+  return {
+    email: job.hrEmail,
+    daysAgo: Math.floor((Date.now() - latest.sentAt.getTime()) / DAY_MS),
+    company: latest.company,
+  };
+}
+
 jobsRouter.get('/:id', async (req, res, next) => {
   try {
     const job = await findOwnJob(req.userId!, req.params.id);
-    res.json({ job: toDto(job) });
+    // recentContact rides on this DTO only — the review flow and ProofSheet
+    // both consume GET /jobs/:id, so one computation covers both surfaces.
+    const recentContact = await findRecentContact(req.userId!, job);
+    res.json({ job: { ...toDto(job), recentContact } });
   } catch (err) {
     next(err);
   }
