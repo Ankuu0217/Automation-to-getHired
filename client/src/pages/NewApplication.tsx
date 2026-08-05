@@ -384,9 +384,15 @@ function UploadStep({
 
   return (
     <div className="space-y-5">
-      <div role="group" aria-label="Job post source" className="flex items-center gap-2">
-        {modeTab('screenshot', 'Screenshot')}
-        {modeTab('paste', 'Paste text')}
+      <div className="flex items-center justify-between gap-2">
+        <div role="group" aria-label="Job post source" className="flex items-center gap-2">
+          {modeTab('screenshot', 'Screenshot')}
+          {modeTab('paste', 'Paste text')}
+        </div>
+        {/* Phase 8: bulk upload lives on its own page — no main-nav entry. */}
+        <Link to="/apps/batch" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          Batch
+        </Link>
       </div>
 
       <div

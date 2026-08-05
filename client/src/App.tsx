@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { RequireAuth } from '@/components/RequireAuth';
 import { Analytics } from '@/pages/Analytics';
+import { BatchUpload } from '@/pages/BatchUpload';
 import { Contacts } from '@/pages/Contacts';
 import { Dashboard } from '@/pages/Dashboard';
 import { Dispatches } from '@/pages/Dispatches';
@@ -40,6 +41,7 @@ export function App() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/apps/new" element={<NewApplication />} />
+        <Route path="/apps/batch" element={<BatchUpload />} />
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/dispatches" element={<Dispatches />} />
         <Route path="/contacts" element={<Contacts />} />
