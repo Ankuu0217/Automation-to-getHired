@@ -99,7 +99,7 @@ function SheetClose({ onClose, className }: { onClose: () => void; className?: s
       aria-label="Close panel"
       onClick={onClose}
       className={cn(
-        'rounded-func p-1.5 text-text-2 transition-quick hover:bg-surface-2 hover:text-pure',
+        'focus-ring rounded-func p-1.5 text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1',
         className,
       )}
     >

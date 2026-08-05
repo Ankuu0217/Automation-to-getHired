@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { GmailConnectPanel } from '@/components/GmailConnect';
 import { Mono } from '@/components/Mono';
+import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -136,7 +137,7 @@ function SendingSection() {
           </p>
         </div>
 
-        <Separator className="bg-pure/[0.06]" />
+        <Separator />
 
         {/* Auto-send */}
         <div className="flex items-start justify-between gap-4">
@@ -159,7 +160,7 @@ function SendingSection() {
           />
         </div>
 
-        <Separator className="bg-pure/[0.06]" />
+        <Separator />
 
         {/* Follow-ups */}
         <div className="flex items-start justify-between gap-4">
@@ -260,6 +261,7 @@ function SignatureSection() {
 function DangerSection() {
   const navigate = useNavigate();
   const clear = useAuthStore((s) => s.clear);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: deleteAccount,
@@ -271,13 +273,7 @@ function DangerSection() {
     onError: (error) => toast.error(errorMessage(error, 'Could not delete account.')),
   });
 
-  const handleDelete = () => {
-    const confirmed = window.confirm(
-      'Delete your GetHired account and all data?\n\nThis permanently removes your profile, resumes, job posts, applications, templates, and tracking events, and revokes Gmail access. This cannot be undone.',
-    );
-    if (!confirmed) return;
-    deleteMutation.mutate();
-  };
+  const handleDelete = () => setDeleteOpen(true);
 
   return (
     <section id="danger" className="scroll-mt-28">
@@ -313,6 +309,19 @@ function DangerSection() {
           </Button>
         </div>
       </div>
+
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete account & all data?"
+        description="This permanently removes your profile, resumes, job posts, applications, templates, and tracking events, and revokes Gmail access. This cannot be undone."
+        confirmLabel="Delete everything"
+        destructive
+        onConfirm={() => {
+          setDeleteOpen(false);
+          deleteMutation.mutate();
+        }}
+      />
     </section>
   );
 }

@@ -371,9 +371,6 @@ function HrEmailSection({
   const ranked = rankHrEmails(job.extraction?.hrEmails ?? []);
   const [customMode, setCustomMode] = useState(job.needsEmail || ranked.length === 0);
 
-  const inputClass =
-    'bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30';
-
   /* Edge case 1: no email in the screenshot — manual entry, never blocking. */
   if (ranked.length === 0) {
     return (
@@ -397,7 +394,6 @@ function HrEmailSection({
             placeholder="recruiter@company.com"
             value={customEmail}
             onChange={(e) => onCustomChange(e.target.value)}
-            className={inputClass}
           />
           {emailError && (
             <Mono size="xs" color="danger">{emailError}</Mono>
@@ -484,7 +480,6 @@ function HrEmailSection({
             placeholder="recruiter@company.com"
             value={customEmail}
             onChange={(e) => onCustomChange(e.target.value)}
-            className={inputClass}
           />
           {emailError && (
             <Mono size="xs" color="danger">{emailError}</Mono>
@@ -699,10 +694,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
           value={value}
           placeholder={placeholder}
           onChange={(e) => setValue(e.target.value)}
-          className={cn(
-            'bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30',
-            warn && 'border-warn focus-visible:border-warn focus-visible:ring-warn/30',
-          )}
+          aria-invalid={warn}
         />
       </div>
     );

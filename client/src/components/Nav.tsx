@@ -83,7 +83,7 @@ function UserMenu() {
             <p className="truncate font-sans text-sm font-normal text-text-1">{user?.name}</p>
             <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">{user?.email}</p>
           </div>
-          <Separator className="my-1 bg-pure/[0.06]" />
+          <Separator className="my-1" />
           <button
             type="button"
             onClick={() => logoutMutation.mutate()}

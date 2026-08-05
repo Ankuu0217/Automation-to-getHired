@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import { CategoryTile } from '@/components/CategoryTile';
 import { Mono } from '@/components/Mono';
+import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -179,6 +180,7 @@ function TemplateCard({
   onEdit: (t: EmailTemplateResponse) => void;
 }) {
   const queryClient = useQueryClient();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: deleteTemplate,
@@ -195,10 +197,7 @@ function TemplateCard({
     onError: (error) => toast.error(errorMessage(error, 'Could not set default template.')),
   });
 
-  const handleDelete = () => {
-    if (!confirm(`Delete “${template.name}”? This cannot be undone.`)) return;
-    deleteMutation.mutate(template.id);
-  };
+  const handleDelete = () => setDeleteOpen(true);
 
   const rr = replyRate(template.stats.sent, template.stats.replied);
 
@@ -263,6 +262,19 @@ function TemplateCard({
           </Mono>
         </div>
       </div>
+
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete template?"
+        description={`“${template.name}” will be permanently removed. This cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setDeleteOpen(false);
+          deleteMutation.mutate(template.id);
+        }}
+      />
     </div>
   );
 }

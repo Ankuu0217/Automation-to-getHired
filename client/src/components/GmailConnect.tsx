@@ -4,6 +4,7 @@ import { Loader2, Mail, Unplug } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Mono } from '@/components/Mono';
@@ -20,6 +21,7 @@ export function GmailConnectPanel() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const [oauthMissing, setOauthMissing] = useState(false);
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
 
   const connectMutation = useMutation({
     mutationFn: connectGmail,
@@ -53,11 +55,7 @@ export function GmailConnectPanel() {
 
   const connected = user?.gmailConnected ?? false;
 
-  const handleDisconnect = () => {
-    if (window.confirm('Disconnect Gmail? Sending will stop until you reconnect.')) {
-      disconnectMutation.mutate();
-    }
-  };
+  const handleDisconnect = () => setDisconnectOpen(true);
 
   return (
     <div className="space-y-3">
@@ -114,6 +112,19 @@ export function GmailConnectPanel() {
           )}
         </div>
       </div>
+
+      <AlertDialog
+        open={disconnectOpen}
+        onOpenChange={setDisconnectOpen}
+        title="Disconnect Gmail?"
+        description="Sending will stop until you reconnect."
+        confirmLabel="Disconnect"
+        destructive
+        onConfirm={() => {
+          setDisconnectOpen(false);
+          disconnectMutation.mutate();
+        }}
+      />
 
       {oauthMissing && !connected && (
         <div className="rounded-func border border-warn/30 bg-warn/10 p-3">

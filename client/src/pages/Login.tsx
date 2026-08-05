@@ -62,7 +62,6 @@ export function Login() {
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('email')}
           />
           {errors.email && (
@@ -82,7 +81,6 @@ export function Login() {
             autoComplete="current-password"
             placeholder="••••••••"
             aria-invalid={!!errors.password}
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('password')}
           />
           {errors.password && (

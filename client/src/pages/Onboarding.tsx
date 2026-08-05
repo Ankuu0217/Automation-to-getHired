@@ -117,7 +117,6 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
             }
           }}
           placeholder="Add a skill (e.g. React) and press Enter"
-          className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
         />
         <Button type="button" variant="outline" size="icon" onClick={addSkill} aria-label="Add skill">
           <span aria-hidden>+</span>
@@ -338,7 +337,6 @@ function ProfileStep({
               value={summary}
               onChange={(e) => onSummaryChange(e.target.value)}
               placeholder="A short paragraph on who you are and what you do best."
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             />
           </div>
         </div>
@@ -349,21 +347,18 @@ function ProfileStep({
           <Field label="Full name" error={errors.fullName?.message}>
             <Input
               placeholder="Ada Lovelace"
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('fullName')}
             />
           </Field>
           <Field label="Headline" error={errors.headline?.message}>
             <Input
               placeholder="Backend Engineer · Node.js · Fintech"
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('headline')}
             />
           </Field>
           <Field label="Location" error={errors.location?.message}>
             <Input
               placeholder="Bengaluru, India"
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('location')}
             />
           </Field>
@@ -372,7 +367,6 @@ function ProfileStep({
               type="number"
               min={0}
               max={50}
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('yearsExp')}
             />
           </Field>
@@ -381,7 +375,6 @@ function ProfileStep({
         <Field label="Phone" error={errors.phone?.message}>
           <Input
             placeholder="+91 98765 43210"
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...register('phone')}
           />
         </Field>
@@ -389,7 +382,6 @@ function ProfileStep({
         <Field label="LinkedIn URL" error={errors.linkedin?.message}>
           <Input
             placeholder="https://linkedin.com/in/…"
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...register('linkedin')}
           />
         </Field>
@@ -398,14 +390,12 @@ function ProfileStep({
           <Field label="GitHub URL" error={errors.github?.message}>
             <Input
               placeholder="https://github.com/…"
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('github')}
             />
           </Field>
           <Field label="Portfolio URL" error={errors.portfolio?.message}>
             <Input
               placeholder="https://…"
-              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('portfolio')}
             />
           </Field>

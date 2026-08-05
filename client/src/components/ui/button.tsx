@@ -4,25 +4,23 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-func font-sans text-base font-normal transition-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pure/40 disabled:pointer-events-none disabled:opacity-50',
+  'focus-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-func font-sans text-sm font-medium transition-quick disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default:
-          'bg-pure text-void hover:opacity-92',
-        destructive:
-          'bg-danger text-pure hover:bg-danger/90',
+        default: 'bg-primary text-primary-foreground hover:opacity-[0.92] active:opacity-[0.85]',
+        destructive: 'bg-danger text-pure hover:bg-danger/90 active:bg-danger/80',
         outline:
-          'border border-pure bg-transparent text-pure hover:bg-pure/8',
+          'border border-border-strong bg-transparent text-text-1 hover:bg-pure/[0.06] active:bg-pure/[0.04]',
         secondary:
-          'bg-surface text-pure hover:bg-surface-2',
-        ghost: 'text-text-2 hover:text-pure hover:bg-surface-2',
-        link: 'text-pure underline-offset-4 hover:underline',
+          'border border-border-strong bg-surface-2 text-text-1 shadow-inset-hairline hover:bg-pure/[0.08] active:bg-pure/[0.04]',
+        ghost: 'text-text-2 hover:bg-surface-2 hover:text-text-1 active:bg-surface',
+        link: 'text-text-1 underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-11 px-[18px] py-3',
-        sm: 'h-9 rounded-func px-3 py-2 text-sm',
-        lg: 'h-12 rounded-func px-6 text-base',
+        default: 'h-9 px-4 py-2',
+        sm: 'h-8 px-3',
+        lg: 'h-11 px-5 text-base',
         icon: 'h-9 w-9',
       },
     },

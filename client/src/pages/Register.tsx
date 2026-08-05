@@ -66,7 +66,6 @@ export function Register() {
             autoComplete="name"
             placeholder="Ada Lovelace"
             aria-invalid={!!errors.name}
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('name')}
           />
           {errors.name && (
@@ -86,7 +85,6 @@ export function Register() {
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('email')}
           />
           {errors.email && (
@@ -106,7 +104,6 @@ export function Register() {
             autoComplete="new-password"
             placeholder="8+ characters, with a letter and a number"
             aria-invalid={!!errors.password}
-            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('password')}
           />
           {errors.password && (
