@@ -18,6 +18,7 @@ export const ErrorCodes = {
   BAD_REQUEST: 'BAD_REQUEST',
   DUPLICATE_APPLICATION: 'DUPLICATE_APPLICATION',
   OAUTH_NOT_CONFIGURED: 'OAUTH_NOT_CONFIGURED',
+  RESUME_NOT_FOUND: 'RESUME_NOT_FOUND',
   INTERNAL: 'INTERNAL',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

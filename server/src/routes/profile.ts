@@ -116,6 +116,39 @@ profileRouter.put('/', validate(profileUpdateSchema), async (req, res, next) => 
 });
 
 /**
+ * Authenticated resume download — streams the stored PDF back to its owner
+ * (mirrors the screenshot streaming route in routes/jobs.ts). No resume on
+ * the profile, or a file gone from disk, are both a 404 RESUME_NOT_FOUND.
+ */
+profileRouter.get('/resume/download', async (req, res, next) => {
+  try {
+    const profile = await Profile.findOne({ userId: req.userId });
+    const resumeFile = profile?.resumeFile;
+    if (!resumeFile) {
+      throw new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'No resume uploaded');
+    }
+    try {
+      const stat = await fs.promises.stat(resumeFile.path);
+      if (!stat.isFile()) throw new Error('not a file');
+    } catch {
+      throw new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'Resume file not found');
+    }
+    // Header-safe filename: printable ASCII only, no quotes/backslashes/CRLF.
+    const safeName =
+      resumeFile.originalName
+        .replace(/[^\x20-\x7e]/g, '')
+        .replace(/["\\]/g, '')
+        .trim() || 'resume.pdf';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    fs.createReadStream(resumeFile.path).pipe(res);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * Resume upload: PDF only, 10 MB cap, magic-byte sniffed. Parses the PDF,
  * stores text on the profile, and returns naive prefill suggestions
  * (skills / summary / name / email / phone) so the UI can preview them.

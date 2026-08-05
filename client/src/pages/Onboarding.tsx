@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ResumeFileMeta, Tone } from '@jobmail/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Check, FileText, Mail, SlidersHorizontal, UploadCloud, User, X } from 'lucide-react';
+import { Check, FileText, Mail, SlidersHorizontal, UploadCloud, User } from 'lucide-react';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { GmailConnectPanel } from '@/components/GmailConnect';
 import { Logo } from '@/components/Logo';
 import { Mono } from '@/components/Mono';
+import { SkillsEditor } from '@/components/SkillsEditor';
 import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,65 +78,6 @@ function StepIndicator({ current }: { current: number }) {
         );
       })}
     </ol>
-  );
-}
-
-/* ── Skills chip editor ─────────────────────────────────────────── */
-
-function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skills: string[]) => void }) {
-  const [draft, setDraft] = useState('');
-
-  const addSkill = () => {
-    const value = draft.trim();
-    if (!value) return;
-    if (skills.length >= 50) {
-      toast.error('Maximum of 50 skills.');
-      return;
-    }
-    if (!skills.some((s) => s.toLowerCase() === value.toLowerCase())) {
-      onChange([...skills, value]);
-    }
-    setDraft('');
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {skills.map((skill) => (
-          <span
-            key={skill}
-            className="inline-flex items-center gap-1 rounded-pill border border-graphite px-2.5 py-1 font-sans text-xs text-text-2-dark"
-          >
-            {skill}
-            <button
-              type="button"
-              aria-label={`Remove ${skill}`}
-              onClick={() => onChange(skills.filter((s) => s !== skill))}
-              className="focus-ring rounded-pill p-0.5 text-text-3-dark transition-quick hover:text-paper"
-            >
-              <X className="size-3" />
-            </button>
-          </span>
-        ))}
-        {skills.length === 0 && <p className="font-sans text-sm text-text-2-dark">No skills yet — add a few below.</p>}
-      </div>
-      <div className="flex gap-2">
-        <Input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-              e.preventDefault();
-              addSkill();
-            }
-          }}
-          placeholder="Add a skill (e.g. React) and press Enter"
-        />
-        <Button type="button" variant="outline" size="icon" onClick={addSkill} aria-label="Add skill">
-          <span aria-hidden>+</span>
-        </Button>
-      </div>
-    </div>
   );
 }
 

@@ -174,6 +174,11 @@ export function uploadResume(file: File) {
   return api<ResumeParseResponse>('/profile/resume', { method: 'POST', body: formData });
 }
 
+/** Authenticated same-origin PDF URL — usable directly as `<a href download>` (cookies ride along). */
+export function downloadResumeUrl(): string {
+  return `${BASE_URL}/profile/resume/download`;
+}
+
 /* ── Jobs (M2: screenshot upload → extraction review) ───────────── */
 
 export function uploadJobScreenshot(file: File) {

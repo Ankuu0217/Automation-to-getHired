@@ -1,13 +1,20 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { profileUpdateSchema, type UpdateProfileInput } from '@jobmail/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { Download, FileText, Loader2, ShieldAlert, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useDropzone, type FileRejection } from 'react-dropzone';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { GmailConnectPanel } from '@/components/GmailConnect';
 import { Mono } from '@/components/Mono';
+import { SkillsEditor } from '@/components/SkillsEditor';
 import { AlertDialog } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { ArrowSquare } from '@/components/ui/arrow-square';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,19 +24,25 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   ApiRequestError,
   deleteAccount,
+  downloadResumeUrl,
   getProfile,
   me,
   updateProfile,
   updateSettings,
+  uploadResume,
 } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 
 const SECTIONS = [
+  { id: 'profile', label: 'Profile' },
   { id: 'gmail', label: 'Gmail' },
   { id: 'sending', label: 'Sending' },
   { id: 'signature', label: 'Signature' },
   { id: 'danger', label: 'Danger zone' },
 ] as const;
+
+const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof ApiRequestError ? error.message : fallback;
@@ -50,6 +63,311 @@ function SubNav() {
         </a>
       ))}
     </nav>
+  );
+}
+
+/* ── Profile & résumé ────────────────────────────────────────────────────── */
+
+function relativeUploadDate(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 31) return `${days} day${days === 1 ? '' : 's'} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+  const years = Math.floor(days / 365);
+  return `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+function ResumeCard() {
+  const queryClient = useQueryClient();
+  const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
+  const resumeFile = profileQuery.data?.profile.resumeFile ?? null;
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadResume,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast.success('Résumé updated.');
+    },
+    onError: (error) => toast.error(errorMessage(error, 'Could not parse that PDF.')),
+  });
+
+  const onDrop = (accepted: File[], rejected: FileRejection[]) => {
+    if (rejected.length > 0) {
+      const reason = rejected[0]?.errors[0];
+      toast.error(
+        reason?.code === 'file-too-large'
+          ? 'File too large — resumes must be 10 MB or less.'
+          : 'PDF only — export your resume as a PDF first.',
+      );
+      return;
+    }
+    if (accepted[0]) uploadMutation.mutate(accepted[0]);
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'application/pdf': ['.pdf'] },
+    maxSize: MAX_RESUME_BYTES,
+    multiple: false,
+  });
+
+  return (
+    <div className="rounded-card border border-graphite bg-ink-2 p-6">
+      {profileQuery.isPending ? (
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-56 bg-ink-3" />
+          <Skeleton className="h-24 w-full bg-ink-3" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {resumeFile ? (
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 font-sans text-sm font-normal text-paper">
+                  <FileText className="size-4 shrink-0 text-text-2-dark" />
+                  <span className="truncate">{resumeFile.originalName}</span>
+                </p>
+                <p className="mt-1 font-sans text-xs text-text-3-dark">
+                  Uploaded {relativeUploadDate(resumeFile.uploadedAt)}
+                </p>
+              </div>
+              <a
+                href={downloadResumeUrl()}
+                download
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
+              >
+                <Download className="size-4" />
+                Download
+              </a>
+            </div>
+          ) : (
+            <p className="font-sans text-sm font-normal text-text-2-dark">
+              No résumé yet — upload a PDF and it rides along with every outreach email.
+            </p>
+          )}
+
+          <div
+            {...getRootProps()}
+            className={cn(
+              'focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-btn border border-dashed px-6 py-8 text-center transition-quick',
+              isDragActive ? 'border-lime bg-ink' : 'border-graphite bg-ink hover:border-text-3-dark',
+              uploadMutation.isPending && 'pointer-events-none opacity-60',
+            )}
+          >
+            <input
+              {...getInputProps()}
+              aria-label={resumeFile ? 'Replace résumé' : 'Upload résumé'}
+            />
+            {uploadMutation.isPending ? (
+              <Mono size="sm" className="text-paper">Parsing…</Mono>
+            ) : (
+              <UploadCloud className="size-8 text-text-2-dark" />
+            )}
+            <div>
+              <p className="font-sans text-sm font-normal text-paper">
+                {uploadMutation.isPending
+                  ? 'Parsing your resume…'
+                  : resumeFile
+                    ? 'Drop a new PDF here to replace your résumé, or click to browse'
+                    : 'Drop your resume PDF here, or click to browse'}
+              </p>
+              <Mono size="xs" color="fog" className="mt-1">
+                PDF only, up to 10 MB
+              </Mono>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="font-sans text-sm font-normal text-paper">{label}</Label>
+      {children}
+      {error && (
+        <Mono size="xs" color="danger">
+          {error}
+        </Mono>
+      )}
+    </div>
+  );
+}
+
+function ProfileDetailsCard() {
+  const queryClient = useQueryClient();
+  const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
+  const [skills, setSkills] = useState<string[]>([]);
+  const [preferredRoles, setPreferredRoles] = useState<string[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<UpdateProfileInput>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+      fullName: '',
+      headline: '',
+      links: { linkedin: '', github: '', portfolio: '' },
+      summary: '',
+      noticePeriod: '',
+      currentCTC: '',
+      expectedCTC: '',
+    },
+  });
+
+  useEffect(() => {
+    if (!profileQuery.data) return;
+    const p = profileQuery.data.profile;
+    reset({
+      fullName: p.fullName,
+      headline: p.headline,
+      links: { linkedin: p.links.linkedin, github: p.links.github, portfolio: p.links.portfolio },
+      summary: p.summary,
+      noticePeriod: p.noticePeriod,
+      currentCTC: p.currentCTC,
+      expectedCTC: p.expectedCTC,
+    });
+    setSkills(p.skills);
+    setPreferredRoles(p.preferredRoles);
+  }, [profileQuery.data, reset]);
+
+  const saveMutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast.success('Profile saved.');
+    },
+    onError: (error) => toast.error(errorMessage(error, 'Could not save your profile.')),
+  });
+
+  const onSubmit = (values: UpdateProfileInput) => {
+    saveMutation.mutate({ ...values, skills, preferredRoles });
+  };
+
+  return (
+    <div className="rounded-card border border-graphite bg-ink-2 p-6">
+      {profileQuery.isPending ? (
+        <div className="space-y-3">
+          <Skeleton className="h-9 w-full bg-ink-3" />
+          <Skeleton className="h-9 w-full bg-ink-3" />
+          <Skeleton className="h-28 w-full bg-ink-3" />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ProfileField label="Full name" error={errors.fullName?.message}>
+              <Input placeholder="Ada Lovelace" {...register('fullName')} />
+            </ProfileField>
+            <ProfileField label="Headline" error={errors.headline?.message}>
+              <Input placeholder="Backend Engineer · Node.js · Fintech" {...register('headline')} />
+            </ProfileField>
+          </div>
+
+          <ProfileField label="Skills">
+            <SkillsEditor skills={skills} onChange={setSkills} />
+          </ProfileField>
+
+          <ProfileField label="Preferred roles">
+            <SkillsEditor
+              skills={preferredRoles}
+              onChange={setPreferredRoles}
+              max={20}
+              maxMessage="Maximum of 20 roles."
+              placeholder="Add a role (e.g. Backend Engineer) and press Enter"
+              emptyLabel="No preferred roles yet — add a few below."
+              addLabel="Add role"
+            />
+          </ProfileField>
+
+          <ProfileField label="LinkedIn URL" error={errors.links?.linkedin?.message}>
+            <Input placeholder="https://linkedin.com/in/…" {...register('links.linkedin')} />
+          </ProfileField>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ProfileField label="GitHub URL" error={errors.links?.github?.message}>
+              <Input placeholder="https://github.com/…" {...register('links.github')} />
+            </ProfileField>
+            <ProfileField label="Portfolio URL" error={errors.links?.portfolio?.message}>
+              <Input placeholder="https://…" {...register('links.portfolio')} />
+            </ProfileField>
+          </div>
+
+          <ProfileField label="Professional summary" error={errors.summary?.message}>
+            <Textarea
+              rows={5}
+              placeholder="A short paragraph on who you are and what you do best."
+              {...register('summary')}
+            />
+          </ProfileField>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ProfileField label="Notice period" error={errors.noticePeriod?.message}>
+              <Input placeholder="30 days" {...register('noticePeriod')} />
+            </ProfileField>
+            <ProfileField label="Current CTC" error={errors.currentCTC?.message}>
+              <Input placeholder="₹18 LPA" {...register('currentCTC')} />
+            </ProfileField>
+            <ProfileField label="Expected CTC" error={errors.expectedCTC?.message}>
+              <Input placeholder="₹24 LPA" {...register('expectedCTC')} />
+            </ProfileField>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button type="submit" disabled={saveMutation.isPending}>
+              {saveMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              Save profile
+            </Button>
+            <ArrowSquare
+              decorative
+              disabled={saveMutation.isPending}
+              onClick={() => void handleSubmit(onSubmit)()}
+            />
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function ProfileSection() {
+  return (
+    <section id="profile" className="scroll-mt-28">
+      <div className="mb-4">
+        <Mono size="xs" color="fog">
+          Candidate
+        </Mono>
+        <h2 className="mt-1 font-sans text-heading text-paper">
+          Profile & résumé.
+        </h2>
+        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
+          What your outreach knows about you — the résumé attached to every email, and the details
+          used to draft it.
+        </p>
+      </div>
+      <div className="space-y-6">
+        <ResumeCard />
+        <ProfileDetailsCard />
+      </div>
+    </section>
   );
 }
 
@@ -378,6 +696,7 @@ export function Settings() {
           </h1>
         </div>
 
+        <ProfileSection />
         <GmailSection />
         <SendingSection />
         <SignatureSection />
