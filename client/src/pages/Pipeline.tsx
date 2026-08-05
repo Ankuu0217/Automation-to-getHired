@@ -69,14 +69,14 @@ function CardBody({
   return (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate font-sans text-sm font-semibold text-text-1">
+        <p className="min-w-0 truncate font-sans text-sm font-semibold text-paper">
           {application.company ?? 'Unknown company'}
         </p>
       </div>
-      <p className="mt-0.5 truncate font-sans text-[13px] font-normal text-text-2">
+      <p className="mt-0.5 truncate font-sans text-[13px] font-normal text-text-2-dark">
         {application.role ?? 'Role unknown'}
       </p>
-      <p className="mt-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3">
+      <p className="mt-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3-dark">
         {application.hrName ? `${application.hrName} · ` : ''}
         {application.hrEmail}
       </p>
@@ -99,7 +99,7 @@ function CardBody({
             </span>
           )}
           {lastEmail?.openedAt && (
-            <span title="Opened" className="text-cyan">
+            <span title="Opened" className="text-lime">
               <MailOpen className="size-3.5" />
             </span>
           )}
@@ -141,7 +141,7 @@ function DraggableCard({
         if (e.key === 'Enter' && !isDragging) onOpen(application.id);
       }}
       className={cn(
-        'focus-ring cursor-grab touch-pan-y rounded-card border border-border bg-surface p-4 transition-quick hover:border-border-strong active:cursor-grabbing',
+        'focus-ring cursor-grab touch-pan-y rounded-card border border-graphite bg-ink-2 p-4 transition-quick hover:border-text-3-dark-dark active:cursor-grabbing',
         ghosted && 'border-dashed',
         isDragging && 'opacity-40',
       )}
@@ -172,7 +172,7 @@ function StageColumn({
     <section
       aria-label={`${stage.label} column`}
       className={cn(
-        'flex w-[300px] shrink-0 flex-col rounded-card border border-border bg-background p-3',
+        'flex w-[300px] shrink-0 flex-col rounded-card border border-graphite bg-ink p-3',
         dimmed && 'opacity-70',
       )}
     >
@@ -188,7 +188,7 @@ function StageColumn({
         ref={setNodeRef}
         className={cn(
           'flex min-h-40 flex-1 flex-col gap-2.5 transition-quick',
-          isOver && 'before:block before:h-0.5 before:bg-iris before:content-[""]',
+          isOver && 'before:block before:h-0.5 before:bg-lime before:content-[""]',
         )}
       >
         {applications.map((application) => (
@@ -200,7 +200,7 @@ function StageColumn({
           />
         ))}
         {applications.length === 0 && (
-          <p className="px-2 py-6 text-center font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">
+          <p className="px-2 py-6 text-center font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
             Drop cards here
           </p>
         )}
@@ -215,15 +215,15 @@ function BoardSkeleton() {
       {PIPELINE_STAGES.map((stage) => (
         <div
           key={stage.id}
-          className="w-[300px] shrink-0 rounded-card border border-border bg-background p-3"
+          className="w-[300px] shrink-0 rounded-card border border-graphite bg-ink p-3"
         >
           <div className="mb-3 flex items-baseline justify-between px-1">
-            <Skeleton className="h-3 w-20 bg-surface-2" />
-            <Skeleton className="h-3 w-6 bg-surface-2" />
+            <Skeleton className="h-3 w-20 bg-ink-3" />
+            <Skeleton className="h-3 w-6 bg-ink-3" />
           </div>
           <div className="space-y-2.5">
-            <Skeleton className="h-24 w-full bg-surface-2 rounded-card" />
-            <Skeleton className="h-24 w-full bg-surface-2 rounded-card" />
+            <Skeleton className="h-24 w-full bg-ink-3 rounded-card" />
+            <Skeleton className="h-24 w-full bg-ink-3 rounded-card" />
           </div>
         </div>
       ))}
@@ -319,7 +319,7 @@ export function Pipeline() {
           <Mono size="xs" color="fog">
             Applications
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
             The <span className="italic">pipeline</span>
           </h1>
         </div>
@@ -379,7 +379,7 @@ export function Pipeline() {
           </div>
           <DragOverlay>
             {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-card border border-border-strong bg-surface-2 p-4 shadow-lg">
+              <div className="w-[300px] rotate-2 rounded-card border border-text-3-dark-dark bg-ink-3 p-4">
                 <CardBody
                   application={activeApplication}
                   dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}

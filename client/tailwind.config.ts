@@ -2,9 +2,10 @@ import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
 
 /*
- * Class-level tokens for the Midnight Gallery system.
+ * Class-level tokens for the "Bioluminescent laboratory" system.
  * Values must stay in sync with the CSS variables in src/index.css
- * (kept as literals here so Tailwind alpha modifiers like bg-iris/10 work).
+ * (kept as literals here so Tailwind alpha modifiers like bg-lime/10 work).
+ * Depth comes from surface steps + hairlines: no boxShadow scale on purpose.
  */
 export default {
   darkMode: ['class'],
@@ -19,60 +20,59 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Instrument Serif', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        sans: ['Aspekta', 'Inter Tight', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['Roboto Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       colors: {
-        /* Accents — focus rings, links, active states, data-viz only */
-        iris: '#847dff',
-        cyan: '#00b3dd',
-        pale: '#d1c9ff',
-        deep: '#4b49aa',
-        orchid: '#dd90d8',
-        peri: '#90b8f0',
-
-        /* Status */
-        ok: '#7fb069',
-        warn: '#d9a441',
-        danger: '#c4574e',
-
-        /* Surface ladder */
-        background: '#0d0e0f',
-        surface: {
-          DEFAULT: '#151617',
-          2: '#1d1e20',
+        /* Brand */
+        ink: {
+          DEFAULT: '#222f30',
+          2: '#1b2526',
+          3: '#2a3737' /* system extension: hover/raised step */,
         },
-
-        /* Hairlines */
-        border: {
-          DEFAULT: 'rgba(255, 255, 255, 0.06)',
-          strong: 'rgba(255, 255, 255, 0.12)',
-        },
-
-        /* Text ladder */
-        'text-1': '#f5f5f7',
-        'text-2': '#9f9fa0',
-        'text-3': '#6a6b6b',
-        pure: '#ffffff',
+        lime: '#cef79e',
+        bone: '#f7f7f5',
+        paper: '#ffffff',
+        graphite: '#4d5757',
+        lichen: '#c9cbbe',
+        tissue: '#e7e8e1',
         void: '#000000',
-        silver: '#cacaca',
 
-        /* Primary action — white on black (Krea inversion) */
+        /* system extension: text + status on dark */
+        'text-2-dark': '#93a29f',
+        'text-3-dark': '#6d7c7a',
+        ok: '#cef79e',
+        warn: '#e5c07a',
+        danger: '#e08d84',
+
+        /* Primary action — light button on dark canvas (opposite-surface rule) */
         primary: {
           DEFAULT: '#ffffff',
-          foreground: '#000000',
+          foreground: '#222f30',
         },
       },
-      borderRadius: {
-        func: '8px',
-        card: '16px',
-        tile: '30px',
-        pill: '9999px',
+      borderColor: {
+        /* bare `border` = the dark-surface hairline; use border-lichen/tissue on light */
+        DEFAULT: '#4d5757',
       },
-      boxShadow: {
-        lg: 'rgba(0, 0, 0, 0.2) 0px 18px 20px 0px',
-        'inset-hairline': 'rgba(255, 255, 255, 0.04) 0px 1px 0px 0px inset',
+      fontSize: {
+        /* Aspekta scale — tracking tightens as size grows; single 400 weight */
+        body: ['16px', { lineHeight: '1.3', letterSpacing: '-0.001em' }],
+        'body-lg': ['18px', { lineHeight: '1.3', letterSpacing: '-0.001em' }],
+        'body-xl': ['19px', { lineHeight: '1.3', letterSpacing: '-0.001em' }],
+        subheading: ['24px', { lineHeight: '1.2', letterSpacing: '-0.004em' }],
+        heading: ['36px', { lineHeight: '1.1', letterSpacing: '-0.006em' }],
+        'heading-lg': ['42px', { lineHeight: '1.1', letterSpacing: '-0.006em' }],
+        'display-sm': ['58px', { lineHeight: '1', letterSpacing: '-0.02em' }],
+        display: ['75px', { lineHeight: '1', letterSpacing: '-0.02em' }],
+        'display-xl': ['111px', { lineHeight: '1', letterSpacing: '-0.03em' }],
+      },
+      borderRadius: {
+        btn: '8px',
+        nav: '12px',
+        card: '16px',
+        'card-lg': '40px',
+        pill: '9999px',
       },
       keyframes: {
         'fade-in': {
@@ -83,10 +83,6 @@ export default {
           from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
-        'slide-in-from-right': {
-          from: { transform: 'translateX(100%)' },
-          to: { transform: 'translateX(0)' },
-        },
         'border-trace': {
           from: { strokeDashoffset: '1000' },
           to: { strokeDashoffset: '0' },
@@ -95,7 +91,6 @@ export default {
       animation: {
         'fade-in': 'fade-in 0.2s ease',
         'fade-in-up': 'fade-in-up 0.45s ease-out',
-        'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
         'border-trace': 'border-trace 1.2s linear forwards',
       },
     },

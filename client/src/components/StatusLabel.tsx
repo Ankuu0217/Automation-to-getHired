@@ -16,17 +16,17 @@ interface StatusLabelProps {
  * (draft solid, ghosted hollow).
  */
 const DOT_COLOR: Record<StatusKind, string> = {
-  applied: 'bg-cyan',
-  hr_screen: 'bg-iris',
-  interview: 'bg-orchid',
+  applied: 'bg-lime',
+  hr_screen: 'bg-lime',
+  interview: 'bg-warn',
   offer: 'bg-ok',
   rejected: 'bg-danger',
-  ghosted: 'border border-text-3 bg-transparent',
-  sent: 'bg-cyan',
-  opened: 'bg-iris',
+  ghosted: 'border border-text-3-dark bg-transparent',
+  sent: 'bg-lime',
+  opened: 'bg-lime',
   replied: 'bg-ok',
   bounced: 'bg-danger',
-  draft: 'bg-text-3',
+  draft: 'bg-text-3-dark',
   queued: 'bg-warn',
 };
 

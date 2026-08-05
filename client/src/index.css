@@ -3,56 +3,65 @@
 @tailwind utilities;
 
 /*
- * Midnight Gallery — single semantic token set.
+ * "Bioluminescent laboratory at midnight" — single token set.
  *
- * Surfaces climb a Linear-style ladder (bg → surface → surface-2); depth
- * comes from hairline borders, not shadows. Chromatic accents (iris/cyan)
- * are reserved for focus rings, links, active states, and data-viz.
- * Tailwind classes for these values are defined in tailwind.config.ts and
- * must stay in sync with this file.
+ * Near-black ink canvas with a green undertone, Aspekta 400 for all
+ * display/body text (hierarchy = size + tracking, never weight), Roboto
+ * Mono for anything technical, and ONE lime accent rationed to
+ * micro-scale (40x40 arrow squares, 6px dots, active pills, focus rings,
+ * progress, chart strokes). Depth = surface steps + 1px hairlines; zero
+ * shadows anywhere. Tailwind classes mirror these values in
+ * tailwind.config.ts — keep the two files in sync.
  */
+
+@font-face {
+  font-family: 'Aspekta';
+  src: url('/fonts/AspektaVF.woff2') format('woff2-variations');
+  font-weight: 100 1000;
+  font-display: swap;
+}
+
 @layer base {
   :root {
-    /* Accents */
-    --iris: #847dff;
-    --cyan: #00b3dd;
-    --pale: #d1c9ff;
-    --deep: #4b49aa;
-    --orchid: #dd90d8;
-    --peri: #90b8f0;
-
-    /* Status */
-    --ok: #7fb069;
-    --warn: #d9a441;
-    --danger: #c4574e;
-
-    /* Surface ladder */
-    --bg: #0d0e0f;
-    --surface: #151617;
-    --surface-2: #1d1e20;
-
-    /* Hairlines */
-    --border: rgba(255, 255, 255, 0.06);
-    --border-strong: rgba(255, 255, 255, 0.12);
-    --border-trace: rgba(255, 255, 255, 0.4);
-
-    /* Text ladder */
-    --text-1: #f5f5f7;
-    --text-2: #9f9fa0;
-    --text-3: #6a6b6b;
-    --pure: #ffffff;
+    /* Brand palette */
+    --ink: #222f30;
+    --lime: #cef79e;
+    --bone: #f7f7f5;
+    --paper: #ffffff;
+    --graphite: #4d5757;
+    --lichen: #c9cbbe;
+    --tissue: #e7e8e1;
     --void: #000000;
-    --silver: #cacaca;
+
+    /* system extension: product-UI tokens (marketing ref lacks app needs) */
+    --ink-2: #1b2526; /* elevated surface step (cards/nav on dark) */
+    --ink-3: #2a3737; /* system extension: hover/raised step above ink-2 */
+    --text-2-dark: #93a29f; /* secondary text on dark (graphite fails WCAG on ink) */
+    --text-3-dark: #6d7c7a; /* tertiary/disabled on dark, large sizes only */
+    --ok: #cef79e; /* success IS the lime signal */
+    --warn: #e5c07a; /* desaturated amber: dots, text, hairlines only */
+    --danger: #e08d84; /* desaturated red: dots, text, hairlines, ghost borders only */
 
     /* Radius */
-    --r-func: 8px;
+    --r-btn: 8px;
+    --r-nav: 12px;
     --r-card: 16px;
-    --r-tile: 30px;
+    --r-card-lg: 40px;
     --r-pill: 9999px;
 
-    /* Landing signature gradients */
-    --chrome: linear-gradient(135deg, rgb(43, 43, 44), rgb(19, 19, 19));
-    --sky: linear-gradient(rgb(15, 16, 17), rgb(19, 29, 39) 18%, rgb(26, 71, 136) 37%, rgb(64, 138, 193) 69%);
+    /* Signature border-trace draw runs in the accent */
+    --border-trace: var(--lime);
+
+    /* shadcn-style aliases mapped onto the palette for primitive inheritance */
+    --background: var(--ink);
+    --foreground: var(--paper);
+    --card: var(--ink-2);
+    --card-foreground: var(--paper);
+    --accent: var(--lime);
+    --accent-foreground: var(--ink);
+    --ring: var(--lime);
+    --border: var(--graphite);
+    --input: var(--graphite);
   }
 
   html {
@@ -60,21 +69,13 @@
   }
 
   body {
-    @apply bg-background text-text-1 font-sans antialiased;
-  }
-
-  * {
-    @apply border-border;
+    @apply bg-ink font-sans text-paper antialiased;
   }
 }
 
 @layer utilities {
-  .font-display {
-    font-family: 'Instrument Serif', Georgia, serif;
-    letter-spacing: -0.01em;
-  }
   .font-sans {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Aspekta', 'Inter Tight', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   .font-mono {
     font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -83,35 +84,29 @@
   .transition-quick {
     transition: background-color 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
-
-  .chrome-frame {
-    background: var(--chrome);
-    padding: 12px;
-    border-radius: var(--r-card);
-  }
-
-  .sky-hero {
-    background: var(--sky);
-  }
 }
 
 @layer components {
-  /* The one focus treatment. Applied to every interactive element. */
+  /* The one focus treatment — lime signal lamp. */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-iris/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-ink;
   }
 
   /* Native range input; webkit/moz pseudo-elements can't be Tailwind utilities. */
   .slider {
-    @apply h-1 cursor-pointer appearance-none rounded-pill bg-surface-2 outline-none;
+    @apply h-1 cursor-pointer appearance-none rounded-pill bg-ink-3 outline-none;
+  }
+  .slider:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
   }
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    @apply size-4 rounded-full border-2 border-background bg-pure transition-transform hover:scale-110;
+    @apply size-4 rounded-full border-2 border-ink bg-paper transition-transform hover:scale-110;
   }
   .slider::-moz-range-thumb {
-    @apply size-4 rounded-full border-2 border-background bg-pure transition-transform hover:scale-110;
+    @apply size-4 rounded-full border-2 border-ink bg-paper transition-transform hover:scale-110;
   }
 }
 

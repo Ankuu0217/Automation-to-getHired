@@ -43,10 +43,10 @@ export function Login() {
   return (
     <AuthLayout>
       <div className="space-y-1">
-        <h1 className="font-display text-xl font-normal text-text-1">
+        <h1 className="font-sans text-xl font-normal text-paper">
           Welcome <span className="italic">back</span>
         </h1>
-        <p className="font-sans text-sm font-normal text-text-2">Sign in to your dispatch desk.</p>
+        <p className="font-sans text-sm font-normal text-text-2-dark">Sign in to your dispatch desk.</p>
       </div>
 
       <form
@@ -94,11 +94,11 @@ export function Login() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center font-sans text-sm text-text-2">
+      <p className="mt-6 text-center font-sans text-sm text-text-2-dark">
         New to GetHired?{' '}
         <Link
           to="/register"
-          className="focus-ring rounded-func font-normal text-text-1 underline-offset-4 hover:underline"
+          className="focus-ring rounded-btn font-normal text-paper underline-offset-4 hover:underline"
         >
           Create an account
         </Link>

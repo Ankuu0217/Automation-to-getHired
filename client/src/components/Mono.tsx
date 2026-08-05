@@ -11,14 +11,14 @@ interface MonoProps {
 }
 
 const COLOR_CLASS: Record<MonoColor, string> = {
-  ash: 'text-text-2',
-  fog: 'text-text-3',
-  pure: 'text-pure',
-  cyan: 'text-cyan',
+  ash: 'text-text-2-dark',
+  fog: 'text-text-3-dark',
+  pure: 'text-paper',
+  cyan: 'text-lime',
   warn: 'text-warn',
   danger: 'text-danger',
   ok: 'text-ok',
-  orchid: 'text-orchid',
+  orchid: 'text-warn',
 };
 
 const SIZE_CLASS: Record<MonoSize, string> = {

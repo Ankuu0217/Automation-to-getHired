@@ -62,23 +62,23 @@ export function GmailConnectPanel() {
       <div
         className={cn(
           'flex flex-col items-start justify-between gap-4 rounded-card border p-4 sm:flex-row sm:items-center',
-          connected ? 'border-border bg-surface' : 'border-border bg-background',
+          connected ? 'border-graphite bg-ink-2' : 'border-graphite bg-ink',
         )}
       >
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-func border',
-              connected ? 'border-ok/30 bg-ok/10 text-ok' : 'border-border bg-surface text-text-3',
+              'flex size-10 shrink-0 items-center justify-center rounded-btn border',
+              connected ? 'border-ok/30 bg-ok/10 text-ok' : 'border-graphite bg-ink-2 text-text-3-dark',
             )}
           >
             <Mail className="size-5" />
           </div>
           <div className="min-w-0">
-            <p className="font-sans text-sm font-normal text-text-1">
+            <p className="font-sans text-sm font-normal text-paper">
               {connected ? user?.connectedEmail : 'Not connected'}
             </p>
-            <p className="font-sans text-xs text-text-3">
+            <p className="font-sans text-xs text-text-3-dark">
               {connected
                 ? 'Your Gmail account is connected.'
                 : 'Tokens are encrypted at rest; you can revoke access anytime.'}
@@ -127,7 +127,7 @@ export function GmailConnectPanel() {
       />
 
       {oauthMissing && !connected && (
-        <div className="rounded-func border border-warn/30 bg-warn/10 p-3">
+        <div className="rounded-btn border border-warn/30 bg-warn/10 p-3">
           <Mono size="xs" color="warn" className="leading-relaxed">
             Gmail OAuth is not configured on this server. For local development, set the app-password
             fallback env vars instead (see server/.env.example).

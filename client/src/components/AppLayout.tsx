@@ -24,7 +24,7 @@ function GmailDisconnectedBanner() {
         </p>
         <Link
           to="/settings#gmail"
-          className="focus-ring shrink-0 rounded-func font-sans text-xs font-normal text-danger underline-offset-4 hover:underline"
+          className="focus-ring shrink-0 rounded-btn font-sans text-xs font-normal text-danger underline-offset-4 hover:underline"
         >
           Reconnect
         </Link>
@@ -32,7 +32,7 @@ function GmailDisconnectedBanner() {
           type="button"
           aria-label="Dismiss banner"
           onClick={() => setDismissed(true)}
-          className="focus-ring shrink-0 rounded-func p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
+          className="focus-ring shrink-0 rounded-btn p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
         >
           <X className="size-3.5" />
         </button>
@@ -58,7 +58,7 @@ export function AppLayout() {
   const dailyCap = user?.settings.dailySendCap ?? 30;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-text-1">
+    <div className="flex min-h-screen flex-col bg-ink text-paper">
       <Nav sentToday={sentToday} dailyCap={dailyCap} />
 
       {/* pt-16 clears the fixed 64px header so the banner is visible below it */}

@@ -83,7 +83,7 @@ function AlertDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-background/70"
+            className="absolute inset-0 bg-ink/70"
             onClick={() => onOpenChange(false)}
           />
           <motion.div
@@ -92,10 +92,10 @@ function AlertDialog({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
-            className="relative w-full max-w-md rounded-card border border-border bg-surface p-6 shadow-lg"
+            className="relative w-full max-w-md rounded-card border border-graphite bg-ink-2 p-6"
           >
-            <h2 className="font-display text-xl font-normal text-text-1">{title}</h2>
-            <div className="mt-2 font-sans text-sm font-normal leading-relaxed text-text-2">
+            <h2 className="font-sans text-xl font-normal text-paper">{title}</h2>
+            <div className="mt-2 font-sans text-sm font-normal leading-relaxed text-text-2-dark">
               {description}
             </div>
             <div className="mt-6 flex justify-end gap-2">

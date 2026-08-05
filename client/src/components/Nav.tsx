@@ -73,25 +73,25 @@ function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex items-center gap-2 rounded-func border border-border bg-surface py-1 pl-1 pr-2 transition-quick hover:bg-surface-2"
+        className="focus-ring flex items-center gap-2 rounded-btn border border-graphite bg-ink-2 py-1 pl-1 pr-2 transition-quick hover:bg-ink-3"
       >
-        <span className="flex size-7 items-center justify-center rounded-func bg-background font-sans text-xs font-normal text-pure">
+        <span className="flex size-7 items-center justify-center rounded-btn bg-ink font-sans text-xs font-normal text-paper">
           {initial}
         </span>
-        <span className="hidden max-w-[120px] truncate font-sans text-sm font-normal text-text-1 sm:block">
+        <span className="hidden max-w-[120px] truncate font-sans text-sm font-normal text-paper sm:block">
           {user?.name ?? 'Account'}
         </span>
         <ChevronDown
-          className={cn('size-3.5 text-text-3 transition-transform', open && 'rotate-180')}
+          className={cn('size-3.5 text-text-3-dark transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-func border border-border bg-surface p-2 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-btn border border-graphite bg-ink-2 p-2">
           <div className="px-3 py-2">
-            <p className="truncate font-sans text-sm font-normal text-text-1">{user?.name}</p>
-            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">{user?.email}</p>
-            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-text-2 lg:hidden">
+            <p className="truncate font-sans text-sm font-normal text-paper">{user?.name}</p>
+            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">{user?.email}</p>
+            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-text-2-dark lg:hidden">
               Sent today · {sentToday}/{dailyCap}
             </p>
           </div>
@@ -100,7 +100,7 @@ function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number
             type="button"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
-            className="focus-ring flex w-full items-center gap-2 rounded-func px-3 py-2 font-sans text-sm font-normal text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1 disabled:opacity-50"
+            className="focus-ring flex w-full items-center gap-2 rounded-btn px-3 py-2 font-sans text-sm font-normal text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper disabled:opacity-50"
           >
             <LogOut className="size-4" />
             {logoutMutation.isPending ? 'Signing out…' : 'Sign out'}
@@ -130,14 +130,14 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'focus-ring rounded-func px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
-      isActive ? 'bg-surface-2 text-text-1' : 'text-text-2 hover:bg-surface-2 hover:text-text-1',
+      'focus-ring rounded-btn px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+      isActive ? 'bg-ink-3 text-paper' : 'text-text-2-dark hover:bg-ink-3 hover:text-paper',
     );
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-[24px]">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-graphite bg-ink/80 backdrop-blur-[24px]">
       <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
-        <Link to="/dashboard" aria-label="GetHired home" className="focus-ring rounded-func">
+        <Link to="/dashboard" aria-label="GetHired home" className="focus-ring rounded-btn">
           <Logo />
         </Link>
 
@@ -150,7 +150,7 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 lg:inline">
+          <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2-dark lg:inline">
             Sent today · {sentToday}/{dailyCap}
           </span>
           <UserMenu sentToday={sentToday} dailyCap={dailyCap} />
@@ -160,7 +160,7 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
             onClick={() => setMobileOpen((v) => !v)}
-            className="focus-ring rounded-func p-2 text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1 md:hidden"
+            className="focus-ring rounded-btn p-2 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper md:hidden"
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -171,7 +171,7 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
         <nav
           id="mobile-nav"
           aria-label="Primary"
-          className="animate-fade-in border-t border-border bg-background/95 backdrop-blur-[24px] md:hidden"
+          className="animate-fade-in border-t border-graphite bg-ink/95 backdrop-blur-[24px] md:hidden"
         >
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-1 px-4 py-3">
             {APP_LINKS.map((link) => (
@@ -180,17 +180,17 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
                 to={link.to}
                 className={({ isActive }) =>
                   cn(
-                    'focus-ring rounded-func px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+                    'focus-ring rounded-btn px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
                     isActive
-                      ? 'bg-surface-2 text-text-1'
-                      : 'text-text-2 hover:bg-surface-2 hover:text-text-1',
+                      ? 'bg-ink-3 text-paper'
+                      : 'text-text-2-dark hover:bg-ink-3 hover:text-paper',
                   )
                 }
               >
                 {link.label}
               </NavLink>
             ))}
-            <p className="px-3 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">
+            <p className="px-3 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
               Sent today · {sentToday}/{dailyCap}
             </p>
           </div>

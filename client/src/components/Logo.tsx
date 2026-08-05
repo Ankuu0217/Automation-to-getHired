@@ -8,7 +8,7 @@ export function Logo({ className }: LogoProps) {
   return (
     <span
       className={cn(
-        'font-display text-[22px] font-normal leading-none text-pure',
+        'font-sans text-[22px] font-normal leading-none text-paper',
         className,
       )}
     >

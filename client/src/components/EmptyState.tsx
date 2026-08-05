@@ -16,10 +16,10 @@ interface EmptyStateProps {
 
 export function EmptyState({ headline, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn('rounded-card border border-border bg-surface px-6 py-10', className)}>
-      <p className="font-display text-[38px] font-normal leading-[0.9] text-text-1">{headline}</p>
+    <div className={cn('rounded-card border border-graphite bg-ink-2 px-6 py-10', className)}>
+      <p className="font-sans text-[38px] font-normal leading-[0.9] text-paper">{headline}</p>
       {description && (
-        <p className="mt-2 font-sans text-base font-normal text-text-2">{description}</p>
+        <p className="mt-2 font-sans text-base font-normal text-text-2-dark">{description}</p>
       )}
       {action && (
         <Link to={action.to} className={cn(buttonVariants({ size: 'sm' }), 'mt-5')}>

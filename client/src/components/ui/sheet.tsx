@@ -38,7 +38,7 @@ function Sheet({ open, onOpenChange, children, 'aria-label': ariaLabel }: SheetP
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-background/70"
+            className="absolute inset-0 bg-ink/70"
             onClick={() => onOpenChange(false)}
           />
           <motion.div
@@ -46,7 +46,7 @@ function Sheet({ open, onOpenChange, children, 'aria-label': ariaLabel }: SheetP
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
-            className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col border-l border-border bg-surface shadow-lg"
+            className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col border-l border-graphite bg-ink-2"
           >
             {children}
           </motion.div>
@@ -60,7 +60,7 @@ const SheetHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex flex-col space-y-1.5 border-b border-border p-6', className)}
+      className={cn('flex flex-col space-y-1.5 border-b border-graphite p-6', className)}
       {...props}
     />
   ),
@@ -71,7 +71,7 @@ const SheetTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('font-display text-xl font-normal leading-none text-text-1', className)}
+      className={cn('font-sans text-xl font-normal leading-none text-paper', className)}
       {...props}
     />
   ),
@@ -80,7 +80,7 @@ SheetTitle.displayName = 'SheetTitle';
 
 const SheetDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('font-sans text-sm font-normal text-text-2', className)} {...props} />
+    <div ref={ref} className={cn('font-sans text-sm font-normal text-text-2-dark', className)} {...props} />
   ),
 );
 SheetDescription.displayName = 'SheetDescription';
@@ -99,7 +99,7 @@ function SheetClose({ onClose, className }: { onClose: () => void; className?: s
       aria-label="Close panel"
       onClick={onClose}
       className={cn(
-        'focus-ring rounded-func p-1.5 text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1',
+        'focus-ring rounded-btn p-1.5 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper',
         className,
       )}
     >

@@ -44,7 +44,7 @@ function SubNav() {
         <a
           key={section.id}
           href={`#${section.id}`}
-          className="focus-ring rounded-func px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1"
+          className="focus-ring rounded-btn px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper"
         >
           {section.label}
         </a>
@@ -62,10 +62,10 @@ function GmailSection() {
         <Mono size="xs" color="fog">
           Connection
         </Mono>
-        <h2 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+        <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
           Gmail <span className="italic">account</span>
         </h2>
-        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2">
+        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Outreach is sent from your own Gmail account, so recruiters see you — not a tool.
         </p>
       </div>
@@ -105,15 +105,15 @@ function SendingSection() {
         <Mono size="xs" color="fog">
           Guardrails
         </Mono>
-        <h2 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+        <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
           Sending <span className="italic">controls</span>
         </h2>
-        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2">
+        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Hard limits that keep your Gmail reputation safe and your outreach human.
         </p>
       </div>
 
-      <div className="space-y-6 rounded-card border border-border bg-surface p-6">
+      <div className="space-y-6 rounded-card border border-graphite bg-ink-2 p-6">
         {/* Daily cap */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -130,7 +130,7 @@ function SendingSection() {
             onChange={(e) => setDailySendCap(Number(e.target.value))}
             aria-label="Daily send cap"
           />
-          <p className="font-sans text-xs text-text-3">
+          <p className="font-sans text-xs text-text-3-dark">
             Hard limit per day, with 2–8 minute human-like jitter between sends and a 10/hour ceiling.
             Overflow rolls to the next morning.
           </p>
@@ -142,9 +142,9 @@ function SendingSection() {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-1">
             <Label htmlFor="settings-auto-send">Auto-send without review</Label>
-            <p className="font-sans text-xs text-text-3">Off by default — every email waits for your explicit approval.</p>
+            <p className="font-sans text-xs text-text-3-dark">Off by default — every email waits for your explicit approval.</p>
             {autoSend && (
-              <div className="mt-3 rounded-func border border-warn/30 bg-warn/10 p-3">
+              <div className="mt-3 rounded-btn border border-warn/30 bg-warn/10 p-3">
                 <Mono size="xs" color="warn" className="leading-relaxed">
                   Auto-send emails go out without your review. Keep the daily cap low and your targeting tight.
                 </Mono>
@@ -165,7 +165,7 @@ function SendingSection() {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-1">
             <Label htmlFor="settings-follow-ups">Automatic follow-ups</Label>
-            <p className="font-sans text-xs text-text-3">
+            <p className="font-sans text-xs text-text-3-dark">
               A short nudge on day 3 and day 7 when there’s no reply. Stops on reply, bounce, or a stage change.
             </p>
           </div>
@@ -218,19 +218,19 @@ function SignatureSection() {
         <Mono size="xs" color="fog">
           Identity
         </Mono>
-        <h2 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+        <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
           Email <span className="italic">signature</span>
         </h2>
-        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2">
+        <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Appended to every generated email. Your name, phone, and links from your profile are a good default.
         </p>
       </div>
 
-      <div className="rounded-card border border-border bg-surface p-6">
+      <div className="rounded-card border border-graphite bg-ink-2 p-6">
         {profileQuery.isPending ? (
           <div className="space-y-3">
-            <Skeleton className="h-28 w-full bg-surface-2" />
-            <Skeleton className="h-9 w-32 bg-surface-2" />
+            <Skeleton className="h-28 w-full bg-ink-3" />
+            <Skeleton className="h-9 w-32 bg-ink-3" />
           </div>
         ) : (
           <div className="space-y-4">
@@ -280,7 +280,7 @@ function DangerSection() {
         <Mono size="xs" color="danger">
           Irreversible
         </Mono>
-        <h2 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+        <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
           Danger <span className="italic">zone</span>
         </h2>
       </div>
@@ -288,11 +288,11 @@ function DangerSection() {
       <div className="rounded-card border border-danger/30 bg-danger/5 p-6">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="min-w-0">
-            <p className="flex items-center gap-2 font-sans text-sm font-normal text-text-1">
+            <p className="flex items-center gap-2 font-sans text-sm font-normal text-paper">
               <ShieldAlert className="size-4 text-danger" />
               Delete account & all data
             </p>
-            <p className="mt-1 font-sans text-xs text-text-3">
+            <p className="mt-1 font-sans text-xs text-text-3-dark">
               Wipes your profile, resumes, applications, templates, tracking events, and revokes Gmail access.
               Cannot be undone.
             </p>
@@ -329,11 +329,11 @@ function DangerSection() {
 
 function Colophon() {
   return (
-    <footer className="border-t border-border pt-8">
+    <footer className="border-t border-graphite pt-8">
       <Mono size="xs" color="fog">
         GETHIRED · COLD OUTREACH AUTOPILOT · BUILT QUIETLY
       </Mono>
-      <p className="mt-1 font-sans text-xs text-text-3">
+      <p className="mt-1 font-sans text-xs text-text-3-dark">
         Your data stays yours. Tokens are encrypted at rest; you can disconnect Gmail anytime.
       </p>
     </footer>
@@ -371,7 +371,7 @@ export function Settings() {
           <Mono size="xs" color="fog">
             Account
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
             Your <span className="italic">settings</span>
           </h1>
         </div>

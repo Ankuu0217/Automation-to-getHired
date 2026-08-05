@@ -60,12 +60,12 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className={cn('overflow-x-auto rounded-card border border-border bg-surface', className)}>
+    <div className={cn('overflow-x-auto rounded-card border border-graphite bg-ink-2', className)}>
       <div className="min-w-[640px]">
         {/* Header */}
         <div
           className={cn(
-            'grid h-10 items-center gap-4 border-b border-border px-4',
+            'grid h-10 items-center gap-4 border-b border-graphite px-4',
             GRID_TEMPLATE,
           )}
         >
@@ -95,7 +95,7 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
           const followUp = followUpLabel(app);
 
           return (
-            <div key={app.id} className="border-b border-border last:border-b-0">
+            <div key={app.id} className="border-b border-graphite last:border-b-0">
               <button
                 type="button"
                 aria-expanded={isExpanded}
@@ -103,16 +103,16 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
                 className={cn(
                   'focus-ring grid h-12 w-full items-center gap-4 px-4 text-left transition-quick',
                   GRID_TEMPLATE,
-                  isExpanded ? 'bg-surface-2' : 'hover:bg-surface-2',
+                  isExpanded ? 'bg-ink-3' : 'hover:bg-ink-3',
                 )}
               >
-                <span className="truncate font-sans text-[15px] font-normal text-text-1">
+                <span className="truncate font-sans text-[15px] font-normal text-paper">
                   {app.company ?? '—'}
                 </span>
-                <span className="truncate font-sans text-[15px] font-normal text-text-2">
+                <span className="truncate font-sans text-[15px] font-normal text-text-2-dark">
                   {app.role ?? '—'}
                 </span>
-                <span className="truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3">
+                <span className="truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3-dark">
                   {app.hrEmail}
                 </span>
                 <StatusLabel status={status} />
@@ -133,7 +133,7 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
                     transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-border bg-background px-4 py-4">
+                    <div className="border-t border-graphite bg-ink px-4 py-4">
                       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
                         <div>
                           <Mono size="xs" color="fog">
@@ -160,7 +160,7 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
                             )}
                           </div>
                           {app.nextFollowUpAt && (
-                            <p className="mt-3 font-mono text-xs uppercase tracking-[0.016em] text-cyan">
+                            <p className="mt-3 font-mono text-xs uppercase tracking-[0.016em] text-lime">
                               NEXT FOLLOW-UP · {formatDateTime(app.nextFollowUpAt)}
                             </p>
                           )}
@@ -179,10 +179,10 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
                                     type="button"
                                     onClick={() => onStageChange(app.id, stage)}
                                     className={cn(
-                                      'focus-ring rounded-func border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+                                      'focus-ring rounded-btn border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
                                       app.stage === stage
-                                        ? 'border-pure bg-pure text-void'
-                                        : 'border-border-strong text-text-2 hover:bg-pure/[0.06] hover:text-text-1',
+                                        ? 'border-paper bg-paper text-ink'
+                                        : 'border-text-3-dark-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
                                     )}
                                   >
                                     {stage.replace('_', ' ')}

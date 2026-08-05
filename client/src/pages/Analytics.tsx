@@ -44,13 +44,13 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
   const max = Math.max(totals.sent, 1);
 
   return (
-    <section className="rounded-card border border-border bg-surface p-4">
+    <section className="rounded-card border border-graphite bg-ink-2 p-4">
       <div className="mb-6 flex items-end justify-between">
         <div>
           <Mono size="xs" color="fog">
             Funnel
           </Mono>
-          <p className="mt-1 font-sans text-base font-normal text-text-1">Application-level conversion.</p>
+          <p className="mt-1 font-sans text-base font-normal text-paper">Application-level conversion.</p>
         </div>
         <Mono size="xs" color="fog">
           Sent · {totals.sent}
@@ -65,7 +65,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
           const conversion = index === 0 ? null : rateOf(value, prev);
           return (
             <div key={step.key} className="space-y-1.5">
-              <div className="flex items-center justify-between font-sans text-sm text-text-1">
+              <div className="flex items-center justify-between font-sans text-sm text-paper">
                 <span>{step.label}</span>
                 <div className="flex items-center gap-3">
                   {conversion !== null && (
@@ -78,9 +78,9 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
                   </Mono>
                 </div>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-pill border border-border bg-background">
+              <div className="h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-ink">
                 <div
-                  className="h-full rounded-pill bg-cyan transition-[width] duration-500 ease-out"
+                  className="h-full rounded-pill bg-lime transition-[width] duration-500 ease-out"
                   style={{ width: value === 0 ? '0%' : `${Math.max(pct, 2)}%` }}
                 />
               </div>
@@ -102,14 +102,14 @@ function TemplateLedger({
   templates: { id: string; tone: string }[];
 }) {
   return (
-    <section className="overflow-hidden rounded-card border border-border bg-surface">
-      <div className="border-b border-border px-4 py-4">
+    <section className="overflow-hidden rounded-card border border-graphite bg-ink-2">
+      <div className="border-b border-graphite px-4 py-4">
         <div className="flex items-end justify-between">
           <div>
             <Mono size="xs" color="fog">
               Templates
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-text-1">A/B reply-rate ledger.</p>
+            <p className="mt-1 font-sans text-base font-normal text-paper">A/B reply-rate ledger.</p>
           </div>
           <Mono size="xs" color="fog">
             {stats.length} total
@@ -120,7 +120,7 @@ function TemplateLedger({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border">
+            <tr className="border-b border-graphite">
               <th className="px-4 py-3 text-left">
                 <Mono size="xs" color="fog">
                   Template
@@ -158,9 +158,9 @@ function TemplateLedger({
               const tone = templates.find((x) => x.id === t.templateId)?.tone ?? '—';
               const reply = t.sent === 0 ? '—' : `${Math.round(t.replyRate * 100)}%`;
               return (
-                <tr key={t.templateId} className={cn(i !== stats.length - 1 && 'border-b border-border')}>
+                <tr key={t.templateId} className={cn(i !== stats.length - 1 && 'border-b border-graphite')}>
                   <td className="px-4 py-3.5">
-                    <p className="font-sans text-[15px] font-normal text-text-1">{t.name}</p>
+                    <p className="font-sans text-[15px] font-normal text-paper">{t.name}</p>
                   </td>
                   <td className="px-4 py-3.5">
                     <Mono size="xs" color="ash" className="capitalize">
@@ -211,13 +211,13 @@ export function Analytics() {
     <div className="space-y-6">
       {/* Header */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col justify-between rounded-tile border border-border bg-surface p-6">
-          <div className="flex size-9 items-center justify-center rounded-func border border-border bg-surface-2 text-text-2">
+        <div className="flex flex-col justify-between rounded-card border border-graphite bg-ink-2 p-6">
+          <div className="flex size-9 items-center justify-center rounded-btn border border-graphite bg-ink-3 text-text-2-dark">
             <BarChart3 className="size-4" strokeWidth={1.5} />
           </div>
           <div className="mt-6">
-            <h3 className="font-display text-2xl font-normal leading-[0.95] text-text-1">Analytics</h3>
-            <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2">
+            <h3 className="font-sans text-2xl font-normal leading-[0.95] text-paper">Analytics</h3>
+            <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2-dark">
               Funnel, template A/B performance, and 30-day trend.
             </p>
           </div>
@@ -228,7 +228,7 @@ export function Analytics() {
             <Mono size="xs" color="fog">
               Performance
             </Mono>
-            <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+            <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
               Your outreach, <span className="italic">measured</span>.
             </h1>
           </div>
@@ -248,9 +248,9 @@ export function Analytics() {
 
       {funnelQuery.isPending || templatesQuery.isPending ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex flex-col justify-center gap-2 bg-surface p-4">
+              <div key={i} className="flex flex-col justify-center gap-2 bg-ink-2 p-4">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-8 w-12" />
               </div>
@@ -272,7 +272,7 @@ export function Analytics() {
       ) : (
         <>
           {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
             <Stat label="Sent" value={funnel.totals.sent} />
             <Stat label="Opened" value={funnel.totals.opened} />
             <Stat label="Replied" value={funnel.totals.replied} />
@@ -286,13 +286,13 @@ export function Analytics() {
           </div>
 
           {/* Trend */}
-          <section className="rounded-card border border-border bg-surface p-4">
+          <section className="rounded-card border border-graphite bg-ink-2 p-4">
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <Mono size="xs" color="fog">
                   Trend
                 </Mono>
-                <p className="mt-1 font-sans text-base font-normal text-text-1">Sent per day — last 30 days</p>
+                <p className="mt-1 font-sans text-base font-normal text-paper">Sent per day — last 30 days</p>
               </div>
               <Mono size="xs" color="fog">
                 {formatDateRange(funnel.trend)}
@@ -308,11 +308,11 @@ export function Analytics() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex flex-col justify-center bg-surface p-4">
+    <div className="flex flex-col justify-center bg-ink-2 p-4">
       <Mono size="xs" color="fog">
         {label}
       </Mono>
-      <span className="mt-1 font-display text-[28px] font-normal leading-[0.95] text-text-1">{value}</span>
+      <span className="mt-1 font-sans text-[28px] font-normal leading-[0.95] text-paper">{value}</span>
     </div>
   );
 }

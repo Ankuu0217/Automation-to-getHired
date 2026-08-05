@@ -52,7 +52,7 @@ export function Dispatches() {
           <Mono size="xs" color="fog">
             Dispatches
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
             Every <span className="italic">dispatch</span>
           </h1>
         </div>
@@ -73,8 +73,8 @@ export function Dispatches() {
             className={cn(
               'focus-ring inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
               filter === f.value
-                ? 'border-pure bg-pure text-void'
-                : 'border-border-strong text-text-2 hover:bg-pure/[0.06] hover:text-text-1',
+                ? 'border-paper bg-paper text-ink'
+                : 'border-text-3-dark-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
             )}
           >
             {f.label}
@@ -83,11 +83,11 @@ export function Dispatches() {
       </div>
 
       {applicationsQuery.isPending ? (
-        <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+        <div className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-4 w-1/3 bg-surface-2" />
-              <Skeleton className="ml-auto h-4 w-20 bg-surface-2" />
+              <Skeleton className="h-4 w-1/3 bg-ink-3" />
+              <Skeleton className="ml-auto h-4 w-20 bg-ink-3" />
             </div>
           ))}
         </div>

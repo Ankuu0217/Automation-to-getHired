@@ -72,7 +72,7 @@ export function Dashboard() {
           <Mono size="xs" color="fog">
             Dispatches · {applications.length}
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
             {greeting(user?.name?.split(' ')[0])}
             <span className="italic">.</span>
           </h1>
@@ -85,22 +85,22 @@ export function Dashboard() {
 
       {/* Stats */}
       {funnelQuery.isPending ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex h-[88px] min-w-0 flex-col justify-center gap-2 bg-surface px-4">
-              <Skeleton className="h-3 w-16 bg-surface-2" />
-              <Skeleton className="h-8 w-12 bg-surface-2" />
+            <div key={i} className="flex h-[88px] min-w-0 flex-col justify-center gap-2 bg-ink-2 px-4">
+              <Skeleton className="h-3 w-16 bg-ink-3" />
+              <Skeleton className="h-8 w-12 bg-ink-3" />
             </div>
           ))}
         </div>
       ) : stats ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="flex min-w-0 flex-col justify-center bg-surface px-4 py-4">
+            <div key={stat.label} className="flex min-w-0 flex-col justify-center bg-ink-2 px-4 py-4">
               <Mono size="xs" color="fog">
                 {stat.label}
               </Mono>
-              <span className="mt-1 font-display text-[28px] font-normal leading-[0.95] text-text-1">
+              <span className="mt-1 font-sans text-[28px] font-normal leading-[0.95] text-paper">
                 {stat.value}
               </span>
             </div>
@@ -110,17 +110,17 @@ export function Dashboard() {
 
       {/* Chart */}
       {funnelQuery.isPending ? (
-        <div className="rounded-card border border-border bg-surface p-4">
-          <Skeleton className="h-5 w-40 bg-surface-2" />
-          <Skeleton className="mt-4 h-64 w-full bg-surface-2" />
+        <div className="rounded-card border border-graphite bg-ink-2 p-4">
+          <Skeleton className="h-5 w-40 bg-ink-3" />
+          <Skeleton className="mt-4 h-64 w-full bg-ink-3" />
         </div>
       ) : funnel && funnel.totals.sent > 0 ? (
-        <section className="rounded-card border border-border bg-surface p-4">
+        <section className="rounded-card border border-graphite bg-ink-2 p-4">
           <div className="mb-4">
             <Mono size="xs" color="fog">
               Last 30 days
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-text-1">Sent per day</p>
+            <p className="mt-1 font-sans text-base font-normal text-paper">Sent per day</p>
           </div>
           <ActivityChart data={funnel.trend} />
         </section>
@@ -137,14 +137,14 @@ export function Dashboard() {
           {MODULES.map((m) => (
             <div
               key={m.title}
-              className="flex items-start gap-3 rounded-card border border-border bg-surface p-4"
+              className="flex items-start gap-3 rounded-card border border-graphite bg-ink-2 p-4"
             >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-func border border-border bg-surface-2 text-text-2">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-btn border border-graphite bg-ink-3 text-text-2-dark">
                 <m.icon className="size-4" strokeWidth={1.5} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-sans text-sm font-medium text-text-1">{m.title}</h3>
-                <p className="mt-0.5 font-sans text-xs font-normal text-text-3">{m.description}</p>
+                <h3 className="font-sans text-sm font-medium text-paper">{m.title}</h3>
+                <p className="mt-0.5 font-sans text-xs font-normal text-text-3-dark">{m.description}</p>
               </div>
             </div>
           ))}
@@ -158,7 +158,7 @@ export function Dashboard() {
             <Mono size="xs" color="fog">
               Recent dispatches
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-text-1">Latest outreach, newest first.</p>
+            <p className="mt-1 font-sans text-base font-normal text-paper">Latest outreach, newest first.</p>
           </div>
           <Link to="/dispatches" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             All dispatches
@@ -167,11 +167,11 @@ export function Dashboard() {
         </div>
 
         {applicationsQuery.isPending ? (
-          <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+          <div className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-4 w-1/3 bg-surface-2" />
-                <Skeleton className="ml-auto h-4 w-20 bg-surface-2" />
+                <Skeleton className="h-4 w-1/3 bg-ink-3" />
+                <Skeleton className="ml-auto h-4 w-20 bg-ink-3" />
               </div>
             ))}
           </div>
@@ -191,28 +191,28 @@ export function Dashboard() {
       </section>
 
       {/* Setup checklist */}
-      <section className="rounded-card border border-border bg-surface">
-        <div className="border-b border-border px-4 py-3">
+      <section className="rounded-card border border-graphite bg-ink-2">
+        <div className="border-b border-graphite px-4 py-3">
           <Mono size="xs" color="fog">
             Setup
           </Mono>
-          <p className="mt-1 font-sans text-base font-normal text-text-1">Everything ready to send.</p>
+          <p className="mt-1 font-sans text-base font-normal text-paper">Everything ready to send.</p>
         </div>
         <div className="px-4 py-2">
           {profileQuery.isPending ? (
             <div className="space-y-4 py-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="size-9 bg-surface-2" />
+                  <Skeleton className="size-9 bg-ink-3" />
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-1/3 bg-surface-2" />
-                    <Skeleton className="h-3 w-1/2 bg-surface-2" />
+                    <Skeleton className="h-4 w-1/3 bg-ink-3" />
+                    <Skeleton className="h-3 w-1/2 bg-ink-3" />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <ol className="divide-y divide-pure/[0.06]">
+            <ol className="divide-y divide-graphite">
               <SetupItem
                 done
                 icon={CheckCircle2}
@@ -269,17 +269,17 @@ function SetupItem({
     <li className="flex items-center gap-4 py-4 first:pt-2 last:pb-2">
       <div
         className={cn(
-          'flex size-9 shrink-0 items-center justify-center rounded-func border transition-quick',
+          'flex size-9 shrink-0 items-center justify-center rounded-btn border transition-quick',
           done
             ? 'border-ok/30 bg-ok/10 text-ok'
-            : 'border-border bg-surface text-text-3',
+            : 'border-graphite bg-ink-2 text-text-3-dark',
         )}
       >
         {done ? <CheckCircle2 className="size-4" /> : <Icon className="size-4" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-sans text-[13.5px] font-normal text-text-1">{title}</p>
-        <p className="truncate font-sans text-xs text-text-3">{body ?? ''}</p>
+        <p className="font-sans text-[13.5px] font-normal text-paper">{title}</p>
+        <p className="truncate font-sans text-xs text-text-3-dark">{body ?? ''}</p>
       </div>
       {action && !done ? (
         <Link to={action.to} className={buttonVariants({ variant: 'outline', size: 'sm' })}>

@@ -19,7 +19,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       onClick={() => onCheckedChange?.(!checked)}
       className={cn(
         'focus-ring peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-quick disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-pure' : 'bg-text-3',
+        checked ? 'bg-paper' : 'bg-text-3-dark',
         className,
       )}
       {...props}

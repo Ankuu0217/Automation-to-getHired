@@ -4,18 +4,18 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'focus-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-func font-sans text-sm font-medium transition-quick disabled:pointer-events-none disabled:opacity-50',
+  'focus-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-btn font-sans text-sm font-medium transition-quick disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:opacity-[0.92] active:opacity-[0.85]',
-        destructive: 'bg-danger text-pure hover:bg-danger/90 active:bg-danger/80',
+        destructive: 'bg-danger text-paper hover:bg-danger/90 active:bg-danger/80',
         outline:
-          'border border-border-strong bg-transparent text-text-1 hover:bg-pure/[0.06] active:bg-pure/[0.04]',
+          'border border-text-3-dark-dark bg-transparent text-paper hover:bg-paper/[0.06] active:bg-paper/[0.04]',
         secondary:
-          'border border-border-strong bg-surface-2 text-text-1 shadow-inset-hairline hover:bg-pure/[0.08] active:bg-pure/[0.04]',
-        ghost: 'text-text-2 hover:bg-surface-2 hover:text-text-1 active:bg-surface',
-        link: 'text-text-1 underline-offset-4 hover:underline',
+          'border border-text-3-dark-dark bg-ink-3 text-paper hover:bg-paper/[0.08] active:bg-paper/[0.04]',
+        ghost: 'text-text-2-dark hover:bg-ink-3 hover:text-paper active:bg-ink-2',
+        link: 'text-paper underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-9 px-4 py-2',

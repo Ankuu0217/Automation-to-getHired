@@ -146,16 +146,16 @@ function TemplateSheet({
                 placeholder="Write the guidance the AI should follow for the email body…"
                 {...register('bodyTemplate')}
               />
-              <p className="text-xs text-text-3">{PLACEHOLDERS}</p>
+              <p className="text-xs text-text-3-dark">{PLACEHOLDERS}</p>
               {formState.errors.bodyTemplate && (
                 <p className="text-xs text-danger">{formState.errors.bodyTemplate.message}</p>
               )}
             </div>
 
-            <div className="flex items-start justify-between gap-4 rounded-func border border-border bg-background p-4">
+            <div className="flex items-start justify-between gap-4 rounded-btn border border-graphite bg-ink p-4">
               <div className="space-y-1">
-                <p className="font-sans text-sm font-normal text-text-1">Default template</p>
-                <p className="text-xs text-text-3">Used automatically when no other template is picked.</p>
+                <p className="font-sans text-sm font-normal text-paper">Default template</p>
+                <p className="text-xs text-text-3-dark">Used automatically when no other template is picked.</p>
               </div>
               <Switch
                 checked={watch('isDefault')}
@@ -164,7 +164,7 @@ function TemplateSheet({
             </div>
           </form>
         </SheetBody>
-        <div className="border-t border-border p-6">
+        <div className="border-t border-graphite p-6">
           <Button type="submit" form="template-form" disabled={saveMutation.isPending} className="w-full">
             {saveMutation.isPending && <Loader2 className="size-4 animate-spin" />}
             {isEdit ? 'Save changes' : 'Create template'}
@@ -209,8 +209,8 @@ function TemplateCard({
   return (
     <div
       className={cn(
-        'rounded-card border bg-surface p-4 transition-quick',
-        template.isDefault ? 'border-border-strong' : 'border-border hover:border-border-strong',
+        'rounded-card border bg-ink-2 p-4 transition-quick',
+        template.isDefault ? 'border-text-3-dark-dark' : 'border-graphite hover:border-text-3-dark-dark',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -219,7 +219,7 @@ function TemplateCard({
             <Mono size="xs" color="fog">
               TPL-{String(index + 1).padStart(3, '0')}
             </Mono>
-            <p className="truncate font-sans text-base font-normal text-text-1">{template.name}</p>
+            <p className="truncate font-sans text-base font-normal text-paper">{template.name}</p>
             {template.isDefault && (
               <Mono size="xs" color="ash">
                 DEFAULT
@@ -240,11 +240,11 @@ function TemplateCard({
               onClick={() => defaultMutation.mutate(template.id)}
               disabled={defaultMutation.isPending}
             >
-              <Star className="size-4 text-text-3" />
+              <Star className="size-4 text-text-3-dark" />
             </Button>
           )}
           <Button variant="ghost" size="icon" title="Edit" aria-label={`Edit ${template.name}`} onClick={() => onEdit(template)}>
-            <Pencil className="size-4 text-text-3" />
+            <Pencil className="size-4 text-text-3-dark" />
           </Button>
           <Button
             variant="ghost"
@@ -260,16 +260,16 @@ function TemplateCard({
       </div>
 
       <div className="mt-4 space-y-1">
-        <p className="font-sans text-xs text-text-3">Subject</p>
-        <p className="truncate font-sans text-sm text-text-2">{template.subjectTemplate}</p>
+        <p className="font-sans text-xs text-text-3-dark">Subject</p>
+        <p className="truncate font-sans text-sm text-text-2-dark">{template.subjectTemplate}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 rounded-func border border-border bg-background p-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 rounded-btn border border-graphite bg-ink p-3 sm:grid-cols-4">
         <Stat label="Sent" value={template.stats.sent} icon={Send} />
         <Stat label="Opened" value={template.stats.opened} icon={MailOpen} />
         <Stat label="Replied" value={template.stats.replied} icon={Reply} />
-        <div className="flex flex-col items-center justify-center gap-1 border-l border-border pl-2">
-          <span className="font-display text-lg font-normal text-text-1">{rr}</span>
+        <div className="flex flex-col items-center justify-center gap-1 border-l border-graphite pl-2">
+          <span className="font-sans text-lg font-normal text-paper">{rr}</span>
           <Mono size="xs" color="fog">
             Reply rate
           </Mono>
@@ -295,8 +295,8 @@ function TemplateCard({
 function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: React.ElementType }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1">
-      <Icon className="size-3.5 text-text-3" />
-      <span className="font-display text-lg font-normal text-text-1">{value}</span>
+      <Icon className="size-3.5 text-text-3-dark" />
+      <span className="font-sans text-lg font-normal text-paper">{value}</span>
       <Mono size="xs" color="fog">
         {label}
       </Mono>
@@ -322,21 +322,21 @@ export function Templates() {
       {/* Orchid module marker */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div>
-          <div className="flex flex-col justify-between rounded-tile border border-border bg-surface p-6">
-            <div className="flex size-9 items-center justify-center rounded-func border border-border bg-surface-2 text-text-2">
+          <div className="flex flex-col justify-between rounded-card border border-graphite bg-ink-2 p-6">
+            <div className="flex size-9 items-center justify-center rounded-btn border border-graphite bg-ink-3 text-text-2-dark">
               <Send className="size-4" strokeWidth={1.5} />
             </div>
             <div className="mt-6">
-              <h3 className="font-display text-2xl font-normal leading-[0.95] text-text-1">Template studio</h3>
-              <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2">
+              <h3 className="font-sans text-2xl font-normal leading-[0.95] text-paper">Template studio</h3>
+              <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2-dark">
                 Reusable AI guidance with per-template response-rate stats.
               </p>
             </div>
           </div>
           {defaultTemplate && (
-            <p className="mt-4 flex items-center gap-2 font-sans text-xs text-text-2">
+            <p className="mt-4 flex items-center gap-2 font-sans text-xs text-text-2-dark">
               <Check className="size-3.5 text-ok" />
-              Default: <span className="text-text-1">{defaultTemplate.name}</span>
+              Default: <span className="text-paper">{defaultTemplate.name}</span>
             </p>
           )}
         </div>
@@ -347,7 +347,7 @@ export function Templates() {
               <Mono size="xs" color="fog">
                 Templates
               </Mono>
-              <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
+              <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
                 Saved <span className="italic">prompts</span>
               </h1>
             </div>
@@ -364,11 +364,11 @@ export function Templates() {
               ))}
             </div>
           ) : templates.length === 0 ? (
-            <div className="rounded-card border border-border bg-surface px-6 py-10">
-              <p className="font-display text-[38px] font-normal leading-[0.9] text-text-1">
+            <div className="rounded-card border border-graphite bg-ink-2 px-6 py-10">
+              <p className="font-sans text-[38px] font-normal leading-[0.9] text-paper">
                 No templates yet. <em>Save</em> one.
               </p>
-              <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2">
+              <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2-dark">
                 Save your best-performing prompts as templates and compare reply rates over time.
               </p>
               <Button size="sm" onClick={() => setCreating(true)} className="mt-5">

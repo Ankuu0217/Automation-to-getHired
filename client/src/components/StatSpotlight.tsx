@@ -11,13 +11,13 @@ export function StatSpotlight({ label, value, description, className }: StatSpot
   return (
     <div
       className={cn(
-        'flex flex-col justify-between rounded-tile bg-silver p-8 text-void',
+        'flex flex-col justify-between rounded-card bg-silver p-8 text-ink',
         className,
       )}
     >
       <span className="font-mono text-[11px] uppercase tracking-[0.16px] opacity-70">{label}</span>
       <div className="mt-6">
-        <span className="font-display text-[38px] font-normal leading-[0.9]">{value}</span>
+        <span className="font-sans text-[38px] font-normal leading-[0.9]">{value}</span>
         <p className="mt-2 font-sans text-base font-normal leading-[1.5] opacity-80">{description}</p>
       </div>
     </div>

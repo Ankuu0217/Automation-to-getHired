@@ -115,9 +115,9 @@ function StepsHeader({ current }: { current: FlowStep }) {
   return (
     <div className="flex items-center justify-center gap-3">
       <Mono size="sm" color={current === 1 ? 'pure' : 'fog'}>01 UPLOAD</Mono>
-      <span className="text-text-3">·</span>
+      <span className="text-text-3-dark">·</span>
       <Mono size="sm" color={current === 2 ? 'pure' : 'fog'}>02 REVIEW</Mono>
-      <span className="text-text-3">·</span>
+      <span className="text-text-3-dark">·</span>
       <Mono size="sm" color={current === 3 ? 'pure' : 'fog'}>03 SEND</Mono>
     </div>
   );
@@ -192,20 +192,20 @@ function UploadStep({
   /* Analyzing — the AI wait state. */
   if (analyzing) {
     return (
-      <div className="rounded-card border border-border bg-surface p-6">
+      <div className="rounded-card border border-graphite bg-ink-2 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           {analyzingPreviewUrl ? (
             <img
               src={analyzingPreviewUrl}
               alt="Uploaded job screenshot"
-              className="h-24 w-24 shrink-0 rounded-func border border-border object-cover opacity-70"
+              className="h-24 w-24 shrink-0 rounded-btn border border-graphite object-cover opacity-70"
             />
           ) : (
-            <Skeleton className="h-24 w-24 shrink-0 rounded-func bg-surface-2" />
+            <Skeleton className="h-24 w-24 shrink-0 rounded-btn bg-ink-3" />
           )}
           <div>
             <Mono size="sm" color="pure">Analyzing screenshot</Mono>
-            <p className="mt-1 font-sans text-sm font-normal text-text-2">
+            <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
               Vision AI is reading the job post — usually a few seconds.
             </p>
             <ProcessingSequence className="mt-3" />
@@ -223,7 +223,7 @@ function UploadStep({
           <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
           <div className="min-w-0 flex-1">
             <Mono size="xs" color="danger">COULDN&apos;T READ THIS ONE</Mono>
-            <p className="mt-1 font-sans text-sm font-normal text-text-2">
+            <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
               We couldn&apos;t read this screenshot. Try a sharper capture — the full job post, in focus.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -248,9 +248,9 @@ function UploadStep({
       <div
         {...getRootProps()}
         className={cn(
-          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-func border border-dashed border-text-3 bg-background px-6 py-12 text-center transition-quick',
-          isDragActive && 'border-pure bg-pure/[0.03]',
-          file && 'border-pure/30',
+          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-btn border border-dashed border-text-3-dark bg-ink px-6 py-12 text-center transition-quick',
+          isDragActive && 'border-paper bg-paper/[0.03]',
+          file && 'border-paper/30',
         )}
       >
         <input {...getInputProps()} aria-label="Job post screenshot" />
@@ -273,19 +273,19 @@ function UploadStep({
         )}
         <div
           className={cn(
-            'flex size-12 items-center justify-center rounded-func border border-border bg-surface text-text-2 transition-quick',
-            isDragActive && 'border-pure/20 text-pure',
+            'flex size-12 items-center justify-center rounded-btn border border-graphite bg-ink-2 text-text-2-dark transition-quick',
+            isDragActive && 'border-paper/20 text-paper',
           )}
         >
           <ImagePlus className="size-6" />
         </div>
         {isDragActive ? (
-          <p className="font-sans text-sm font-normal text-pure">Drop the screenshot here</p>
+          <p className="font-sans text-sm font-normal text-paper">Drop the screenshot here</p>
         ) : (
           <>
-            <p className="font-sans text-sm font-normal text-text-1">
+            <p className="font-sans text-sm font-normal text-paper">
               Drag &amp; drop a job post screenshot, or{' '}
-              <span className="text-text-1 underline underline-offset-4">browse</span>
+              <span className="text-paper underline underline-offset-4">browse</span>
             </p>
             <Mono size="xs" color="fog">
               PNG, JPEG, or WebP — up to {formatBytes(MAX_SCREENSHOT_BYTES)}
@@ -295,21 +295,21 @@ function UploadStep({
       </div>
 
       {file && previewUrl && (
-        <div className="flex items-center gap-4 rounded-func border border-border bg-surface p-3">
+        <div className="flex items-center gap-4 rounded-btn border border-graphite bg-ink-2 p-3">
           <img
             src={previewUrl}
             alt={`Preview of ${file.name}`}
-            className="h-14 w-14 rounded-func border border-border object-cover"
+            className="h-14 w-14 rounded-btn border border-graphite object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-sans text-sm font-normal text-text-1">{file.name}</p>
+            <p className="truncate font-sans text-sm font-normal text-paper">{file.name}</p>
             <Mono size="xs" color="fog">{formatBytes(file.size)}</Mono>
           </div>
           <button
             type="button"
             aria-label="Remove selected file"
             onClick={() => setFile(null)}
-            className="focus-ring rounded-func p-1.5 text-text-2 transition-quick hover:bg-pure/[0.06] hover:text-text-1"
+            className="focus-ring rounded-btn p-1.5 text-text-2-dark transition-quick hover:bg-paper/[0.06] hover:text-paper"
           >
             <X className="size-4" />
           </button>
@@ -340,22 +340,22 @@ function Disclosure({
   const [open, setOpen] = useState(false);
   const contentId = useId();
   return (
-    <div className="rounded-func border border-border bg-surface">
+    <div className="rounded-btn border border-graphite bg-ink-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex w-full items-center justify-between rounded-func px-4 py-3 transition-quick hover:bg-pure/[0.03]"
+        className="focus-ring flex w-full items-center justify-between rounded-btn px-4 py-3 transition-quick hover:bg-paper/[0.03]"
         aria-expanded={open}
         aria-controls={contentId}
       >
         <Mono size="xs" color="pure">{title}</Mono>
-        <ChevronDown className={cn('size-4 text-text-2 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('size-4 text-text-2-dark transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <div
           id={contentId}
           className={cn(
-            'max-h-64 overflow-y-auto border-t border-border px-4 py-3 text-sm leading-relaxed text-text-2',
+            'max-h-64 overflow-y-auto border-t border-graphite px-4 py-3 text-sm leading-relaxed text-text-2-dark',
             mono && 'font-mono text-xs uppercase tracking-[0.016em]',
           )}
         >
@@ -395,7 +395,7 @@ function HrEmailSection({
             <MailWarning className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">NO CONTACT FOUND</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 Paste the HR email manually — you can continue either way.
               </p>
             </div>
@@ -435,21 +435,21 @@ function HrEmailSection({
                 onSelect(candidate.email);
               }}
               className={cn(
-                'focus-ring flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
+                'focus-ring flex w-full items-center gap-3 rounded-btn border px-4 py-3 text-left transition-quick',
                 selected
-                  ? 'border-pure bg-background'
-                  : 'border-border bg-surface hover:border-pure/20',
+                  ? 'border-paper bg-ink'
+                  : 'border-graphite bg-ink-2 hover:border-paper/20',
               )}
             >
               <span
                 className={cn(
                   'flex size-4 shrink-0 items-center justify-center rounded-full border transition-quick',
-                  selected ? 'border-pure bg-pure' : 'border-text-3',
+                  selected ? 'border-paper bg-paper' : 'border-text-3-dark',
                 )}
               >
-                {selected && <span className="size-1.5 rounded-full bg-void" />}
+                {selected && <span className="size-1.5 rounded-full bg-ink" />}
               </span>
-              <span className="min-w-0 flex-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-text-1">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-paper">
                 {candidate.email}
               </span>
               {index === 0 && (
@@ -468,21 +468,21 @@ function HrEmailSection({
           aria-checked={customMode}
           onClick={() => setCustomMode(true)}
           className={cn(
-            'focus-ring flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
+            'focus-ring flex w-full items-center gap-3 rounded-btn border px-4 py-3 text-left transition-quick',
             customMode
-              ? 'border-pure bg-background'
-              : 'border-border bg-surface hover:border-pure/20',
+              ? 'border-paper bg-ink'
+              : 'border-graphite bg-ink-2 hover:border-paper/20',
           )}
         >
           <span
             className={cn(
               'flex size-4 shrink-0 items-center justify-center rounded-full border transition-quick',
-              customMode ? 'border-pure bg-pure' : 'border-text-3',
+              customMode ? 'border-paper bg-paper' : 'border-text-3-dark',
             )}
           >
-            {customMode && <span className="size-1.5 rounded-full bg-void" />}
+            {customMode && <span className="size-1.5 rounded-full bg-ink" />}
           </span>
-          <span className="font-sans text-sm font-normal text-text-1">Use a different email</span>
+          <span className="font-sans text-sm font-normal text-paper">Use a different email</span>
         </button>
       </div>
 
@@ -539,11 +539,11 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
         ref={triggerRef}
         type="button"
         onClick={() => !broken && setOpen(true)}
-        className="focus-ring group block w-full overflow-hidden rounded-func border border-border"
+        className="focus-ring group block w-full overflow-hidden rounded-btn border border-graphite"
         aria-label="View screenshot larger"
       >
         {broken ? (
-          <div className="flex h-40 items-center justify-center gap-2 font-sans text-sm text-text-2">
+          <div className="flex h-40 items-center justify-center gap-2 font-sans text-sm text-text-2-dark">
             <ImageOff className="size-4" /> Screenshot unavailable
           </div>
         ) : (
@@ -565,7 +565,7 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
             role="dialog"
             aria-modal="true"
             aria-label="Job post screenshot"
-            className="fixed inset-0 z-50 flex items-center justify-center bg-void/80 p-6 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-6 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           >
             <button
@@ -573,7 +573,7 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
               type="button"
               aria-label="Close screenshot preview"
               onClick={() => setOpen(false)}
-              className="focus-ring absolute right-4 top-4 rounded-func p-2 text-text-2 transition-quick hover:bg-pure/[0.06] hover:text-text-1"
+              className="focus-ring absolute right-4 top-4 rounded-btn p-2 text-text-2-dark transition-quick hover:bg-paper/[0.06] hover:text-paper"
             >
               <X className="size-5" />
             </button>
@@ -584,7 +584,7 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
               transition={{ duration: 0.15 }}
               src={url}
               alt="Job post screenshot, enlarged"
-              className="max-h-full max-w-4xl rounded-func border border-border object-contain"
+              className="max-h-full max-w-4xl rounded-btn border border-graphite object-contain"
             />
           </motion.div>
         )}
@@ -614,7 +614,7 @@ function MatchDial({ score }: { score: number }) {
             cy="28"
             r={radius}
             fill="none"
-            stroke="var(--border-strong)"
+            stroke="var(--graphite)"
             strokeWidth="1.5"
           />
           <circle
@@ -622,7 +622,7 @@ function MatchDial({ score }: { score: number }) {
             cy="28"
             r={radius}
             fill="none"
-            stroke="var(--cyan)"
+            stroke="var(--lime)"
             strokeWidth="1.5"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -630,9 +630,9 @@ function MatchDial({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-xl text-text-1">
+          <span className="font-sans text-xl text-paper">
             {score}
-            <span className="ml-0.5 font-sans text-[10px] text-text-2">%</span>
+            <span className="ml-0.5 font-sans text-[10px] text-text-2-dark">%</span>
           </span>
         </div>
       </div>
@@ -766,7 +766,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">LOW CONFIDENCE EXTRACTION</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 Please verify the fields below — the screenshot may have been blurry or cropped.
               </p>
             </div>
@@ -781,7 +781,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="danger">DUPLICATE APPLICATION</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 You already have an application for this email + company + role.
               </p>
               {duplicateId && (
@@ -812,12 +812,12 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
         </div>
 
         {/* Editable extraction fields */}
-        <div className="space-y-5 rounded-card border border-border bg-surface p-6">
+        <div className="space-y-5 rounded-card border border-graphite bg-ink-2 p-6">
           {extraction?.jdText && match && (
-            <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
+            <div className="flex items-start justify-between gap-4 border-b border-graphite pb-5">
               <div className="min-w-0 flex-1">
                 <Mono size="xs" color="fog">JD SUMMARY</Mono>
-                <p className="mt-1 line-clamp-3 font-sans text-sm font-normal text-text-2">
+                <p className="mt-1 line-clamp-3 font-sans text-sm font-normal text-text-2-dark">
                   {extraction.jdText}
                 </p>
               </div>
@@ -844,7 +844,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             {field('f-hrname', 'HR NAME', hrName, setHrName, 'Priya Sharma')}
           </div>
 
-          <div className="border-t border-border pt-5">
+          <div className="border-t border-graphite pt-5">
             <div className="mb-2 flex items-center justify-between">
               <Mono size="xs" color="fog">HR EMAIL</Mono>
               {confidence != null && (
@@ -950,7 +950,7 @@ function SendFailurePanel({
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
         <div className="min-w-0 flex-1">
           <Mono size="xs" color="danger">{sendFailureTitle(code).toUpperCase()}</Mono>
-          <p className="mt-1 font-sans text-sm font-normal text-text-2">
+          <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
             {job.error ?? 'Something went wrong while sending this email.'}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -998,12 +998,12 @@ function SendStatusCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-border bg-surface p-10 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-border bg-background">
+    <div className="rounded-card border border-graphite bg-ink-2 p-10 text-center">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-graphite bg-ink">
         {icon}
       </div>
       <Mono size="sm" color="pure" className="mt-4 block">{title}</Mono>
-      <div className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">{children}</div>
+      <div className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2-dark">{children}</div>
       <Link
         to="/dashboard"
         className={cn(buttonVariants({ variant: 'outline' }), 'mt-6')}
@@ -1109,10 +1109,10 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
   if (current.status === 'sent') {
     return (
       <SendStatusCard
-        icon={<CheckCircle2 className="size-6 text-text-1" />}
+        icon={<CheckCircle2 className="size-6 text-paper" />}
         title="EMAIL SENT"
       >
-        Your outreach to <span className="text-text-1">{current.hrEmail}</span> is on its way.
+        Your outreach to <span className="text-paper">{current.hrEmail}</span> is on its way.
       </SendStatusCard>
     );
   }
@@ -1132,7 +1132,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
     if (pendingSend === 'scheduled' && scheduledAt) {
       return (
         <SendStatusCard
-          icon={<CalendarClock className="size-6 text-text-1" />}
+          icon={<CalendarClock className="size-6 text-paper" />}
           title={`SCHEDULED FOR ${formatDateTime(scheduledAt)}`}
         >
           It goes out automatically — send caps and human-like jitter are already applied.
@@ -1140,10 +1140,10 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       );
     }
     return (
-      <div className="rounded-card border border-border bg-surface p-10 text-center">
+      <div className="rounded-card border border-graphite bg-ink-2 p-10 text-center">
         <StatusLabel status="queued" className="mx-auto" />
         <Mono size="sm" color="pure" className="mt-4 block">SENDING</Mono>
-        <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
+        <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2-dark">
           Queued with human-like jitter — usually out within a few minutes.
         </p>
       </div>
@@ -1163,7 +1163,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="danger">COULDN&apos;T GENERATE THE EMAIL</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">{message}</p>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">{message}</p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button size="sm" variant="ghost" onClick={onBack}>
                   <ArrowLeft className="size-4" />
@@ -1184,9 +1184,9 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       );
     }
     return (
-      <div className="rounded-card border border-border bg-surface p-6">
+      <div className="rounded-card border border-graphite bg-ink-2 p-6">
         <Mono size="sm" color="pure">Writing your outreach email…</Mono>
-        <p className="mt-1 font-sans text-sm font-normal text-text-2">
+        <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
           Matching your profile against the job description, then drafting.
         </p>
         <ProcessingSequence steps={DRAFT_STEPS} className="mt-4" />
@@ -1225,7 +1225,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">LOW MATCH — {match.score}%</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 This role looks like a stretch for your profile. The email leans on your strongest
                 transferable skills — review it carefully before sending.
               </p>
@@ -1240,7 +1240,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">GMAIL NOT CONNECTED</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 Connect it in Settings before this email can send.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -1259,7 +1259,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
             <Paperclip className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">NO RESUME ON FILE</Mono>
-              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 Upload one before sending — without it the send will fail.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -1385,18 +1385,18 @@ export function NewApplication() {
     if ((step === 2 || step === 3) && jobId) {
       if (jobQuery.isPending) {
         return (
-          <div className="space-y-4 rounded-card border border-border bg-surface p-6">
-            <Skeleton className="h-5 w-40 bg-surface-2" />
+          <div className="space-y-4 rounded-card border border-graphite bg-ink-2 p-6">
+            <Skeleton className="h-5 w-40 bg-ink-3" />
             <div className="grid gap-4 sm:grid-cols-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="space-y-2">
-                  <Skeleton className="h-3 w-20 bg-surface-2" />
-                  <Skeleton className="h-9 w-full bg-surface-2" />
+                  <Skeleton className="h-3 w-20 bg-ink-3" />
+                  <Skeleton className="h-9 w-full bg-ink-3" />
                 </div>
               ))}
             </div>
-            <Skeleton className="h-12 w-full bg-surface-2" />
-            <Skeleton className="h-12 w-full bg-surface-2" />
+            <Skeleton className="h-12 w-full bg-ink-3" />
+            <Skeleton className="h-12 w-full bg-ink-3" />
           </div>
         );
       }
@@ -1407,7 +1407,7 @@ export function NewApplication() {
               <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
               <div className="min-w-0 flex-1">
                 <Mono size="xs" color="danger">COULDN&apos;T LOAD THIS APPLICATION</Mono>
-                <p className="mt-1 font-sans text-sm font-normal text-text-2">
+                <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                   The application didn&apos;t come back from the server — try again.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">

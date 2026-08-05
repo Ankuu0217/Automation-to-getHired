@@ -48,10 +48,10 @@ export function Register() {
   return (
     <AuthLayout>
       <div className="space-y-1">
-        <h1 className="font-display text-xl font-normal text-text-1">
+        <h1 className="font-sans text-xl font-normal text-paper">
           Create your <span className="italic">account</span>
         </h1>
-        <p className="font-sans text-sm font-normal text-text-2">Start sending dispatches that get opened.</p>
+        <p className="font-sans text-sm font-normal text-text-2-dark">Start sending dispatches that get opened.</p>
       </div>
 
       <form
@@ -115,11 +115,11 @@ export function Register() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center font-sans text-sm text-text-2">
+      <p className="mt-6 text-center font-sans text-sm text-text-2-dark">
         Already have an account?{' '}
         <Link
           to="/login"
-          className="focus-ring rounded-func font-normal text-text-1 underline-offset-4 hover:underline"
+          className="focus-ring rounded-btn font-normal text-paper underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

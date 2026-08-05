@@ -14,12 +14,12 @@ interface CategoryTileProps {
 }
 
 const COLOR_MAP: Record<TileColor, string> = {
-  iris: 'bg-iris text-pure',
-  pale: 'bg-pale text-void',
-  deep: 'bg-deep text-pure',
-  orchid: 'bg-orchid text-pure',
-  peri: 'bg-peri text-pure',
-  cyan: 'bg-cyan text-void',
+  iris: 'bg-lime text-paper',
+  pale: 'bg-pale text-ink',
+  deep: 'bg-deep text-paper',
+  orchid: 'bg-warn text-paper',
+  peri: 'bg-peri text-paper',
+  cyan: 'bg-lime text-ink',
 };
 
 export function CategoryTile({
@@ -33,7 +33,7 @@ export function CategoryTile({
   return (
     <div
       className={cn(
-        'flex flex-col justify-between rounded-tile',
+        'flex flex-col justify-between rounded-card',
         COLOR_MAP[color],
         compact ? 'p-6' : 'p-8',
         className,
@@ -43,7 +43,7 @@ export function CategoryTile({
       <div className={cn(compact ? 'mt-6' : 'mt-10')}>
         <h3
           className={cn(
-            'font-display font-normal leading-[0.95]',
+            'font-sans font-normal leading-[0.95]',
             compact ? 'text-2xl' : 'text-[38px]',
           )}
         >
