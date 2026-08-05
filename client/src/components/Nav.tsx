@@ -24,7 +24,7 @@ interface NavProps {
   dailyCap?: number;
 }
 
-function UserMenu() {
+function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number }) {
   const navigate = useNavigate();
   const { user, clear } = useAuthStore();
   const [open, setOpen] = useState(false);
@@ -91,6 +91,9 @@ function UserMenu() {
           <div className="px-3 py-2">
             <p className="truncate font-sans text-sm font-normal text-text-1">{user?.name}</p>
             <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">{user?.email}</p>
+            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-text-2 lg:hidden">
+              Sent today · {sentToday}/{dailyCap}
+            </p>
           </div>
           <Separator className="my-1" />
           <button
@@ -147,10 +150,10 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="hidden font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 md:inline">
+          <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 lg:inline">
             Sent today · {sentToday}/{dailyCap}
           </span>
-          <UserMenu />
+          <UserMenu sentToday={sentToday} dailyCap={dailyCap} />
           <button
             type="button"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
