@@ -253,7 +253,7 @@ function UploadStep({
               rx="8"
               ry="8"
               fill="none"
-              stroke="rgba(255,255,255,0.4)"
+              stroke="var(--border-trace)"
               strokeWidth="1"
               strokeDasharray="1000"
               className="animate-border-trace"
@@ -559,7 +559,7 @@ function MatchDial({ score }: { score: number }) {
             cy="28"
             r={radius}
             fill="none"
-            stroke="#2e2e2e"
+            stroke="var(--border-strong)"
             strokeWidth="1.5"
           />
           <circle
@@ -567,7 +567,7 @@ function MatchDial({ score }: { score: number }) {
             cy="28"
             r={radius}
             fill="none"
-            stroke="#00b3dd"
+            stroke="var(--cyan)"
             strokeWidth="1.5"
             strokeDasharray={circumference}
             strokeDashoffset={offset}

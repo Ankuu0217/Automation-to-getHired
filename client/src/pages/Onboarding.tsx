@@ -305,13 +305,7 @@ function ProfileStep({
       <ResumeUpload onUploaded={onUploaded} />
 
       {uploaded && (
-        <div
-          className="space-y-5"
-          style={{
-            animation: 'fadeInUp 0.2s ease forwards',
-            animationDelay: '60ms',
-          }}
-        >
+        <div className="animate-fade-in-up space-y-5">
           {fileName && (
             <div className="flex items-center gap-2">
               <FileText className="size-4 text-cyan" />

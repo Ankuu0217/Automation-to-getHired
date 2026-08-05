@@ -9,6 +9,8 @@ import {
   YAxis,
 } from 'recharts';
 
+import { chartTheme } from '@/lib/chartTheme';
+
 /** 'YYYY-MM-DD' (UTC) → 'Jul 20'. */
 function formatDay(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
@@ -55,34 +57,34 @@ export function ActivityChart({ data, height = 260, showTooltip = true }: Activi
     <div className="h-64 w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
-          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <CartesianGrid stroke={chartTheme.grid} vertical={false} />
           <XAxis
             dataKey="date"
             tickFormatter={formatDay}
-            tick={{ fill: '#6a6b6b', fontSize: 11, fontFamily: 'Roboto Mono' }}
+            tick={chartTheme.tick}
             tickLine={false}
-            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+            axisLine={{ stroke: chartTheme.grid }}
             minTickGap={32}
           />
           <YAxis
             allowDecimals={false}
-            tick={{ fill: '#6a6b6b', fontSize: 11, fontFamily: 'Roboto Mono' }}
+            tick={chartTheme.tick}
             tickLine={false}
             axisLine={false}
           />
           {showTooltip && (
             <Tooltip
               content={<ChartTooltip />}
-              cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeDasharray: '3 3' }}
+              cursor={{ stroke: chartTheme.cursor, strokeDasharray: '3 3' }}
             />
           )}
           <Line
             type="monotone"
             dataKey="sent"
-            stroke="#00b3dd"
+            stroke={chartTheme.accent}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3.5, strokeWidth: 0, fill: '#00b3dd' }}
+            activeDot={{ r: 3.5, strokeWidth: 0, fill: chartTheme.accent }}
           />
         </LineChart>
       </ResponsiveContainer>

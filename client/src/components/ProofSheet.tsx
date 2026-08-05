@@ -126,7 +126,7 @@ export function ProofSheet({
             x="0.5"
             y="0.5"
             fill="none"
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--border-trace)"
             strokeWidth="1"
             strokeDasharray="1000"
             className="animate-border-trace"
