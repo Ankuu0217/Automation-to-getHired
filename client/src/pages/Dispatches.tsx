@@ -10,6 +10,7 @@ import { Mono } from '@/components/Mono';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
+import { applicationsCsvFilename, buildApplicationsCsv, downloadCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
 
 const FILTERS: { label: string; value: ApplicationStage | 'all' }[] = [
@@ -62,8 +63,8 @@ export function Dispatches() {
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filters + export */}
+      <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map((f) => (
           <button
             key={f.value}
@@ -80,6 +81,16 @@ export function Dispatches() {
             {f.label}
           </button>
         ))}
+        {/* Exports the list as currently filtered — no extra fetches. */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          disabled={filtered.length === 0}
+          onClick={() => downloadCsv(buildApplicationsCsv(filtered), applicationsCsvFilename())}
+        >
+          Export CSV
+        </Button>
       </div>
 
       {applicationsQuery.isPending ? (

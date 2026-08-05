@@ -51,6 +51,8 @@ function toPublicUser(user: IUser): PublicUser {
       dailySendCap: user.settings.dailySendCap,
       followUpEnabled: user.settings.followUpEnabled,
       tone: user.settings.tone,
+      // Pre-Phase-9 documents have no weeklySendGoal — read as "no goal set".
+      weeklySendGoal: user.settings.weeklySendGoal ?? null,
     },
     createdAt: user.createdAt.toISOString(),
   };

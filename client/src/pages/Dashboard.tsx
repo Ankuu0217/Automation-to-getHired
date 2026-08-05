@@ -16,6 +16,7 @@ import { Mono } from '@/components/Mono';
 import { buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getFunnelAnalytics, getProfile, listApplications, updateApplication } from '@/lib/api';
+import { computeStreak, startOfWeek } from '@/lib/streak';
 import { cn } from '@/lib/utils';
 import { formatInterviewBadge } from '@/pages/pipelineUtils';
 import { useAuthStore } from '@/stores/auth';
@@ -46,6 +47,22 @@ export function Dashboard() {
   const applications = applicationsQuery.data?.applications ?? [];
   const recent = applications.slice(0, 6);
   const funnel = funnelQuery.data;
+
+  /*
+   * Weekly goal + streak (Phase 9) — computed client-side from the loaded
+   * summaries. ApplicationSummary exposes only lastEmail.sentAt (the latest
+   * SENT email per application), so each application contributes one send
+   * date; earlier sends in the same thread aren't on the list DTO. The week
+   * starts Monday 00:00 LOCAL time (ISO-8601) — see startOfWeek.
+   */
+  const weeklyGoal = user?.settings.weeklySendGoal ?? null;
+  const sentDates = applications
+    .map((a) => a.lastEmail?.sentAt)
+    .filter((sentAt): sentAt is string => Boolean(sentAt))
+    .map((sentAt) => new Date(sentAt));
+  const weekStart = startOfWeek(new Date());
+  const sentThisWeek = sentDates.filter((d) => d.getTime() >= weekStart.getTime()).length;
+  const streak = computeStreak(sentDates, new Date());
 
   /* Next 5 future interviews, soonest first (Phase 3). */
   const now = Date.now();
@@ -115,6 +132,42 @@ export function Dashboard() {
           ))}
         </div>
       ) : null}
+
+      {/* Weekly goal + streak (Phase 9) — rendered only when a goal is set. */}
+      {weeklyGoal !== null && (
+        <section className="rounded-card border border-graphite bg-ink-2 p-4">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <div className="min-w-[220px] flex-1">
+              <div className="flex items-center justify-between">
+                <Mono size="xs" color="fog">
+                  This week
+                </Mono>
+                <Mono size="xs" color="pure">
+                  {sentThisWeek} / {weeklyGoal}
+                </Mono>
+              </div>
+              {/* Thin lime fill on a hairline pill track — mirrors the Analytics funnel bars. */}
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-transparent">
+                <div
+                  className="h-full rounded-pill bg-lime transition-[width] duration-500 ease-out"
+                  style={{
+                    width:
+                      sentThisWeek === 0
+                        ? '0%'
+                        : `${Math.max(Math.min((sentThisWeek / weeklyGoal) * 100, 100), 2)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {streak >= 1 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+              <Mono size="xs" color="ash">
+                Streak · {streak}D
+              </Mono>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Chart */}
       {funnelQuery.isPending ? (

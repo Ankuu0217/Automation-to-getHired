@@ -400,12 +400,17 @@ function SendingSection() {
   const [autoSend, setAutoSend] = useState(user?.settings.autoSend ?? false);
   const [followUpEnabled, setFollowUpEnabled] = useState(user?.settings.followUpEnabled ?? true);
   const [dailySendCap, setDailySendCap] = useState(user?.settings.dailySendCap ?? 30);
+  /* Kept as a string so the field can be emptied — empty saves as null (no goal). */
+  const [weeklySendGoal, setWeeklySendGoal] = useState(
+    user?.settings.weeklySendGoal?.toString() ?? '',
+  );
 
   useEffect(() => {
     if (!user) return;
     setAutoSend(user.settings.autoSend);
     setFollowUpEnabled(user.settings.followUpEnabled);
     setDailySendCap(user.settings.dailySendCap);
+    setWeeklySendGoal(user.settings.weeklySendGoal?.toString() ?? '');
   }, [user]);
 
   const saveMutation = useMutation({
@@ -458,6 +463,36 @@ function SendingSection() {
 
         <Separator />
 
+        {/* Weekly goal (Phase 9) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <Label
+              htmlFor="settings-weekly-goal"
+              className="font-mono text-[13px] uppercase tracking-[-0.02em]"
+            >
+              Weekly send goal
+            </Label>
+            <Input
+              id="settings-weekly-goal"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={weeklySendGoal}
+              onChange={(e) => setWeeklySendGoal(e.target.value)}
+              placeholder="—"
+              aria-label="Weekly send goal"
+              className="h-8 w-20 text-right"
+            />
+          </div>
+          <p className="font-sans text-xs text-text-3-dark">
+            A target, not a limit — the dashboard tracks progress Monday to Sunday. Leave empty for
+            no goal.
+          </p>
+        </div>
+
+        <Separator />
+
         {/* Auto-send */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-1">
@@ -499,7 +534,14 @@ function SendingSection() {
 
         <div className="flex justify-end pt-2">
           <Button
-            onClick={() => saveMutation.mutate({ autoSend, followUpEnabled, dailySendCap })}
+            onClick={() =>
+              saveMutation.mutate({
+                autoSend,
+                followUpEnabled,
+                dailySendCap,
+                weeklySendGoal: weeklySendGoal === '' ? null : Number(weeklySendGoal),
+              })
+            }
             disabled={saveMutation.isPending}
           >
             {saveMutation.isPending && <Loader2 className="size-4 animate-spin" />}

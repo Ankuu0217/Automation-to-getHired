@@ -52,6 +52,7 @@ describe('auth flow', () => {
       dailySendCap: 30,
       followUpEnabled: true,
       tone: 'formal',
+      weeklySendGoal: null,
     });
     expect(res.body.user).not.toHaveProperty('passwordHash');
     jar = cookies(res);
@@ -135,6 +136,37 @@ describe('auth flow', () => {
       .set('Cookie', cookieHeader(jar))
       .send({ dailySendCap: 5000 });
     expect(res.status).toBe(400);
+  });
+
+  it('accepts a weekly send goal and persists it', async () => {
+    const res = await request(app)
+      .patch('/api/v1/auth/settings')
+      .set('Cookie', cookieHeader(jar))
+      .send({ weeklySendGoal: 10 });
+    expect(res.status).toBe(200);
+    expect(res.body.user.settings.weeklySendGoal).toBe(10);
+    const meRes = await request(app).get('/api/v1/auth/me').set('Cookie', cookieHeader(jar));
+    expect(meRes.body.user.settings.weeklySendGoal).toBe(10);
+  });
+
+  it('rejects out-of-range and non-integer weekly send goals', async () => {
+    for (const weeklySendGoal of [0, 101, 7.5]) {
+      const res = await request(app)
+        .patch('/api/v1/auth/settings')
+        .set('Cookie', cookieHeader(jar))
+        .send({ weeklySendGoal });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    }
+  });
+
+  it('clears the weekly send goal with null', async () => {
+    const res = await request(app)
+      .patch('/api/v1/auth/settings')
+      .set('Cookie', cookieHeader(jar))
+      .send({ weeklySendGoal: null });
+    expect(res.status).toBe(200);
+    expect(res.body.user.settings.weeklySendGoal).toBeNull();
   });
 
   it('logs out and clears the session', async () => {

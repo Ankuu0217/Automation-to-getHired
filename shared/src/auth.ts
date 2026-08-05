@@ -41,6 +41,8 @@ export const settingsSchema = z.object({
   dailySendCap: z.number().int().min(1).max(100),
   followUpEnabled: z.boolean(),
   tone: toneEnum,
+  /** Weekly send target shown on the dashboard — null when no goal is set. */
+  weeklySendGoal: z.number().int().min(1).max(100).nullable(),
 });
 export type UserSettings = z.infer<typeof settingsSchema>;
 
@@ -58,4 +60,5 @@ export const defaultSettings: UserSettings = {
   dailySendCap: 30,
   followUpEnabled: true,
   tone: 'formal',
+  weeklySendGoal: null,
 };

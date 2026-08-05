@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
+import { applicationsCsvFilename, buildApplicationsCsv, downloadCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
 import {
   columnMeta,
@@ -493,7 +494,7 @@ export function Pipeline() {
                 Show ghosted
               </FilterChip>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               <Select
                 value={view.sort}
                 onChange={(e) => updateView({ sort: e.target.value as PipelineSort })}
@@ -504,6 +505,17 @@ export function Pipeline() {
                 <option value="oldest">Oldest first</option>
                 <option value="stale">Most stale</option>
               </Select>
+              {/* Exports the board as currently filtered — no extra fetches. */}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={filtered.length === 0}
+                onClick={() =>
+                  downloadCsv(buildApplicationsCsv(filtered), applicationsCsvFilename())
+                }
+              >
+                Export CSV
+              </Button>
             </div>
           </div>
 

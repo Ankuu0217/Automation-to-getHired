@@ -48,6 +48,8 @@ const userSchema = new Schema<IUser>(
         enum: ['formal', 'confident', 'friendly'] satisfies Tone[],
         default: defaultSettings.tone,
       },
+      /** Weekly send target for the dashboard — null when no goal is set. */
+      weeklySendGoal: { type: Number, default: defaultSettings.weeklySendGoal, min: 1, max: 100 },
     },
     refreshTokenHashes: { type: [String], default: [], select: false },
     /** Last send-pipeline failure (e.g. Gmail disconnected mid-queue) — read by the UI banner. */
