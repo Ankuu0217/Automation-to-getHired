@@ -72,7 +72,7 @@ export function Dashboard() {
           <Mono size="xs" color="fog">
             Dispatches · {applications.length}
           </Mono>
-          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
+          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
             {greeting(user?.name?.split(' ')[0])}
             .
           </h1>
@@ -100,7 +100,7 @@ export function Dashboard() {
               <Mono size="xs" color="fog">
                 {stat.label}
               </Mono>
-              <span className="mt-1 font-sans text-[28px] font-normal leading-[0.95] text-paper">
+              <span className="mt-1 font-sans text-subheading font-normal text-paper">
                 {stat.value}
               </span>
             </div>
@@ -271,7 +271,7 @@ function SetupItem({
         className={cn(
           'flex size-9 shrink-0 items-center justify-center rounded-btn border transition-quick',
           done
-            ? 'border-ok/30 bg-ok/10 text-ok'
+            ? 'border-ok/40 bg-ink-2 text-ok'
             : 'border-graphite bg-ink-2 text-text-3-dark',
         )}
       >

@@ -16,7 +16,7 @@ function GmailDisconnectedBanner() {
   if (!lastSendError || dismissed) return null;
 
   return (
-    <div className="border-b border-danger/30 bg-danger/5">
+    <div className="border-b border-danger/40">
       <div className="mx-auto flex w-full max-w-[1200px] items-center gap-3 px-6 py-2.5">
         <AlertTriangle className="size-4 shrink-0 text-danger" />
         <p className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-[0.16px] text-danger">

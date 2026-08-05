@@ -69,7 +69,7 @@ function CardBody({
   return (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate font-sans text-sm font-semibold text-paper">
+        <p className="min-w-0 truncate font-sans text-sm text-paper">
           {application.company ?? 'Unknown company'}
         </p>
       </div>
@@ -143,7 +143,7 @@ function DraggableCard({
       className={cn(
         'focus-ring cursor-grab touch-pan-y rounded-card border border-graphite bg-ink-2 p-4 transition-quick hover:border-text-3-dark active:cursor-grabbing',
         ghosted && 'border-dashed',
-        isDragging && 'opacity-40',
+        isDragging && 'border-lime bg-ink-3 opacity-40',
       )}
     >
       <CardBody application={application} dispatchCode={dispatchCode} />
@@ -155,12 +155,14 @@ function DraggableCard({
 
 function StageColumn({
   stage,
+  index,
   applications,
   dispatchMap,
   dimmed = false,
   onOpen,
 }: {
   stage: StageMeta;
+  index: number;
   applications: ApplicationSummary[];
   dispatchMap: Map<string, string>;
   dimmed?: boolean;
@@ -176,14 +178,9 @@ function StageColumn({
         dimmed && 'opacity-70',
       )}
     >
-      <div className="mb-3 flex items-baseline justify-between px-1">
-        <Mono size="xs" color="fog">
-          {stage.label}
-        </Mono>
-        <Mono size="xs" color="fog">
-          {applications.length}
-        </Mono>
-      </div>
+      <p className="mb-3 px-1 font-mono text-[13px] uppercase tracking-[-0.02em] text-text-2-dark">
+        {String(index + 1).padStart(2, '0')} {stage.label} · {applications.length}
+      </p>
       <div
         ref={setNodeRef}
         className={cn(
@@ -217,9 +214,8 @@ function BoardSkeleton() {
           key={stage.id}
           className="w-[300px] shrink-0 rounded-card border border-graphite bg-ink p-3"
         >
-          <div className="mb-3 flex items-baseline justify-between px-1">
-            <Skeleton className="h-3 w-20 bg-ink-3" />
-            <Skeleton className="h-3 w-6 bg-ink-3" />
+          <div className="mb-3 px-1">
+            <Skeleton className="h-3.5 w-28 bg-ink-3" />
           </div>
           <div className="space-y-2.5">
             <Skeleton className="h-24 w-full bg-ink-3 rounded-card" />
@@ -319,8 +315,8 @@ export function Pipeline() {
           <Mono size="xs" color="fog">
             Applications
           </Mono>
-          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-            The pipeline
+          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
+            The pipeline.
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
@@ -366,10 +362,11 @@ export function Pipeline() {
       ) : (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
-            {columns.map((stage) => (
+            {columns.map((stage, index) => (
               <StageColumn
                 key={stage.id}
                 stage={stage}
+                index={index}
                 applications={byStage.get(stage.id) ?? []}
                 dispatchMap={dispatchMap}
                 dimmed={stage.id === 'ghosted'}
@@ -379,7 +376,7 @@ export function Pipeline() {
           </div>
           <DragOverlay>
             {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-card border border-text-3-dark bg-ink-3 p-4">
+              <div className="w-[300px] rotate-2 rounded-card border border-lime bg-ink-3 p-4">
                 <CardBody
                   application={activeApplication}
                   dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}

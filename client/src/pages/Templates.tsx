@@ -210,7 +210,7 @@ function TemplateCard({
     <div
       className={cn(
         'rounded-card border bg-ink-2 p-4 transition-quick',
-        template.isDefault ? 'border-text-3-dark' : 'border-graphite hover:border-text-3-dark',
+        template.isDefault ? 'border-lime' : 'border-graphite hover:border-text-3-dark',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -221,7 +221,7 @@ function TemplateCard({
             </Mono>
             <p className="truncate font-sans text-base font-normal text-paper">{template.name}</p>
             {template.isDefault && (
-              <Mono size="xs" color="ash">
+              <Mono size="xs" color="cyan">
                 DEFAULT
               </Mono>
             )}
@@ -327,7 +327,7 @@ export function Templates() {
               <Send className="size-4" strokeWidth={1.5} />
             </div>
             <div className="mt-6">
-              <h3 className="font-sans text-2xl font-normal leading-[0.95] text-paper">Template studio</h3>
+              <h3 className="font-sans text-subheading text-paper">Template studio</h3>
               <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2-dark">
                 Reusable AI guidance with per-template response-rate stats.
               </p>
@@ -347,8 +347,8 @@ export function Templates() {
               <Mono size="xs" color="fog">
                 Templates
               </Mono>
-              <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-                Saved prompts
+              <h1 className="mt-1 font-sans text-heading text-paper">
+                Saved prompts.
               </h1>
             </div>
             <Button onClick={() => setCreating(true)}>
@@ -365,7 +365,7 @@ export function Templates() {
             </div>
           ) : templates.length === 0 ? (
             <div className="rounded-card border border-graphite bg-ink-2 px-6 py-10">
-              <p className="font-sans text-[38px] font-normal leading-[0.9] text-paper">
+              <p className="font-sans text-heading text-paper">
                 No templates yet. Save one.
               </p>
               <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2-dark">

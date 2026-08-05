@@ -69,7 +69,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
                 <span>{step.label}</span>
                 <div className="flex items-center gap-3">
                   {conversion !== null && (
-                    <Mono size="xs" color="cyan">
+                    <Mono size="xs" color="ash">
                       {conversion} of prev
                     </Mono>
                   )}
@@ -78,7 +78,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
                   </Mono>
                 </div>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-ink">
+              <div className="h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-transparent">
                 <div
                   className="h-full rounded-pill bg-lime transition-[width] duration-500 ease-out"
                   style={{ width: value === 0 ? '0%' : `${Math.max(pct, 2)}%` }}
@@ -216,7 +216,7 @@ export function Analytics() {
             <BarChart3 className="size-4" strokeWidth={1.5} />
           </div>
           <div className="mt-6">
-            <h3 className="font-sans text-2xl font-normal leading-[0.95] text-paper">Analytics</h3>
+            <h3 className="font-sans text-subheading text-paper">Analytics</h3>
             <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2-dark">
               Funnel, template A/B performance, and 30-day trend.
             </p>
@@ -228,7 +228,7 @@ export function Analytics() {
             <Mono size="xs" color="fog">
               Performance
             </Mono>
-            <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
+            <h1 className="mt-1 font-sans text-heading text-paper">
               Your outreach, measured.
             </h1>
           </div>
@@ -312,7 +312,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <Mono size="xs" color="fog">
         {label}
       </Mono>
-      <span className="mt-1 font-sans text-[28px] font-normal leading-[0.95] text-paper">{value}</span>
+      <span className="mt-1 font-sans text-subheading text-paper">{value}</span>
     </div>
   );
 }

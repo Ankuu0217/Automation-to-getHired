@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { Mono } from '@/components/Mono';
 import { ProofSheet } from '@/components/ProofSheet';
 import { StatusLabel } from '@/components/StatusLabel';
+import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -112,13 +113,27 @@ function ProcessingSequence({ steps = UPLOAD_STEPS, className }: { steps?: strin
 /* ── Stepper header ─────────────────────────────────────────────── */
 
 function StepsHeader({ current }: { current: FlowStep }) {
+  const stepClass = (active: boolean) =>
+    cn(
+      'inline-flex items-center gap-2 font-mono text-[13px] uppercase tracking-[-0.02em]',
+      active ? 'text-paper' : 'text-text-3-dark',
+    );
   return (
     <div className="flex items-center justify-center gap-3">
-      <Mono size="sm" color={current === 1 ? 'pure' : 'fog'}>01 UPLOAD</Mono>
-      <span className="text-text-3-dark">·</span>
-      <Mono size="sm" color={current === 2 ? 'pure' : 'fog'}>02 REVIEW</Mono>
-      <span className="text-text-3-dark">·</span>
-      <Mono size="sm" color={current === 3 ? 'pure' : 'fog'}>03 SEND</Mono>
+      <span className={stepClass(current === 1)}>
+        {current === 1 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+        01 UPLOAD
+      </span>
+      <span aria-hidden className="text-text-3-dark">·</span>
+      <span className={stepClass(current === 2)}>
+        {current === 2 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+        02 REVIEW
+      </span>
+      <span aria-hidden className="text-text-3-dark">·</span>
+      <span className={stepClass(current === 3)}>
+        {current === 3 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+        03 SEND
+      </span>
     </div>
   );
 }
@@ -218,7 +233,7 @@ function UploadStep({
   /* Extraction failed on the server. */
   if (failed) {
     return (
-      <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+      <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
         <div className="flex items-start gap-3">
           <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
           <div className="min-w-0 flex-1">
@@ -248,9 +263,9 @@ function UploadStep({
       <div
         {...getRootProps()}
         className={cn(
-          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-btn border border-dashed border-text-3-dark bg-ink px-6 py-12 text-center transition-quick',
-          isDragActive && 'border-paper bg-paper/[0.03]',
-          file && 'border-paper/30',
+          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-btn border border-dashed border-graphite bg-ink px-6 py-12 text-center transition-quick hover:border-lime',
+          isDragActive && 'border-lime',
+          file && 'border-text-3-dark',
         )}
       >
         <input {...getInputProps()} aria-label="Job post screenshot" />
@@ -274,7 +289,7 @@ function UploadStep({
         <div
           className={cn(
             'flex size-12 items-center justify-center rounded-btn border border-graphite bg-ink-2 text-text-2-dark transition-quick',
-            isDragActive && 'border-paper/20 text-paper',
+            isDragActive && 'border-text-3-dark text-paper',
           )}
         >
           <ImagePlus className="size-6" />
@@ -309,18 +324,20 @@ function UploadStep({
             type="button"
             aria-label="Remove selected file"
             onClick={() => setFile(null)}
-            className="focus-ring rounded-btn p-1.5 text-text-2-dark transition-quick hover:bg-paper/[0.06] hover:text-paper"
+            className="focus-ring rounded-btn p-1.5 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper"
           >
             <X className="size-4" />
           </button>
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
         <Button disabled={!file || uploading} onClick={() => file && onUpload(file)}>
           {uploading ? 'Uploading…' : 'Upload & analyze'}
-          <span aria-hidden>→</span>
         </Button>
+        {file && !uploading && (
+          <ArrowSquare aria-label="Upload and analyze" onClick={() => onUpload(file)} />
+        )}
       </div>
     </div>
   );
@@ -344,7 +361,7 @@ function Disclosure({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex w-full items-center justify-between rounded-btn px-4 py-3 transition-quick hover:bg-paper/[0.03]"
+        className="focus-ring flex w-full items-center justify-between rounded-btn px-4 py-3 transition-quick hover:bg-ink-3"
         aria-expanded={open}
         aria-controls={contentId}
       >
@@ -390,7 +407,7 @@ function HrEmailSection({
   if (ranked.length === 0) {
     return (
       <div className="space-y-3">
-        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <MailWarning className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
@@ -437,17 +454,12 @@ function HrEmailSection({
               className={cn(
                 'focus-ring flex w-full items-center gap-3 rounded-btn border px-4 py-3 text-left transition-quick',
                 selected
-                  ? 'border-paper bg-ink'
-                  : 'border-graphite bg-ink-2 hover:border-paper/20',
+                  ? 'border-lime bg-ink-2'
+                  : 'border-graphite bg-ink-2 hover:border-text-3-dark',
               )}
             >
-              <span
-                className={cn(
-                  'flex size-4 shrink-0 items-center justify-center rounded-full border transition-quick',
-                  selected ? 'border-paper bg-paper' : 'border-text-3-dark',
-                )}
-              >
-                {selected && <span className="size-1.5 rounded-full bg-ink" />}
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-graphite transition-quick">
+                {selected && <span className="size-1.5 rounded-full bg-lime" />}
               </span>
               <span className="min-w-0 flex-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-paper">
                 {candidate.email}
@@ -470,17 +482,12 @@ function HrEmailSection({
           className={cn(
             'focus-ring flex w-full items-center gap-3 rounded-btn border px-4 py-3 text-left transition-quick',
             customMode
-              ? 'border-paper bg-ink'
-              : 'border-graphite bg-ink-2 hover:border-paper/20',
+              ? 'border-lime bg-ink-2'
+              : 'border-graphite bg-ink-2 hover:border-text-3-dark',
           )}
         >
-          <span
-            className={cn(
-              'flex size-4 shrink-0 items-center justify-center rounded-full border transition-quick',
-              customMode ? 'border-paper bg-paper' : 'border-text-3-dark',
-            )}
-          >
-            {customMode && <span className="size-1.5 rounded-full bg-ink" />}
+          <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-graphite transition-quick">
+            {customMode && <span className="size-1.5 rounded-full bg-lime" />}
           </span>
           <span className="font-sans text-sm font-normal text-paper">Use a different email</span>
         </button>
@@ -573,7 +580,7 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
               type="button"
               aria-label="Close screenshot preview"
               onClick={() => setOpen(false)}
-              className="focus-ring absolute right-4 top-4 rounded-btn p-2 text-text-2-dark transition-quick hover:bg-paper/[0.06] hover:text-paper"
+              className="focus-ring absolute right-4 top-4 rounded-btn p-2 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper"
             >
               <X className="size-5" />
             </button>
@@ -630,7 +637,7 @@ function MatchDial({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-sans text-xl text-paper">
+          <span className="font-sans text-subheading font-normal text-paper">
             {score}
             <span className="ml-0.5 font-sans text-[10px] text-text-2-dark">%</span>
           </span>
@@ -761,7 +768,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
     <div className="space-y-6">
       {/* Edge case 3: low-confidence banner + raw text */}
       {lowConfidence && (
-        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
@@ -776,7 +783,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
 
       {/* Edge case 4: duplicate warning */}
       {duplicateId !== null && (
-        <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+        <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
             <div className="min-w-0 flex-1">
@@ -877,10 +884,8 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             >
               Save changes
             </Button>
-            <Button onClick={onContinue}>
-              Continue
-              <span aria-hidden>→</span>
-            </Button>
+            <Button onClick={onContinue}>Continue</Button>
+            <ArrowSquare aria-label="Continue to send step" onClick={onContinue} />
           </div>
         </div>
       </div>
@@ -945,7 +950,7 @@ function SendFailurePanel({
 }) {
   const code = job.failureCode;
   return (
-    <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+    <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
         <div className="min-w-0 flex-1">
@@ -1158,7 +1163,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
           ? generateMutation.error.message
           : 'The AI provider could not write the email.';
       return (
-        <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+        <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
             <div className="min-w-0 flex-1">
@@ -1212,15 +1217,17 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       </Button>
       <Button onClick={() => sendMutation.mutate({})} disabled={actionsDisabled}>
         {sendMutation.isPending ? 'Sending…' : 'Send now'}
-        <span aria-hidden>→</span>
       </Button>
+      {!actionsDisabled && (
+        <ArrowSquare aria-label="Send now" onClick={() => sendMutation.mutate({})} />
+      )}
     </div>
   );
 
   return (
     <div className="space-y-5">
       {current.lowMatch && match && (
-        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
@@ -1235,7 +1242,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       )}
 
       {!user?.gmailConnected && (
-        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
@@ -1254,7 +1261,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       )}
 
       {!resumeName && (
-        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">
             <Paperclip className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
@@ -1402,7 +1409,7 @@ export function NewApplication() {
       }
       if (jobQuery.isError || !job) {
         return (
-          <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+          <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
             <div className="flex items-start gap-3">
               <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
               <div className="min-w-0 flex-1">

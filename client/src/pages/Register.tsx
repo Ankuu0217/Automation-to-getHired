@@ -48,8 +48,11 @@ export function Register() {
   return (
     <AuthLayout>
       <div className="space-y-1">
-        <h1 className="font-sans text-xl font-normal text-paper">
-          Create your account
+        <Mono size="xs" color="fog">
+          New account
+        </Mono>
+        <h1 className="font-sans text-subheading font-normal text-paper">
+          Create your account.
         </h1>
         <p className="font-sans text-sm font-normal text-text-2-dark">Start sending dispatches that get opened.</p>
       </div>
@@ -119,7 +122,7 @@ export function Register() {
         Already have an account?{' '}
         <Link
           to="/login"
-          className="focus-ring rounded-btn font-normal text-paper underline-offset-4 hover:underline"
+          className="focus-ring rounded-btn font-mono text-[13px] uppercase tracking-[-0.02em] text-paper underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

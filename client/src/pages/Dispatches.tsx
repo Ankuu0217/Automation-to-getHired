@@ -52,8 +52,8 @@ export function Dispatches() {
           <Mono size="xs" color="fog">
             Dispatches
           </Mono>
-          <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-            Every dispatch
+          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
+            Every dispatch.
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
@@ -73,8 +73,8 @@ export function Dispatches() {
             className={cn(
               'focus-ring inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
               filter === f.value
-                ? 'border-paper bg-paper text-ink'
-                : 'border-text-3-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
+                ? 'border-lime bg-lime text-ink'
+                : 'border-graphite text-text-2-dark hover:bg-ink-3 hover:text-paper',
             )}
           >
             {f.label}

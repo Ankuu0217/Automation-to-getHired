@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 import { usePrevious } from '@/hooks/usePrevious';
 
 import { Mono } from '@/components/Mono';
+import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -88,7 +89,7 @@ export function ProofSheet({
   }, [isGenerating, wasGenerating]);
 
   const toneTabs = (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2">
       {TONES.map((t) => (
         <button
           key={t.value}
@@ -96,10 +97,10 @@ export function ProofSheet({
           disabled={isGenerating || isSending}
           onClick={() => onToneChange?.(t.value)}
           className={cn(
-            'focus-ring pb-1 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+            'focus-ring rounded-nav border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick disabled:pointer-events-none disabled:opacity-50',
             tone === t.value
-              ? 'border-b border-paper text-paper'
-              : 'border-b border-transparent text-text-3-dark hover:text-paper',
+              ? 'border-lime bg-lime text-ink'
+              : 'border-graphite text-text-2-dark hover:bg-ink-3 hover:text-paper',
           )}
         >
           {t.label}
@@ -245,8 +246,10 @@ export function ProofSheet({
             </Button>
             <Button disabled={isGenerating || isSending} onClick={() => onSend?.()}>
               {isSending ? 'Sending…' : 'Send email'}
-              <span aria-hidden>→</span>
             </Button>
+            {onSend && !isGenerating && !isSending && (
+              <ArrowSquare aria-label="Send email" onClick={() => onSend()} />
+            )}
           </>
         )}
       </div>

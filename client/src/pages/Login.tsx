@@ -43,8 +43,11 @@ export function Login() {
   return (
     <AuthLayout>
       <div className="space-y-1">
-        <h1 className="font-sans text-xl font-normal text-paper">
-          Welcome back
+        <Mono size="xs" color="fog">
+          Account access
+        </Mono>
+        <h1 className="font-sans text-subheading font-normal text-paper">
+          Welcome back.
         </h1>
         <p className="font-sans text-sm font-normal text-text-2-dark">Sign in to your dispatch desk.</p>
       </div>
@@ -98,7 +101,7 @@ export function Login() {
         New to GetHired?{' '}
         <Link
           to="/register"
-          className="focus-ring rounded-btn font-normal text-paper underline-offset-4 hover:underline"
+          className="focus-ring rounded-btn font-mono text-[13px] uppercase tracking-[-0.02em] text-paper underline-offset-4 hover:underline"
         >
           Create an account
         </Link>

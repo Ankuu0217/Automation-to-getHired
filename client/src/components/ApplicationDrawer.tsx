@@ -45,18 +45,13 @@ import {
   type TimelineKind,
 } from '@/pages/pipelineUtils';
 
-const TIMELINE_ICON: Record<TimelineKind, typeof Send> = {
-  sent: Send,
-  opened: MailOpen,
-  replied: Reply,
-  bounced: MailWarning,
-};
-
-const TIMELINE_TONE: Record<TimelineKind, string> = {
-  sent: 'border-graphite bg-ink-2 text-text-3-dark',
-  opened: 'border-lime/30 bg-lime/10 text-lime',
-  replied: 'border-ok/30 bg-ok/10 text-ok',
-  bounced: 'border-danger/30 bg-danger/10 text-danger',
+/* 6px dots, mirroring the StatusLabel signal logic: neutral solid = in
+ * flight, hollow lime = engaged, ok = won, danger = lost. No fills. */
+const TIMELINE_DOT: Record<TimelineKind, string> = {
+  sent: 'bg-text-2-dark',
+  opened: 'border border-lime bg-transparent',
+  replied: 'bg-ok',
+  bounced: 'bg-danger',
 };
 
 function EmailThread({ application }: { application: ApplicationDetailResponse }) {
@@ -78,7 +73,7 @@ function EmailThread({ application }: { application: ApplicationDetailResponse }
               {email.subject || '(no subject)'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-3 font-sans text-xs text-text-3-dark">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-3 font-mono text-xs uppercase tracking-[0.016em] text-text-3-dark">
             {email.sentAt ? (
               <span className="inline-flex items-center gap-1">
                 <Send className="size-3" /> Sent {formatDateTime(email.sentAt)}
@@ -122,28 +117,25 @@ function EventsTimeline({ application }: { application: ApplicationDetailRespons
   }
   return (
     <ol className="relative space-y-4 border-l border-graphite pl-5">
-      {timeline.map((entry) => {
-        const Icon = TIMELINE_ICON[entry.kind];
-        return (
-          <li key={`${entry.kind}-${entry.at}`} className="relative flex items-center gap-3">
-            <span
-              className={cn(
-                'absolute -left-[31px] flex size-6 items-center justify-center rounded-full border',
-                TIMELINE_TONE[entry.kind],
-              )}
-            >
-              <Icon className="size-3" />
-            </span>
-            <p className="min-w-0 flex-1 truncate font-sans text-sm text-paper">{entry.label}</p>
-            <span
-              className="shrink-0 font-sans text-xs text-text-3-dark"
-              title={formatDateTime(entry.at)}
-            >
-              {formatRelativeTime(entry.at)}
-            </span>
-          </li>
-        );
-      })}
+      {timeline.map((entry) => (
+        <li key={`${entry.kind}-${entry.at}`} className="relative flex items-center gap-3">
+          <span
+            className={cn(
+              'absolute -left-[23px] size-1.5 rounded-full',
+              TIMELINE_DOT[entry.kind],
+            )}
+          />
+          <p className="min-w-0 flex-1 truncate font-mono text-xs uppercase tracking-[0.016em] text-paper">
+            {entry.label}
+          </p>
+          <span
+            className="shrink-0 font-mono text-xs uppercase tracking-[0.016em] text-text-3-dark"
+            title={formatDateTime(entry.at)}
+          >
+            {formatRelativeTime(entry.at)}
+          </span>
+        </li>
+      ))}
     </ol>
   );
 }
@@ -303,7 +295,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
 
             {/* Email thread */}
             <section className="space-y-3">
-              <h3 className="font-sans text-sm font-normal text-paper">Email thread</h3>
+              <h3 className="font-sans text-base font-normal text-paper">Email thread</h3>
               <EmailThread application={application} />
             </section>
 
@@ -311,7 +303,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
 
             {/* Events timeline */}
             <section className="space-y-3">
-              <h3 className="font-sans text-sm font-normal text-paper">Activity</h3>
+              <h3 className="font-sans text-base font-normal text-paper">Activity</h3>
               <EventsTimeline application={application} />
             </section>
 

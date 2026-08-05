@@ -69,7 +69,7 @@ export function GmailConnectPanel() {
           <div
             className={cn(
               'flex size-10 shrink-0 items-center justify-center rounded-btn border',
-              connected ? 'border-ok/30 bg-ok/10 text-ok' : 'border-graphite bg-ink-2 text-text-3-dark',
+              connected ? 'border-ok/40 text-ok' : 'border-graphite bg-ink-2 text-text-3-dark',
             )}
           >
             <Mail className="size-5" />
@@ -78,7 +78,7 @@ export function GmailConnectPanel() {
             <p className="font-sans text-sm font-normal text-paper">
               {connected ? user?.connectedEmail : 'Not connected'}
             </p>
-            <p className="font-sans text-xs text-text-3-dark">
+            <p className="font-sans text-xs text-text-2-dark">
               {connected
                 ? 'Your Gmail account is connected.'
                 : 'Tokens are encrypted at rest; you can revoke access anytime.'}
@@ -127,7 +127,7 @@ export function GmailConnectPanel() {
       />
 
       {oauthMissing && !connected && (
-        <div className="rounded-btn border border-warn/30 bg-warn/10 p-3">
+        <div className="rounded-btn border border-warn/40 bg-transparent p-3">
           <Mono size="xs" color="warn" className="leading-relaxed">
             Gmail OAuth is not configured on this server. For local development, set the app-password
             fallback env vars instead (see server/.env.example).

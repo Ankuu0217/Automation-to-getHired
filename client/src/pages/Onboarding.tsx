@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { GmailConnectPanel } from '@/components/GmailConnect';
 import { Logo } from '@/components/Logo';
 import { Mono } from '@/components/Mono';
+import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,7 +62,7 @@ function StepIndicator({ current }: { current: number }) {
             className={cn('flex items-center gap-2 rounded-pill px-3 py-1', active && 'bg-ink-3')}
           >
             {done ? (
-              <Check aria-hidden className="size-3 text-ok" />
+              <Check aria-hidden className="size-3 text-lime" />
             ) : (
               <span
                 aria-hidden
@@ -69,8 +70,8 @@ function StepIndicator({ current }: { current: number }) {
               />
             )}
             <Mono size="sm" color={done ? 'ash' : 'fog'} className={cn(active && 'text-paper')}>
-              0{index + 1}
-              <span className="sr-only sm:not-sr-only"> — {step.title.toUpperCase()}</span>
+              STEP 0{index + 1} / 0{STEPS.length}
+              <span className="sr-only"> — {step.title}</span>
             </Mono>
           </li>
         );
@@ -103,20 +104,20 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1 rounded-pill border border-text-3-dark px-2.5 py-1 font-sans text-xs text-text-2-dark"
+            className="inline-flex items-center gap-1 rounded-pill border border-graphite px-2.5 py-1 font-sans text-xs text-text-2-dark"
           >
             {skill}
             <button
               type="button"
               aria-label={`Remove ${skill}`}
               onClick={() => onChange(skills.filter((s) => s !== skill))}
-              className="focus-ring rounded-full p-0.5 text-text-3-dark transition-quick hover:text-paper"
+              className="focus-ring rounded-pill p-0.5 text-text-3-dark transition-quick hover:text-paper"
             >
               <X className="size-3" />
             </button>
           </span>
         ))}
-        {skills.length === 0 && <p className="font-sans text-sm text-text-3-dark">No skills yet — add a few below.</p>}
+        {skills.length === 0 && <p className="font-sans text-sm text-text-2-dark">No skills yet — add a few below.</p>}
       </div>
       <div className="flex gap-2">
         <Input
@@ -198,7 +199,7 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       onDrop={onDrop}
       className={cn(
         'focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-btn border border-dashed px-6 py-10 text-center transition-quick',
-        dragging ? 'border-paper bg-paper/[0.03]' : 'border-text-3-dark bg-ink hover:bg-paper/[0.02]',
+        dragging ? 'border-lime bg-ink' : 'border-graphite bg-ink hover:border-text-3-dark',
         uploadMutation.isPending && 'pointer-events-none opacity-60',
       )}
     >
@@ -315,7 +316,7 @@ function ProfileStep({
         <div className="animate-fade-in-up space-y-5">
           {fileName && (
             <div className="flex items-center gap-2">
-              <FileText className="size-4 text-lime" />
+              <FileText className="size-4 text-text-2-dark" />
               <Mono size="xs" color="ash" className="normal-case">
                 {fileName}
               </Mono>
@@ -402,11 +403,16 @@ function ProfileStep({
           </Field>
         </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex items-center justify-end gap-2 pt-2">
           <Button type="submit" disabled={saveMutation.isPending}>
             {saveMutation.isPending ? 'Saving…' : 'Save & continue'}
-            <span aria-hidden>→</span>
           </Button>
+          <ArrowSquare
+            aria-label="Continue to step 2"
+            onClick={() => {
+              if (!saveMutation.isPending) void handleSubmit(onSubmit)();
+            }}
+          />
         </div>
       </form>
     </div>
@@ -470,11 +476,14 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
               className={cn(
                 'focus-ring rounded-btn border p-4 text-left transition-quick',
                 tone === option.value
-                  ? 'border-paper bg-ink-3'
+                  ? 'border-lime bg-ink-2'
                   : 'border-graphite bg-ink-2 hover:border-text-3-dark',
               )}
             >
-              <p className="font-sans text-sm font-normal text-paper">{option.title}</p>
+              <p className="flex items-center gap-2 font-sans text-sm font-normal text-paper">
+                {tone === option.value && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+                {option.title}
+              </p>
               <p className="mt-1 font-sans text-xs leading-relaxed text-text-2-dark">{option.description}</p>
             </button>
           ))}
@@ -500,7 +509,7 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
           aria-label="Daily send cap"
           className="slider w-full"
         />
-        <p className="font-sans text-xs text-text-3-dark">
+        <p className="font-sans text-xs text-text-2-dark">
           We never exceed this, and we pace sends with human-like jitter. Lower caps keep deliverability high.
         </p>
       </div>
@@ -508,7 +517,7 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
       <div className="flex items-center justify-between rounded-btn border border-graphite bg-ink-2 p-4">
         <div>
           <p className="font-sans text-sm font-normal text-paper">Automatic follow-ups</p>
-          <p className="mt-0.5 font-sans text-xs text-text-3-dark">
+          <p className="mt-0.5 font-sans text-xs text-text-2-dark">
             Send a polite nudge on day 3 and day 7 when there’s no reply. Stops automatically on reply or bounce.
           </p>
         </div>
@@ -520,13 +529,20 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
           <span aria-hidden>←</span>
           Back
         </Button>
-        <Button
-          onClick={() => saveMutation.mutate({ tone, dailySendCap, followUpEnabled })}
-          disabled={saveMutation.isPending}
-        >
-          {saveMutation.isPending ? 'Saving…' : 'Save & continue'}
-          <span aria-hidden>→</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => saveMutation.mutate({ tone, dailySendCap, followUpEnabled })}
+            disabled={saveMutation.isPending}
+          >
+            {saveMutation.isPending ? 'Saving…' : 'Save & continue'}
+          </Button>
+          <ArrowSquare
+            aria-label="Continue to step 3"
+            onClick={() => {
+              if (!saveMutation.isPending) saveMutation.mutate({ tone, dailySendCap, followUpEnabled });
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -539,7 +555,7 @@ function GmailStep({ onFinish, onBack }: { onFinish: () => void; onBack: () => v
   return (
     <div className="space-y-6">
       <div className="rounded-card border border-graphite bg-ink-2 p-8 text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-graphite bg-ink">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-pill border border-graphite bg-ink">
           <Mail className="size-6 text-text-2-dark" />
         </div>
         <Mono size="sm" className="mt-4 block text-paper">
@@ -596,7 +612,7 @@ export function Onboarding() {
           <button
             type="button"
             onClick={finish}
-            className="focus-ring rounded-btn font-sans text-sm text-text-3-dark transition-quick hover:text-paper"
+            className="focus-ring rounded-btn font-sans text-sm text-text-2-dark transition-quick hover:text-paper"
           >
             I’ll do this later
           </button>
@@ -610,8 +626,8 @@ export function Onboarding() {
               <current.icon className="size-5 text-text-2-dark" />
             </div>
             <div>
-              <h2 className="font-sans text-xl font-normal text-paper">
-                {current.title}
+              <h2 className="font-sans text-subheading font-normal text-paper">
+                {current.title}.
               </h2>
               <p className="font-sans text-sm text-text-2-dark">
                 {step === 0 && 'Upload your resume and confirm your profile.'}

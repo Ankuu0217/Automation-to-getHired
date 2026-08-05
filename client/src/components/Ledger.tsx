@@ -69,24 +69,24 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
             GRID_TEMPLATE,
           )}
         >
-          <Mono size="xs" color="fog">
+          <span className="font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Company
-          </Mono>
-          <Mono size="xs" color="fog">
+          </span>
+          <span className="font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Role
-          </Mono>
-          <Mono size="xs" color="fog">
+          </span>
+          <span className="font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Contact
-          </Mono>
-          <Mono size="xs" color="fog">
+          </span>
+          <span className="font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Stage
-          </Mono>
-          <Mono size="xs" color="fog" className="text-right">
+          </span>
+          <span className="text-right font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Sent
-          </Mono>
-          <Mono size="xs" color="fog" className="text-right">
+          </span>
+          <span className="text-right font-mono text-[13px] uppercase tracking-[-0.02em] text-text-3-dark">
             Follow-up
-          </Mono>
+          </span>
         </div>
 
         {applications.map((app) => {
@@ -179,10 +179,10 @@ export function Ledger({ applications, className, onStageChange }: LedgerProps) 
                                     type="button"
                                     onClick={() => onStageChange(app.id, stage)}
                                     className={cn(
-                                      'focus-ring rounded-btn border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+                                      'focus-ring rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
                                       app.stage === stage
-                                        ? 'border-paper bg-paper text-ink'
-                                        : 'border-text-3-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
+                                        ? 'border-lime bg-lime text-ink'
+                                        : 'border-graphite text-text-2-dark hover:bg-ink-3 hover:text-paper',
                                     )}
                                   >
                                     {stage.replace('_', ' ')}

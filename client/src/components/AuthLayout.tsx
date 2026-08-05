@@ -6,7 +6,7 @@ import { Mono } from '@/components/Mono';
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-6 py-12">
-      <div className="w-full max-w-[380px] animate-fade-in">
+      <div className="w-full max-w-[400px] animate-fade-in">
         <div className="mb-6 text-center">
           <Logo />
         </div>
