@@ -1,0 +1,21 @@
+{
+  "name": "jobmail-autopilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JobMail Autopilot — turn LinkedIn job screenshots into sent, tracked, personalized HR outreach emails.",
+  "scripts": {
+    "dev": "pnpm --filter @jobmail/shared build && concurrently -n server,client -c blue,magenta \"pnpm --filter @jobmail/server dev\" \"pnpm --filter @jobmail/client dev\"",
+    "build": "pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server build && pnpm --filter @jobmail/client build",
+    "test": "pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server test && pnpm --filter @jobmail/client test",
+    "lint": "pnpm -r lint",
+    "seed": "pnpm --filter @jobmail/server seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

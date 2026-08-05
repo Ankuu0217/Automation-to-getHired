@@ -1,0 +1,91 @@
+import type { FunnelTrendPoint } from '@jobmail/shared';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
+/** 'YYYY-MM-DD' (UTC) → 'Jul 20'. */
+function formatDay(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+interface ActivityChartProps {
+  data: FunnelTrendPoint[];
+  height?: number;
+  showTooltip?: boolean;
+}
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value?: number }[];
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0 || !label) return null;
+  return (
+    <div className="rounded-[8px] border border-pure/[0.06] bg-graphite px-3.5 py-2.5 shadow-lg">
+      <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-fog">
+        {formatDay(label)}
+      </p>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="size-1.5 rounded-full bg-cyan" />
+        <span className="text-ash">Sent</span>
+        <span className="ml-auto pl-4 font-mono text-xs tabular-nums text-pure">
+          {payload[0]?.value ?? 0}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function ActivityChart({ data, height = 260, showTooltip = true }: ActivityChartProps) {
+  return (
+    <div className="h-64 w-full" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={formatDay}
+            tick={{ fill: '#6a6b6b', fontSize: 11, fontFamily: 'Roboto Mono' }}
+            tickLine={false}
+            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+            minTickGap={32}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fill: '#6a6b6b', fontSize: 11, fontFamily: 'Roboto Mono' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          {showTooltip && (
+            <Tooltip
+              content={<ChartTooltip />}
+              cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeDasharray: '3 3' }}
+            />
+          )}
+          <Line
+            type="monotone"
+            dataKey="sent"
+            stroke="#00b3dd"
+            strokeWidth={1.5}
+            dot={false}
+            activeDot={{ r: 3.5, strokeWidth: 0, fill: '#00b3dd' }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

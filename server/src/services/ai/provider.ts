@@ -1,0 +1,122 @@
+import type {
+  EmailDraft,
+  JobExtraction,
+  JobMatch,
+  MatchAnalysisInput,
+  OutreachEmailInput,
+} from '@jobmail/shared';
+import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
+import { analyzeMatchWithGemini, extractWithGemini, generateEmailWithGemini } from './gemini';
+import { ocrImage } from './ocr';
+import { extractFromText } from './heuristics';
+import { analyzeMatchHeuristic, generateEmailFromTemplate } from './outreach';
+import { repairOutreachEmail } from '../emailRules';
+
+/**
+ * Pluggable AI provider (SPEC §2). M2 uses extractJobFromImage; M3 adds
+ * analyzeMatch + generateOutreachEmail. Both providers share the same
+ * deterministic fallback (services/ai/outreach): the Gemini provider
+ * degrades to it on API failure, the OCR-only provider uses it directly.
+ *
+ * Swap-in path for another vendor (e.g. OpenAI): implement AIProvider in a
+ * sibling module and select it in getAIProvider() from an env var.
+ */
+export interface AIProvider {
+  readonly name: string;
+  extractJobFromImage(
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<{ extraction: JobExtraction; source: 'vision' | 'ocr'; rawText: string }>;
+  /** Match jdText against the candidate profile (SPEC §4 Step B). */
+  analyzeMatch(input: MatchAnalysisInput): Promise<JobMatch>;
+  /** Draft the outreach email (SPEC §4 Step C). Output is rule-repaired before return. */
+  generateOutreachEmail(input: OutreachEmailInput): Promise<EmailDraft>;
+}
+
+/** OCR-only pipeline: tesseract.js → regex/heuristics. Always available. */
+async function extractViaOcr(
+  buffer: Buffer,
+): Promise<{ extraction: JobExtraction; source: 'ocr'; rawText: string }> {
+  const text = await ocrImage(buffer);
+  const { extraction, rawText } = extractFromText(text);
+  return { extraction, source: 'ocr', rawText };
+}
+
+class GeminiVisionProvider implements AIProvider {
+  readonly name = 'gemini-vision';
+
+  async extractJobFromImage(buffer: Buffer, mimeType: string) {
+    try {
+      const { extraction, rawText } = await extractWithGemini(buffer, mimeType);
+      return { extraction, source: 'vision' as const, rawText };
+    } catch (err) {
+      // SPEC §9.8 — vision API down/quota/bad output → degrade to OCR mode.
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Vision extraction failed, falling back to OCR',
+      );
+      return extractViaOcr(buffer);
+    }
+  }
+
+  async analyzeMatch(input: MatchAnalysisInput): Promise<JobMatch> {
+    try {
+      return await analyzeMatchWithGemini(input);
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Gemini match analysis failed, falling back to heuristics',
+      );
+      return analyzeMatchHeuristic(input);
+    }
+  }
+
+  async generateOutreachEmail(input: OutreachEmailInput): Promise<EmailDraft> {
+    try {
+      const { subject, bodyText } = await generateEmailWithGemini(input);
+      // Hard rules are enforced server-side regardless of model compliance.
+      return repairOutreachEmail({ subject, bodyText, bodyHtml: '' });
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Gemini email generation failed, falling back to template',
+      );
+      return generateEmailFromTemplate(input);
+    }
+  }
+}
+
+class OcrOnlyProvider implements AIProvider {
+  readonly name = 'ocr-only';
+
+  async extractJobFromImage(buffer: Buffer) {
+    return extractViaOcr(buffer);
+  }
+
+  async analyzeMatch(input: MatchAnalysisInput): Promise<JobMatch> {
+    return analyzeMatchHeuristic(input);
+  }
+
+  async generateOutreachEmail(input: OutreachEmailInput): Promise<EmailDraft> {
+    return generateEmailFromTemplate(input);
+  }
+}
+
+let cached: AIProvider | null = null;
+
+/**
+ * Singleton provider selected by env: Gemini vision when GEMINI_API_KEY is
+ * set, otherwise OCR-only.
+ */
+export function getAIProvider(): AIProvider {
+  if (cached) return cached;
+  const key = env.GEMINI_API_KEY;
+  cached = key && key.length > 0 ? new GeminiVisionProvider() : new OcrOnlyProvider();
+  return cached;
+}
+
+/** Test hook: reset the cached provider singleton. */
+export function resetAIProvider(): void {
+  cached = null;
+}

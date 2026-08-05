@@ -1,0 +1,109 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, type LoginInput } from '@jobmail/shared';
+import { useMutation } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+
+import { AuthLayout } from '@/components/AuthLayout';
+import { Mono } from '@/components/Mono';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ApiRequestError, login } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
+
+export function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
+
+  const mutation = useMutation({
+    mutationFn: login,
+    onSuccess: ({ user }) => {
+      setUser(user);
+      const from = (location.state as { from?: string } | null)?.from;
+      navigate(from && from !== '/login' ? from : '/dashboard', { replace: true });
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiRequestError ? error.message : 'Could not sign you in.');
+    },
+  });
+
+  return (
+    <AuthLayout>
+      <div className="space-y-1">
+        <h1 className="font-display text-xl font-normal text-pure">Welcome back</h1>
+        <p className="font-sans text-sm font-normal text-ash">Sign in to your dispatch desk.</p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit((values) => mutation.mutate(values))}
+        className="mt-6 space-y-4"
+        noValidate
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="font-sans text-sm font-normal text-cloud">
+            Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-invalid={!!errors.email}
+            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            {...registerField('email')}
+          />
+          {errors.email && (
+            <Mono size="xs" color="danger">
+              {errors.email.message}
+            </Mono>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="font-sans text-sm font-normal text-cloud">
+            Password
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            aria-invalid={!!errors.password}
+            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            {...registerField('password')}
+          />
+          {errors.password && (
+            <Mono size="xs" color="danger">
+              {errors.password.message}
+            </Mono>
+          )}
+        </div>
+
+        <Button type="submit" className="w-full" size="lg" disabled={mutation.isPending}>
+          {mutation.isPending && <Loader2 className="size-4 animate-spin" />}
+          {mutation.isPending ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center font-sans text-sm text-ash">
+        New to GetHired?{' '}
+        <Link to="/register" className="font-normal text-pure underline underline-offset-4 hover:text-cloud">
+          Create an account
+        </Link>
+      </p>
+    </AuthLayout>
+  );
+}
