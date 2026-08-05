@@ -1,7 +1,17 @@
 import { Application } from '../models/Application';
 import { EmailEvent } from '../models/EmailEvent';
 import { EmailTemplate } from '../models/EmailTemplate';
-import type { FunnelAnalyticsResponse, FunnelTrendPoint } from '@jobmail/shared';
+import type {
+  FunnelAnalyticsResponse,
+  FunnelTrendPoint,
+  ResponseTimeAnalyticsResponse,
+  ResponseTimeBucketLabel,
+  TemplateAnalyticsResponse,
+  TemplateUsageStat,
+  TimingAnalyticsResponse,
+  Tone,
+  ToneAnalyticsResponse,
+} from '@jobmail/shared';
 
 /**
  * Funnel analytics (SPEC §6, M5). Application-level funnel: one application
@@ -102,4 +112,196 @@ export async function getFunnelAnalytics(
     perTemplate,
     trend: [...days.values()],
   };
+}
+
+/* ── Phase 5: analytics upgrades ─────────────────────────────────────────
+ * Four additive read-only aggregations. Same philosophy as the funnel:
+ * plain Mongoose scans over the user's applications — per-user volume
+ * doesn't justify aggregation pipelines. Every query filters on userId
+ * first (ownership scoping).
+ */
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * GET /analytics/timing. Buckets each sent email (initial + follow-ups) by
+ * the hour-of-day of its sentAt and whether that same email was opened.
+ *
+ * TIMEZONE CAVEAT: sentAt is stored as UTC; `getHours()` interprets it in
+ * the API server's local timezone, which stands in for the user's timezone
+ * (no per-user tz preference exists yet). Users in a different tz from the
+ * server will see shifted hours.
+ *
+ * Returns ALL 24 hour slots (zero send counts are true values so the chart
+ * can draw the whole day). bestHour = highest openRate among hours with
+ * sent > 0; ties broken by more sent, then the earlier hour; null when the
+ * user has sent nothing.
+ */
+export async function getTimingAnalytics(userId: string): Promise<TimingAnalyticsResponse> {
+  const applications = await Application.find({ userId })
+    .select('emails.sentAt emails.openedAt')
+    .lean();
+
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, sent: 0, opened: 0, openRate: 0 }));
+  for (const application of applications) {
+    for (const email of application.emails) {
+      if (!email.sentAt) continue;
+      const slot = hours[new Date(email.sentAt).getHours()];
+      slot.sent += 1;
+      if (email.openedAt) slot.opened += 1;
+    }
+  }
+
+  let bestHour: number | null = null;
+  for (const slot of hours) {
+    slot.openRate = rate(slot.opened, slot.sent);
+    if (slot.sent === 0) continue;
+    const best = bestHour === null ? null : hours[bestHour];
+    if (
+      best === null ||
+      slot.openRate > best.openRate ||
+      (slot.openRate === best.openRate && slot.sent > best.sent)
+    ) {
+      bestHour = slot.hour;
+    }
+  }
+
+  return { hours, bestHour };
+}
+
+/**
+ * GET /analytics/by-template. Application-level counts (matching the
+ * funnel's semantics: an application counts once per stat no matter how
+ * many thread emails match), grouped by Application.templateId.
+ *
+ * SOURCE DECISION: aggregated from Application email subdocs, NOT from
+ * EmailTemplate.stats. The stats counters are best-effort fire-and-forget
+ * ($inc that never throws), are never decremented, disappear when a
+ * template is deleted, only bump 'opened' on the first open of the initial
+ * email, and cannot represent templateless sends. The subdoc scan is the
+ * same one the funnel already does, so it is equally cheap and always
+ * consistent with the other panels.
+ *
+ * Rows: one per template with sent > 0 (name resolved from the user's
+ * templates; 'Deleted template' when the id no longer resolves) plus a
+ * 'No template' row (templateId: null) when templateless sends exist.
+ * Ordered by sent desc, then name asc.
+ */
+export async function getTemplateAnalytics(userId: string): Promise<TemplateAnalyticsResponse> {
+  const applications = await Application.find({ userId })
+    .select('templateId emails.sentAt emails.openedAt emails.repliedAt')
+    .lean();
+  const templates = await EmailTemplate.find({ userId }).select('name').lean();
+  const names = new Map(templates.map((t) => [String(t._id), t.name]));
+
+  const groups = new Map<string | null, { sent: number; opened: number; replied: number }>();
+  for (const application of applications) {
+    if (!application.emails.some((e) => e.sentAt)) continue;
+    const key = application.templateId ? String(application.templateId) : null;
+    const group = groups.get(key) ?? { sent: 0, opened: 0, replied: 0 };
+    group.sent += 1;
+    if (application.emails.some((e) => e.openedAt)) group.opened += 1;
+    if (application.emails.some((e) => e.repliedAt)) group.replied += 1;
+    groups.set(key, group);
+  }
+
+  const rows: TemplateUsageStat[] = [...groups.entries()].map(([templateId, g]) => ({
+    templateId,
+    name:
+      templateId === null ? 'No template' : (names.get(templateId) ?? 'Deleted template'),
+    sent: g.sent,
+    opened: g.opened,
+    replied: g.replied,
+    replyRate: rate(g.replied, g.sent),
+  }));
+  rows.sort((a, b) => b.sent - a.sent || a.name.localeCompare(b.name));
+
+  return { templates: rows };
+}
+
+const TONE_ORDER: Tone[] = ['formal', 'confident', 'friendly'];
+
+/**
+ * GET /analytics/by-tone. Tone is NOT persisted per draft (generation
+ * resolves it transiently from user settings / the request and stores only
+ * templateId on the JobPost, copied to the Application at send time), so
+ * the only durable tone linkage is Application.templateId →
+ * EmailTemplate.tone. Templateless sends and deleted templates are
+ * excluded — their tone is unknown. Application-level counts; only tones
+ * with sent > 0 are returned, in enum order.
+ */
+export async function getToneAnalytics(userId: string): Promise<ToneAnalyticsResponse> {
+  const applications = await Application.find({ userId })
+    .select('templateId emails.sentAt emails.repliedAt')
+    .lean();
+  const templates = await EmailTemplate.find({ userId }).select('tone').lean();
+  const toneById = new Map(templates.map((t) => [String(t._id), t.tone]));
+
+  const counts = new Map<Tone, { sent: number; replied: number }>();
+  for (const application of applications) {
+    if (!application.templateId || !application.emails.some((e) => e.sentAt)) continue;
+    const tone = toneById.get(String(application.templateId));
+    if (!tone) continue; // deleted template — tone unknown
+    const group = counts.get(tone) ?? { sent: 0, replied: 0 };
+    group.sent += 1;
+    if (application.emails.some((e) => e.repliedAt)) group.replied += 1;
+    counts.set(tone, group);
+  }
+
+  return {
+    tones: TONE_ORDER.filter((tone) => counts.has(tone)).map((tone) => {
+      const g = counts.get(tone)!;
+      return { tone, sent: g.sent, replied: g.replied, replyRate: rate(g.replied, g.sent) };
+    }),
+  };
+}
+
+/** Histogram bands: [label, upper bound in hours) — last band is open. */
+const RESPONSE_TIME_BANDS: { label: ResponseTimeBucketLabel; maxHours: number }[] = [
+  { label: '<1h', maxHours: 1 },
+  { label: '1-4h', maxHours: 4 },
+  { label: '4-24h', maxHours: 24 },
+  { label: '1-3d', maxHours: 72 },
+  { label: '3-7d', maxHours: 168 },
+  { label: '>7d', maxHours: Infinity },
+];
+
+/**
+ * GET /analytics/response-time. Distribution of sentAt → repliedAt deltas
+ * across every email (initial + follow-ups) carrying both timestamps.
+ * Always returns all six bands in order (zero counts are true histogram
+ * values); medianHours is the median delta in hours (2 decimals), null
+ * when no replies exist.
+ */
+export async function getResponseTimeAnalytics(
+  userId: string,
+): Promise<ResponseTimeAnalyticsResponse> {
+  const applications = await Application.find({ userId })
+    .select('emails.sentAt emails.repliedAt')
+    .lean();
+
+  const deltasHours: number[] = [];
+  for (const application of applications) {
+    for (const email of application.emails) {
+      if (!email.sentAt || !email.repliedAt) continue;
+      const delta = (email.repliedAt.getTime() - email.sentAt.getTime()) / HOUR_MS;
+      if (delta >= 0) deltasHours.push(delta);
+    }
+  }
+
+  const buckets = RESPONSE_TIME_BANDS.map((band) => ({ label: band.label, count: 0 }));
+  for (const delta of deltasHours) {
+    const index = RESPONSE_TIME_BANDS.findIndex((band) => delta < band.maxHours);
+    buckets[index === -1 ? buckets.length - 1 : index].count += 1;
+  }
+
+  let medianHours: number | null = null;
+  if (deltasHours.length > 0) {
+    const sorted = [...deltasHours].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    medianHours = Math.round(median * 100) / 100;
+  }
+
+  return { buckets, medianHours };
 }

@@ -20,12 +20,16 @@ import type {
   ProfileResponse,
   PublicUser,
   RegisterInput,
+  ResponseTimeAnalyticsResponse,
   ResumeParseResponse,
   SendJobInput,
   SendJobResponse,
+  TemplateAnalyticsResponse,
   TemplateDeletedResponse,
   TemplateEnvelope,
   TemplateListResponse,
+  TimingAnalyticsResponse,
+  ToneAnalyticsResponse,
   UpdateProfileInput,
   UpdateSettingsInput,
   UploadJobResponse,
@@ -294,4 +298,26 @@ export function deleteTemplate(id: string) {
 
 export function getFunnelAnalytics() {
   return api<FunnelAnalyticsResponse>('/analytics/funnel');
+}
+
+/* ── Phase 5: analytics upgrades ────────────────────────────────── */
+
+/** Send hour-of-day vs open rate — all 24 slots + bestHour. */
+export function getTimingAnalytics() {
+  return api<TimingAnalyticsResponse>('/analytics/timing');
+}
+
+/** Per-template sends/opens/replies aggregated from application data. */
+export function getTemplateAnalytics() {
+  return api<TemplateAnalyticsResponse>('/analytics/by-template');
+}
+
+/** Reply rate by template tone. */
+export function getToneAnalytics() {
+  return api<ToneAnalyticsResponse>('/analytics/by-tone');
+}
+
+/** sentAt → repliedAt latency histogram + median hours. */
+export function getResponseTimeAnalytics() {
+  return api<ResponseTimeAnalyticsResponse>('/analytics/response-time');
 }
