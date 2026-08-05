@@ -408,10 +408,9 @@ function ProfileStep({
             {saveMutation.isPending ? 'Saving…' : 'Save & continue'}
           </Button>
           <ArrowSquare
-            aria-label="Continue to step 2"
-            onClick={() => {
-              if (!saveMutation.isPending) void handleSubmit(onSubmit)();
-            }}
+            decorative
+            disabled={saveMutation.isPending}
+            onClick={() => void handleSubmit(onSubmit)()}
           />
         </div>
       </form>
@@ -537,10 +536,9 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
             {saveMutation.isPending ? 'Saving…' : 'Save & continue'}
           </Button>
           <ArrowSquare
-            aria-label="Continue to step 3"
-            onClick={() => {
-              if (!saveMutation.isPending) saveMutation.mutate({ tone, dailySendCap, followUpEnabled });
-            }}
+            decorative
+            disabled={saveMutation.isPending}
+            onClick={() => saveMutation.mutate({ tone, dailySendCap, followUpEnabled })}
           />
         </div>
       </div>

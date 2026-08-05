@@ -336,7 +336,7 @@ function UploadStep({
           {uploading ? 'Uploading…' : 'Upload & analyze'}
         </Button>
         {file && !uploading && (
-          <ArrowSquare aria-label="Upload and analyze" onClick={() => onUpload(file)} />
+          <ArrowSquare decorative onClick={() => onUpload(file)} />
         )}
       </div>
     </div>
@@ -885,7 +885,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
               Save changes
             </Button>
             <Button onClick={onContinue}>Continue</Button>
-            <ArrowSquare aria-label="Continue to send step" onClick={onContinue} />
+            <ArrowSquare decorative onClick={onContinue} />
           </div>
         </div>
       </div>
@@ -1219,7 +1219,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
         {sendMutation.isPending ? 'Sending…' : 'Send now'}
       </Button>
       {!actionsDisabled && (
-        <ArrowSquare aria-label="Send now" onClick={() => sendMutation.mutate({})} />
+        <ArrowSquare decorative onClick={() => sendMutation.mutate({})} />
       )}
     </div>
   );

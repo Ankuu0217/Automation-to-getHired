@@ -22,9 +22,9 @@ const COLOR_CLASS: Record<MonoColor, string> = {
 };
 
 const SIZE_CLASS: Record<MonoSize, string> = {
-  xs: 'text-[10px] leading-[2] tracking-[0.16px]',
-  sm: 'text-[11px] leading-[2] tracking-[0.16px]',
-  md: 'text-xs leading-[1.35] tracking-[0.016em]',
+  xs: 'text-[10px] leading-[2] tracking-[-0.02em]',
+  sm: 'text-[11px] leading-[2] tracking-[-0.02em]',
+  md: 'text-xs leading-[1.35] tracking-[-0.02em]',
 };
 
 export function Mono({ children, color = 'ash', size = 'sm', className }: MonoProps) {

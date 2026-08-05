@@ -122,7 +122,7 @@ export function Landing() {
             >
               See the method
             </a>
-            <ArrowSquare aria-label="Scroll to the method" direction="down" onClick={scrollToMethod} />
+            <ArrowSquare decorative direction="down" onClick={scrollToMethod} />
           </div>
         </div>
         <div className="border-t border-graphite">
@@ -196,7 +196,7 @@ export function Landing() {
                   to="/register"
                   className={cn(
                     MONO_13,
-                    'focus-ring mt-8 inline-flex w-fit items-center gap-2 rounded-btn text-graphite transition-quick focus-visible:ring-offset-bone hover:text-ink',
+                    'focus-ring mt-8 inline-flex w-fit items-center gap-2 rounded-btn text-graphite transition-quick focus-visible:ring-ink focus-visible:ring-offset-paper hover:text-ink',
                   )}
                 >
                   Explore
@@ -241,7 +241,7 @@ export function Landing() {
               >
                 Start applying
               </Link>
-              <ArrowSquare aria-label="Start applying" to="/register" />
+              <ArrowSquare decorative to="/register" />
             </div>
             <p className={cn(MONO_13, 'mt-10 text-text-2-dark')}>
               FREE WHILE IN BETA — GMAIL CONNECT TAKES TWO MINUTES.

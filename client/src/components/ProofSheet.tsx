@@ -248,7 +248,7 @@ export function ProofSheet({
               {isSending ? 'Sending…' : 'Send email'}
             </Button>
             {onSend && !isGenerating && !isSending && (
-              <ArrowSquare aria-label="Send email" onClick={() => onSend()} />
+              <ArrowSquare decorative onClick={() => onSend()} />
             )}
           </>
         )}
