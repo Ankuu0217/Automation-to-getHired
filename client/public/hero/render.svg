@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" preserveAspectRatio="xMidYMid slice">
+  <!-- TODO(asset): replace with a bespoke 3D render (dark forest-green organic
+       folds + one bronze light-streak, glossy) exported as hero/render.webp.
+       This hand-built vector matches the palette and composition meanwhile. -->
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101f1b"/>
+      <stop offset="0.55" stop-color="#0d1a17"/>
+      <stop offset="1" stop-color="#16302a"/>
+    </linearGradient>
+    <linearGradient id="fold1" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0" stop-color="#1d3a32"/>
+      <stop offset="1" stop-color="#0f2420"/>
+    </linearGradient>
+    <linearGradient id="fold2" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#122822"/>
+      <stop offset="1" stop-color="#223f37"/>
+    </linearGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a6242" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#b98a5e"/>
+      <stop offset="0.65" stop-color="#d9a976"/>
+      <stop offset="1" stop-color="#8a6242" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e8c9a4" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#f0d8ba"/>
+      <stop offset="1" stop-color="#e8c9a4" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="55"/>
+    </filter>
+    <filter id="softer" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <filter id="tight" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="9"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1200" fill="url(#base)"/>
+
+  <!-- organic folds -->
+  <path filter="url(#soft)" fill="url(#fold1)" opacity="0.9"
+    d="M-100 780 C 260 560, 520 900, 900 720 C 1240 560, 1420 760, 1700 640 L 1700 1300 L -100 1300 Z"/>
+  <path filter="url(#soft)" fill="url(#fold2)" opacity="0.8"
+    d="M-100 320 C 300 140, 640 420, 1000 260 C 1280 140, 1480 260, 1700 180 L 1700 -100 L -100 -100 Z"/>
+  <ellipse filter="url(#soft)" cx="1180" cy="880" rx="560" ry="300" fill="#16302a" opacity="0.75"/>
+  <ellipse filter="url(#soft)" cx="330" cy="1020" rx="480" ry="260" fill="#0f2420" opacity="0.85"/>
+
+  <!-- bronze light-streak curving through -->
+  <path filter="url(#softer)" fill="none" stroke="url(#bronze)" stroke-width="120" stroke-linecap="round" opacity="0.75"
+    d="M 180 940 C 520 760, 760 820, 980 620 C 1160 460, 1290 430, 1520 350"/>
+  <path filter="url(#tight)" fill="none" stroke="url(#gloss)" stroke-width="26" stroke-linecap="round" opacity="0.7"
+    d="M 220 920 C 540 750, 780 800, 1000 605 C 1170 455, 1300 425, 1500 355"/>
+
+  <!-- faint secondary glow -->
+  <ellipse filter="url(#soft)" cx="1020" cy="560" rx="340" ry="180" fill="#b98a5e" opacity="0.16"/>
+</svg>
