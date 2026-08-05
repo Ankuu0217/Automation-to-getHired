@@ -2,6 +2,7 @@ import type {
   ApplicationDetailResponse,
   ApplicationEmailKind,
   ApplicationStage,
+  ApplicationSummary,
 } from '@jobmail/shared';
 
 /* ── Stage metadata ─────────────────────────────────────────────── */
@@ -158,4 +159,171 @@ export function buildTimeline(application: ApplicationDetailResponse): TimelineE
   }
 
   return entries.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+}
+
+/* ── Board view: filters, sort, persistence ─────────────────────── */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type PipelineRange = '7d' | '30d' | 'all';
+export type PipelineSort = 'newest' | 'oldest' | 'stale';
+
+export interface PipelineView {
+  range: PipelineRange;
+  hasReply: boolean;
+  showGhosted: boolean;
+  sort: PipelineSort;
+}
+
+/**
+ * Defaults mirror the board's pre-toolbar behavior: every card visible
+ * (ghosted included — dashed cards and the ghosted column have always
+ * rendered by default) and newest first (the API returns createdAt desc).
+ */
+export const DEFAULT_PIPELINE_VIEW: PipelineView = {
+  range: 'all',
+  hasReply: false,
+  showGhosted: true,
+  sort: 'newest',
+};
+
+/** localStorage key for the persisted board view (search is never persisted). */
+export const PIPELINE_VIEW_STORAGE_KEY = 'gethired.pipeline.view';
+
+const PIPELINE_RANGES: readonly PipelineRange[] = ['7d', '30d', 'all'];
+const PIPELINE_SORTS: readonly PipelineSort[] = ['newest', 'oldest', 'stale'];
+
+export function serializePipelineView(view: PipelineView): string {
+  return JSON.stringify(view);
+}
+
+/**
+ * Parse a persisted board view. Corrupt JSON, non-objects and invalid fields
+ * fall back to the defaults (field by field), so a stale or tampered
+ * localStorage entry can never break the board.
+ */
+export function deserializePipelineView(raw: string | null | undefined): PipelineView {
+  const view = { ...DEFAULT_PIPELINE_VIEW };
+  if (!raw) return view;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return view;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return view;
+  const record = parsed as Record<string, unknown>;
+  if (PIPELINE_RANGES.includes(record.range as PipelineRange)) {
+    view.range = record.range as PipelineRange;
+  }
+  if (typeof record.hasReply === 'boolean') view.hasReply = record.hasReply;
+  if (typeof record.showGhosted === 'boolean') view.showGhosted = record.showGhosted;
+  if (PIPELINE_SORTS.includes(record.sort as PipelineSort)) {
+    view.sort = record.sort as PipelineSort;
+  }
+  return view;
+}
+
+/**
+ * Ghosted = explicit ghosted stage, OR 14+ days since the last send with no
+ * reply — the same rule the board uses for dashed cards.
+ */
+export function isGhosted(application: ApplicationSummary): boolean {
+  if (application.stage === 'ghosted') return true;
+  if (application.daysSinceSent === null) return false;
+  return application.daysSinceSent >= 14 && !application.lastEmail?.repliedAt;
+}
+
+/**
+ * Reference instant for the date-range filter: the latest email's sentAt when
+ * one exists, FALLING BACK to createdAt — sent applications are ranged by
+ * their most recent dispatch, unsent ones by when they were created.
+ */
+function rangeActivityAt(application: ApplicationSummary): number {
+  return new Date(application.lastEmail?.sentAt ?? application.createdAt).getTime();
+}
+
+/**
+ * Most-stale ordering key: the latest of sentAt / openedAt / repliedAt /
+ * createdAt — i.e. the last time anything at all happened on the application.
+ * (The list DTO carries only the latest email's snapshot, which is where the
+ * server records opens/replies, so it is the activity signal available here.)
+ */
+export function lastActivityAt(application: ApplicationSummary): number {
+  const stamps = [
+    application.createdAt,
+    application.lastEmail?.sentAt,
+    application.lastEmail?.openedAt,
+    application.lastEmail?.repliedAt,
+  ];
+  return Math.max(
+    ...stamps.filter((s): s is string => Boolean(s)).map((s) => new Date(s).getTime()),
+  );
+}
+
+export interface PipelineFilterOptions {
+  query: string;
+  range: PipelineRange;
+  hasReply: boolean;
+  showGhosted: boolean;
+  now?: number;
+}
+
+/** Toolbar filters. Pure — returns a new array, never mutates the input. */
+export function filterApplications(
+  applications: ApplicationSummary[],
+  { query, range, hasReply, showGhosted, now = Date.now() }: PipelineFilterOptions,
+): ApplicationSummary[] {
+  const needle = query.trim().toLowerCase();
+  const rangeMs = range === '7d' ? 7 * DAY_MS : range === '30d' ? 30 * DAY_MS : null;
+
+  return applications.filter((application) => {
+    if (needle) {
+      const company = application.company?.toLowerCase() ?? '';
+      const role = application.role?.toLowerCase() ?? '';
+      if (!company.includes(needle) && !role.includes(needle)) return false;
+    }
+    if (rangeMs !== null && now - rangeActivityAt(application) > rangeMs) return false;
+    /* Replies are recorded on the latest email server-side, so the summary's
+       lastEmail.repliedAt is the reply signal for the whole application. */
+    if (hasReply && !application.lastEmail?.repliedAt) return false;
+    if (!showGhosted && isGhosted(application)) return false;
+    return true;
+  });
+}
+
+/** Per-column ordering. Pure — returns a new array. Newest is the API default. */
+export function sortApplications(
+  applications: ApplicationSummary[],
+  mode: PipelineSort,
+): ApplicationSummary[] {
+  const sorted = [...applications];
+  switch (mode) {
+    case 'newest':
+      return sorted.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    case 'oldest':
+      return sorted.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    case 'stale':
+      /* Longest since last activity first → ascending last-activity instant. */
+      return sorted.sort((a, b) => lastActivityAt(a) - lastActivityAt(b));
+  }
+}
+
+/**
+ * Column-header numbers for the FILTERED board: card count in the stage and
+ * whole days since the oldest card's createdAt (null when the column is empty).
+ */
+export function columnMeta(
+  applications: ApplicationSummary[],
+  stage: ApplicationStage,
+  now: number = Date.now(),
+): { count: number; oldestDays: number | null } {
+  const inStage = applications.filter((a) => a.stage === stage);
+  if (inStage.length === 0) return { count: 0, oldestDays: null };
+  const oldest = Math.min(...inStage.map((a) => new Date(a.createdAt).getTime()));
+  return { count: inStage.length, oldestDays: Math.max(0, Math.floor((now - oldest) / DAY_MS)) };
 }

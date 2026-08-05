@@ -13,7 +13,7 @@ import {
 import type { ApplicationListResponse, ApplicationStage, ApplicationSummary } from '@jobmail/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MailOpen, MailWarning, Plus, Reply } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -21,15 +21,28 @@ import { ApplicationDrawer } from '@/components/ApplicationDrawer';
 import { EmptyState } from '@/components/EmptyState';
 import { Mono } from '@/components/Mono';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
+  columnMeta,
+  DEFAULT_PIPELINE_VIEW,
+  deserializePipelineView,
+  filterApplications,
   formatInterviewBadge,
   GHOSTED_STAGE,
+  isGhosted,
   isInterviewSoon,
   PIPELINE_STAGES,
+  PIPELINE_VIEW_STORAGE_KEY,
+  serializePipelineView,
+  sortApplications,
   stageLabel,
+  type PipelineRange,
+  type PipelineSort,
+  type PipelineView,
   type StageMeta,
 } from '@/pages/pipelineUtils';
 
@@ -46,10 +59,39 @@ function buildDispatchMap(applications: ApplicationSummary[]) {
   return map;
 }
 
-function isGhosted(application: ApplicationSummary): boolean {
-  if (application.stage === 'ghosted') return true;
-  if (application.daysSinceSent === null) return false;
-  return application.daysSinceSent >= 14 && !application.lastEmail?.repliedAt;
+/* ── Toolbar ────────────────────────────────────────────────────── */
+
+const RANGE_CHIPS: { value: PipelineRange; label: string }[] = [
+  { value: '7d', label: '7D' },
+  { value: '30d', label: '30D' },
+  { value: 'all', label: 'All' },
+];
+
+/** Pill toggle — same pattern as the Dispatches filter chips. */
+function FilterChip({
+  pressed,
+  onClick,
+  children,
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        'focus-ring inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+        pressed
+          ? 'border-lime bg-lime text-ink'
+          : 'border-graphite text-text-2-dark hover:bg-ink-3 hover:text-paper',
+      )}
+    >
+      {children}
+    </button>
+  );
 }
 
 /* ── Card ───────────────────────────────────────────────────────── */
@@ -183,6 +225,8 @@ function StageColumn({
   onOpen: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  /* Count + oldest-age reflect the FILTERED cards this column received. */
+  const meta = columnMeta(applications, stage.id);
 
   return (
     <section
@@ -193,7 +237,8 @@ function StageColumn({
       )}
     >
       <p className="mb-3 px-1 font-mono text-[13px] uppercase tracking-[-0.02em] text-text-2-dark">
-        {String(index + 1).padStart(2, '0')} {stage.label} · {applications.length}
+        {String(index + 1).padStart(2, '0')} {stage.label} · {meta.count}
+        {meta.oldestDays !== null ? ` · ${meta.oldestDays}D` : ''}
       </p>
       <div
         ref={setNodeRef}
@@ -250,6 +295,32 @@ export function Pipeline() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  /* Board view — restored from localStorage once on mount (search excluded). */
+  const [search, setSearch] = useState('');
+  const [view, setView] = useState<PipelineView>(() => {
+    try {
+      return deserializePipelineView(window.localStorage.getItem(PIPELINE_VIEW_STORAGE_KEY));
+    } catch {
+      return { ...DEFAULT_PIPELINE_VIEW };
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PIPELINE_VIEW_STORAGE_KEY, serializePipelineView(view));
+    } catch {
+      /* Storage unavailable — the view simply won't persist. */
+    }
+  }, [view]);
+
+  const updateView = (patch: Partial<PipelineView>) =>
+    setView((prev) => ({ ...prev, ...patch }));
+
+  const clearFilters = () => {
+    setSearch('');
+    setView({ ...DEFAULT_PIPELINE_VIEW });
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     /* Space picks up / drops; Enter is left free for the card's open-details action. */
@@ -287,22 +358,38 @@ export function Pipeline() {
   );
   const dispatchMap = useMemo(() => buildDispatchMap(applications), [applications]);
 
+  const filtered = useMemo(
+    () =>
+      filterApplications(applications, {
+        query: search,
+        range: view.range,
+        hasReply: view.hasReply,
+        showGhosted: view.showGhosted,
+      }),
+    [applications, search, view.range, view.hasReply, view.showGhosted],
+  );
+
   const byStage = useMemo(() => {
     const map = new Map<ApplicationStage, ApplicationSummary[]>();
-    for (const application of applications) {
+    for (const application of sortApplications(filtered, view.sort)) {
       const list = map.get(application.stage) ?? [];
       list.push(application);
       map.set(application.stage, list);
     }
     return map;
-  }, [applications]);
+  }, [filtered, view.sort]);
 
+  /*
+   * Column presence depends on the UNFILTERED data (plus the ghosted toggle),
+   * so filters can empty a column without unmounting its droppable — the
+   * ghosted column appears whenever ghosted cards exist, as before.
+   */
   const columns = useMemo(
     () =>
-      (byStage.get('ghosted')?.length ?? 0) > 0
+      view.showGhosted && applications.some((a) => a.stage === 'ghosted')
         ? [...PIPELINE_STAGES, GHOSTED_STAGE]
         : PIPELINE_STAGES,
-    [byStage],
+    [applications, view.showGhosted],
   );
 
   const activeApplication = activeId
@@ -374,31 +461,89 @@ export function Pipeline() {
           action={{ to: '/apps/new', label: 'New dispatch' }}
         />
       ) : (
-        <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {columns.map((stage, index) => (
-              <StageColumn
-                key={stage.id}
-                stage={stage}
-                index={index}
-                applications={byStage.get(stage.id) ?? []}
-                dispatchMap={dispatchMap}
-                dimmed={stage.id === 'ghosted'}
-                onOpen={setSelectedId}
-              />
-            ))}
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search company or role…"
+              aria-label="Search company or role"
+              className="max-w-[280px]"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {RANGE_CHIPS.map((chip) => (
+                <FilterChip
+                  key={chip.value}
+                  pressed={view.range === chip.value}
+                  onClick={() => updateView({ range: chip.value })}
+                >
+                  {chip.label}
+                </FilterChip>
+              ))}
+              <FilterChip
+                pressed={view.hasReply}
+                onClick={() => updateView({ hasReply: !view.hasReply })}
+              >
+                Has reply
+              </FilterChip>
+              <FilterChip
+                pressed={view.showGhosted}
+                onClick={() => updateView({ showGhosted: !view.showGhosted })}
+              >
+                Show ghosted
+              </FilterChip>
+            </div>
+            <div className="ml-auto">
+              <Select
+                value={view.sort}
+                onChange={(e) => updateView({ sort: e.target.value as PipelineSort })}
+                aria-label="Sort cards within columns"
+                className="h-8 w-44"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="stale">Most stale</option>
+              </Select>
+            </div>
           </div>
-          <DragOverlay>
-            {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-card border border-lime bg-ink-3 p-4">
-                <CardBody
-                  application={activeApplication}
-                  dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}
+
+          {filtered.length === 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Mono size="sm" color="fog">
+                No cards match the filters.
+              </Mono>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            </div>
+          )}
+
+          <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {columns.map((stage, index) => (
+                <StageColumn
+                  key={stage.id}
+                  stage={stage}
+                  index={index}
+                  applications={byStage.get(stage.id) ?? []}
+                  dispatchMap={dispatchMap}
+                  dimmed={stage.id === 'ghosted'}
+                  onOpen={setSelectedId}
                 />
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+              ))}
+            </div>
+            <DragOverlay>
+              {activeApplication && (
+                <div className="w-[300px] rotate-2 rounded-card border border-lime bg-ink-3 p-4">
+                  <CardBody
+                    application={activeApplication}
+                    dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}
+                  />
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        </>
       )}
 
       <ApplicationDrawer applicationId={selectedId} onClose={() => setSelectedId(null)} />
