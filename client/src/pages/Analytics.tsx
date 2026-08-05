@@ -4,7 +4,6 @@ import { BarChart3, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { ActivityChart } from '@/components/ActivityChart';
-import { CategoryTile } from '@/components/CategoryTile';
 import { EmptyState } from '@/components/EmptyState';
 import { Mono } from '@/components/Mono';
 import { buttonVariants } from '@/components/ui/button';
@@ -212,13 +211,17 @@ export function Analytics() {
     <div className="space-y-6">
       {/* Header */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <CategoryTile
-          color="deep"
-          title="Analytics"
-          description="Funnel, template A/B performance, and 30-day trend."
-          icon={BarChart3}
-          compact
-        />
+        <div className="flex flex-col justify-between rounded-tile border border-border bg-surface p-6">
+          <div className="flex size-9 items-center justify-center rounded-func border border-border bg-surface-2 text-text-2">
+            <BarChart3 className="size-4" strokeWidth={1.5} />
+          </div>
+          <div className="mt-6">
+            <h3 className="font-display text-2xl font-normal leading-[0.95] text-text-1">Analytics</h3>
+            <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2">
+              Funnel, template A/B performance, and 30-day trend.
+            </p>
+          </div>
+        </div>
 
         <div className="flex flex-col justify-between">
           <div>

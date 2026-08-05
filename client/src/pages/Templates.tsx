@@ -11,7 +11,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { CategoryTile } from '@/components/CategoryTile';
 import { Mono } from '@/components/Mono';
 import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -323,13 +322,17 @@ export function Templates() {
       {/* Orchid module marker */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div>
-          <CategoryTile
-            color="orchid"
-            title="Template studio"
-            description="Reusable AI guidance with per-template response-rate stats."
-            icon={Send}
-            compact
-          />
+          <div className="flex flex-col justify-between rounded-tile border border-border bg-surface p-6">
+            <div className="flex size-9 items-center justify-center rounded-func border border-border bg-surface-2 text-text-2">
+              <Send className="size-4" strokeWidth={1.5} />
+            </div>
+            <div className="mt-6">
+              <h3 className="font-display text-2xl font-normal leading-[0.95] text-text-1">Template studio</h3>
+              <p className="mt-2 font-sans text-sm font-normal leading-[1.5] text-text-2">
+                Reusable AI guidance with per-template response-rate stats.
+              </p>
+            </div>
+          </div>
           {defaultTemplate && (
             <p className="mt-4 flex items-center gap-2 font-sans text-xs text-text-2">
               <Check className="size-3.5 text-ok" />
