@@ -4,6 +4,7 @@ export * from './applications.js';
 export * from './auth.js';
 export * from './contacts.js';
 export * from './jobs.js';
+export * from './notifications.js';
 export * from './profile.js';
 export * from './skills.js';
 export * from './templates.js';

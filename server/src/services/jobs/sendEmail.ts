@@ -8,6 +8,7 @@ import { Application } from '../../models/Application';
 import { EmailEvent } from '../../models/EmailEvent';
 import { incrementTemplateStat } from '../../models/EmailTemplate';
 import { GmailNotConnectedError, isPermanentSendError, sendMail } from '../mailer';
+import { createNotification } from '../notifications';
 import { injectTrackingPixel } from '../tracking';
 import { hasMxRecord } from '../../utils/emailValidation';
 import { logger } from '../../utils/logger';
@@ -136,6 +137,15 @@ async function recordInitialBounce(
     );
   }
   await EmailEvent.create({ applicationId, kind: 'bounce', meta });
+  // Phase 7 bounce notification — fire-and-forget (createNotification never
+  // throws), so it can't affect the send pipeline's failure bookkeeping.
+  void createNotification({
+    userId: job.userId,
+    kind: 'bounce',
+    applicationId,
+    title: 'Delivery failed',
+    body: `${job.extraction?.company ?? 'The company'} — delivery failed.`,
+  });
   logger.warn({ jobPostId: data.jobPostId }, 'Initial outreach bounced (permanent SMTP error)');
 }
 

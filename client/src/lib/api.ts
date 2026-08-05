@@ -17,6 +17,9 @@ import type {
   JobPostSummary,
   LoginInput,
   MarkRepliedResponse,
+  NotificationEnvelope,
+  NotificationListResponse,
+  NotificationReadAllResponse,
   ProfileResponse,
   PublicUser,
   RegisterInput,
@@ -269,6 +272,21 @@ export function getContacts() {
 
 export function getContact(email: string) {
   return api<ContactDetailEnvelope>(`/contacts/${encodeURIComponent(email)}`);
+}
+
+/* ── Phase 7: notifications (Nav bell) ──────────────────────────── */
+
+/** Newest 50 notifications + the unread badge count. */
+export function getNotifications() {
+  return api<NotificationListResponse>('/notifications');
+}
+
+export function markNotificationRead(id: string) {
+  return api<NotificationEnvelope>(`/notifications/${id}/read`, { method: 'PATCH' });
+}
+
+export function markAllNotificationsRead() {
+  return api<NotificationReadAllResponse>('/notifications/read-all', { method: 'POST' });
 }
 
 /* ── M5: outreach templates (CRUD + per-template stats) ─────────── */

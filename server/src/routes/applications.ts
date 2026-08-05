@@ -16,6 +16,7 @@ import { EmailEvent, type IEmailEvent } from '../models/EmailEvent';
 import { AppError } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
+import { createNotification } from '../services/notifications';
 import { markLatestEmailReplied } from '../services/replies';
 import {
   cancelInterviewReminder,
@@ -227,7 +228,21 @@ applicationsRouter.patch('/:id', validate(applicationUpdateSchema), async (req, 
 applicationsRouter.post('/:id/mark-replied', async (req, res, next) => {
   try {
     const application = await findOwnApplication(req.userId!, req.params.id);
-    await markLatestEmailReplied(application, { manual: true });
+    const changed = await markLatestEmailReplied(application, { manual: true });
+
+    // Phase 7 reply notification, emitted only when the reply was newly
+    // recorded (idempotent repeats stay silent). Fire-and-forget. NOTE: auto
+    // reply detection is still the poll-replies stub (services/replyDetection),
+    // so reply notifications currently come from manual mark-replied only.
+    if (changed) {
+      void createNotification({
+        userId: application.userId,
+        kind: 'reply',
+        applicationId: application._id,
+        title: 'Reply received',
+        body: `${application.company ?? 'The company'} replied.`,
+      });
+    }
 
     const body: MarkRepliedResponse = await detailEnvelope(application);
     res.json(body);

@@ -2,6 +2,7 @@ import { Application } from '../../models/Application';
 import { User } from '../../models/User';
 import { GmailNotConnectedError, sendMail } from '../mailer';
 import { emailBodyToHtml } from '../emailRules';
+import { createNotification } from '../notifications';
 import { logger } from '../../utils/logger';
 
 /**
@@ -91,7 +92,15 @@ export async function processInterviewReminder(
     throw err; // transient — the queue handler logs; reminders are never retried
   }
 
-  // Phase 7 will also emit a Notification here.
+  // Phase 7 interview notification — fire-and-forget (createNotification
+  // never throws), mirrors the best-effort contract of the reminder itself.
+  void createNotification({
+    userId: application.userId,
+    kind: 'interview',
+    applicationId: application._id,
+    title: 'Interview reminder',
+    body: `Interview with ${company} tomorrow.`,
+  });
   logger.info({ applicationId: data.applicationId }, 'Interview reminder sent');
   return 'sent';
 }

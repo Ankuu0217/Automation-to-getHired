@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Application } from '../models/Application';
 import { EmailEvent } from '../models/EmailEvent';
 import { incrementTemplateStat } from '../models/EmailTemplate';
+import { createNotification } from '../services/notifications';
 import { TRACKING_PIXEL_PNG } from '../services/tracking';
 import { logger } from '../utils/logger';
 
@@ -57,6 +58,17 @@ trackingRouter.get('/o/:applicationId/:idx.png', async (req, res) => {
           if (emailIndex === 0) {
             await incrementTemplateStat(application.templateId, 'opened');
           }
+          // Phase 7: first-open notification. Fire-and-forget (not awaited,
+          // createNotification never throws) — the already-loaded application
+          // carries company/userId, so nothing extra runs on the pixel's
+          // critical path.
+          void createNotification({
+            userId: application.userId,
+            kind: 'open',
+            applicationId: application._id,
+            title: 'Email opened',
+            body: `${application.company ?? 'The company'} opened your email.`,
+          });
         }
       }
     }

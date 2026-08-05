@@ -12,6 +12,7 @@ import { jobsRouter } from './routes/jobs';
 import { gmailRouter } from './routes/gmail';
 import { applicationsRouter } from './routes/applications';
 import { contactsRouter } from './routes/contacts';
+import { notificationsRouter } from './routes/notifications';
 import { templatesRouter } from './routes/templates';
 import { analyticsRouter } from './routes/analytics';
 import { trackingRouter } from './routes/tracking';
@@ -60,6 +61,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/gmail', gmailRouter);
   app.use('/api/v1/applications', applicationsRouter);
   app.use('/api/v1/contacts', contactsRouter);
+  app.use('/api/v1/notifications', notificationsRouter);
   app.use('/api/v1/templates', templatesRouter);
   app.use('/api/v1/analytics', analyticsRouter);
   // Tracking pixel: no auth, outside /api/v1 — loaded by mail clients (SPEC §5).

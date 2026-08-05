@@ -1,12 +1,18 @@
-import { useMutation } from '@tanstack/react-query';
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
+import type { NotificationResponse } from '@jobmail/shared';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bell, ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
-import { logout } from '@/lib/api';
+import {
+  getNotifications,
+  logout,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 
@@ -57,6 +63,167 @@ function PublicNav() {
         </div>
       </div>
     </header>
+  );
+}
+
+/** Kind → 6px status dot (lime micro-accent; warn/danger for the bad news). */
+const KIND_DOT: Record<NotificationResponse['kind'], string> = {
+  open: 'border border-lime bg-transparent',
+  reply: 'bg-lime',
+  interview: 'bg-warn',
+  bounce: 'bg-danger',
+};
+
+/** ISO → compact relative label: 'now' | '5m' | '3h' | '2d'. */
+function relativeTime(iso: string): string {
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+/**
+ * Nav bell (Phase 7): polls /notifications once per authed layout (Nav mounts
+ * this exactly once; it never renders on the public variant, so logged-out
+ * pages never poll). Dropdown mirrors the UserMenu pattern: outside-click +
+ * Escape close with focus return, animate-fade-in panel.
+ */
+function NotificationsMenu() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const { data } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: getNotifications,
+    refetchInterval: 60_000,
+  });
+
+  const readAllMutation = useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
+  const readOneMutation = useMutation({
+    mutationFn: markNotificationRead,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const notifications = data?.notifications ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
+
+  const onRowClick = (notification: NotificationResponse) => {
+    if (!notification.read) readOneMutation.mutate(notification.id);
+    setOpen(false);
+    // The pipeline drawer opens from board-local state only (no application
+    // deep-link mechanism exists) — navigate to the board.
+    navigate('/pipeline');
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="Notifications"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="focus-ring relative rounded-nav p-2 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper"
+      >
+        <Bell className="size-5" />
+        {unreadCount > 0 && (
+          <span className="absolute right-0 top-0 rounded-pill bg-lime px-1 font-mono text-[10px] font-normal leading-4 text-ink">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 animate-fade-in rounded-card border border-graphite bg-ink-2 p-2">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
+              Notifications
+            </span>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => readAllMutation.mutate()}
+                disabled={readAllMutation.isPending}
+                className="focus-ring rounded-btn font-mono text-[10px] uppercase tracking-[0.16px] text-text-2-dark transition-quick hover:text-paper disabled:opacity-50"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+          <Separator className="my-1" />
+          {notifications.length === 0 ? (
+            <p className="px-3 py-4 font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
+              No notifications yet
+            </p>
+          ) : (
+            <ul className="max-h-96 overflow-y-auto">
+              {notifications.map((notification) => (
+                <li key={notification.id}>
+                  <button
+                    type="button"
+                    onClick={() => onRowClick(notification)}
+                    className={cn(
+                      'focus-ring flex w-full items-start gap-2.5 rounded-btn px-3 py-2 text-left transition-quick hover:bg-ink-3',
+                      !notification.read && 'bg-ink-3',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'mt-1.5 size-1.5 shrink-0 rounded-pill',
+                        KIND_DOT[notification.kind],
+                      )}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-sans text-sm font-normal text-paper">
+                        {notification.title}
+                      </span>
+                      <span className="block truncate font-sans text-xs font-normal text-text-2-dark">
+                        {notification.body}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 shrink-0 font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
+                      {relativeTime(notification.createdAt)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -191,6 +358,7 @@ export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps)
           <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2-dark lg:inline">
             Sent today · {sentToday}/{dailyCap}
           </span>
+          <NotificationsMenu />
           <UserMenu sentToday={sentToday} dailyCap={dailyCap} />
           <button
             type="button"
