@@ -11,7 +11,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           <Logo />
         </div>
 
-        <div className="rounded-card bg-surface p-6">{children}</div>
+        <div className="rounded-card border border-border bg-surface p-6">{children}</div>
 
         <Mono size="xs" color="fog" className="mt-4 block text-center">
           Your data stays yours

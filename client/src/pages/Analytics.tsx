@@ -1,10 +1,11 @@
 import type { FunnelTrendPoint, FunnelTotals, PerTemplateStats } from '@jobmail/shared';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Mail, Send } from 'lucide-react';
+import { BarChart3, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { ActivityChart } from '@/components/ActivityChart';
 import { CategoryTile } from '@/components/CategoryTile';
+import { EmptyState } from '@/components/EmptyState';
 import { Mono } from '@/components/Mono';
 import { buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,7 +45,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
   const max = Math.max(totals.sent, 1);
 
   return (
-    <section className="border border-border bg-surface p-6">
+    <section className="rounded-card border border-border bg-surface p-4">
       <div className="mb-6 flex items-end justify-between">
         <div>
           <Mono size="xs" color="fog">
@@ -81,7 +82,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
               <div className="h-1.5 w-full overflow-hidden rounded-pill border border-border bg-background">
                 <div
                   className="h-full rounded-pill bg-cyan transition-[width] duration-500 ease-out"
-                  style={{ width: `${Math.max(pct, 2)}%` }}
+                  style={{ width: value === 0 ? '0%' : `${Math.max(pct, 2)}%` }}
                 />
               </div>
             </div>
@@ -102,8 +103,8 @@ function TemplateLedger({
   templates: { id: string; tone: string }[];
 }) {
   return (
-    <section className="border border-border bg-surface">
-      <div className="border-b border-border px-6 py-4">
+    <section className="overflow-hidden rounded-card border border-border bg-surface">
+      <div className="border-b border-border px-4 py-4">
         <div className="flex items-end justify-between">
           <div>
             <Mono size="xs" color="fog">
@@ -121,32 +122,32 @@ function TemplateLedger({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="px-6 py-3 text-left">
+              <th className="px-4 py-3 text-left">
                 <Mono size="xs" color="fog">
                   Template
                 </Mono>
               </th>
-              <th className="px-6 py-3 text-left">
+              <th className="px-4 py-3 text-left">
                 <Mono size="xs" color="fog">
                   Tone
                 </Mono>
               </th>
-              <th className="px-6 py-3 text-right">
+              <th className="px-4 py-3 text-right">
                 <Mono size="xs" color="fog">
                   Sent
                 </Mono>
               </th>
-              <th className="px-6 py-3 text-right">
+              <th className="px-4 py-3 text-right">
                 <Mono size="xs" color="fog">
                   Opened
                 </Mono>
               </th>
-              <th className="px-6 py-3 text-right">
+              <th className="px-4 py-3 text-right">
                 <Mono size="xs" color="fog">
                   Replied
                 </Mono>
               </th>
-              <th className="px-6 py-3 text-right">
+              <th className="px-4 py-3 text-right">
                 <Mono size="xs" color="fog">
                   Reply rate
                 </Mono>
@@ -158,38 +159,31 @@ function TemplateLedger({
               const tone = templates.find((x) => x.id === t.templateId)?.tone ?? '—';
               const reply = t.sent === 0 ? '—' : `${Math.round(t.replyRate * 100)}%`;
               return (
-                <tr
-                  key={t.templateId}
-                  className={cn(
-                    'transition-quick',
-                    i !== stats.length - 1 && 'border-b border-border',
-                    'hover:bg-surface-2',
-                  )}
-                >
-                  <td className="px-6 py-3.5">
+                <tr key={t.templateId} className={cn(i !== stats.length - 1 && 'border-b border-border')}>
+                  <td className="px-4 py-3.5">
                     <p className="font-sans text-[15px] font-normal text-text-1">{t.name}</p>
                   </td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 py-3.5">
                     <Mono size="xs" color="ash" className="capitalize">
                       {tone}
                     </Mono>
                   </td>
-                  <td className="px-6 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     <Mono size="xs" color="ash">
                       {t.sent}
                     </Mono>
                   </td>
-                  <td className="px-6 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     <Mono size="xs" color="ash">
                       {t.opened}
                     </Mono>
                   </td>
-                  <td className="px-6 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     <Mono size="xs" color="ash">
                       {t.replied}
                     </Mono>
                   </td>
-                  <td className="px-6 py-3.5 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     <Mono size="xs" color={reply === '—' ? 'fog' : 'cyan'}>
                       {reply}
                     </Mono>
@@ -204,26 +198,6 @@ function TemplateLedger({
   );
 }
 
-/* ── Empty state ─────────────────────────────────────────────────────────── */
-
-function EmptyState() {
-  return (
-    <div className="border border-border bg-surface px-6 py-10">
-      <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
-        No dispatches yet. <span className="italic">Send</span> the first.
-      </p>
-      <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2">
-        Once outreach is in flight, opens, replies, interviews, and offers appear here.
-      </p>
-      <Link to="/apps/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-6')}>
-        <Mail className="size-4" />
-        New dispatch
-        <span aria-hidden>→</span>
-      </Link>
-    </div>
-  );
-}
-
 /* ── Page ────────────────────────────────────────────────────────────────── */
 
 export function Analytics() {
@@ -235,7 +209,7 @@ export function Analytics() {
   const hasData = funnel && funnel.totals.sent > 0;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Header */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <CategoryTile
@@ -271,23 +245,31 @@ export function Analytics() {
 
       {funnelQuery.isPending || templatesQuery.isPending ? (
         <div className="space-y-6">
-          <div className="flex h-[88px] items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex flex-1 flex-col justify-center gap-2 px-6">
-                <Skeleton className="h-3 w-16 bg-surface-2" />
-                <Skeleton className="h-8 w-12 bg-surface-2" />
+              <div key={i} className="flex flex-col justify-center gap-2 bg-surface p-4">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-8 w-12" />
               </div>
             ))}
           </div>
-          <Skeleton className="h-80 w-full rounded-card bg-surface" />
-          <Skeleton className="h-80 w-full rounded-card bg-surface" />
+          <Skeleton className="h-80 w-full rounded-card" />
+          <Skeleton className="h-80 w-full rounded-card" />
         </div>
       ) : !hasData ? (
-        <EmptyState />
+        <EmptyState
+          headline={
+            <>
+              No dispatches yet. <em>Send</em> the first.
+            </>
+          }
+          description="Once outreach is in flight, opens, replies, interviews, and offers appear here."
+          action={{ to: '/apps/new', label: 'New dispatch' }}
+        />
       ) : (
         <>
           {/* Summary stats */}
-          <div className="flex items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
             <Stat label="Sent" value={funnel.totals.sent} />
             <Stat label="Opened" value={funnel.totals.opened} />
             <Stat label="Replied" value={funnel.totals.replied} />
@@ -301,7 +283,7 @@ export function Analytics() {
           </div>
 
           {/* Trend */}
-          <section className="border border-border bg-surface p-6">
+          <section className="rounded-card border border-border bg-surface p-4">
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <Mono size="xs" color="fog">
@@ -323,7 +305,7 @@ export function Analytics() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex flex-1 flex-col justify-center px-6 py-5">
+    <div className="flex flex-col justify-center bg-surface p-4">
       <Mono size="xs" color="fog">
         {label}
       </Mono>

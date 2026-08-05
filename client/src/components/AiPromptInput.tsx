@@ -31,7 +31,7 @@ export function AiPromptInput({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'flex items-center gap-3 rounded-func border border-pure/10 bg-void py-2 pl-[22px] pr-2 transition-quick focus-within:border-pure/25',
+        'flex items-center gap-3 rounded-func border border-border bg-background py-2 pl-[22px] pr-2 transition-quick focus-within:border-border-strong',
         className,
       )}
     >
@@ -43,12 +43,12 @@ export function AiPromptInput({
           onChange?.(e.target.value);
         }}
         placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent py-[6px] font-sans text-base font-normal text-pure placeholder:text-text-3 outline-none"
+        className="min-w-0 flex-1 bg-transparent py-[6px] font-sans text-base font-normal text-text-1 placeholder:text-text-3 outline-none"
       />
       <button
         type="submit"
         aria-label="Submit"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pure/20 text-pure transition-quick hover:bg-pure/30"
+        className="focus-ring flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-quick hover:opacity-[0.92] active:opacity-[0.85]"
       >
         <ArrowRight className="size-4" />
       </button>

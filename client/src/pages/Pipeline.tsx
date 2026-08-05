@@ -18,13 +18,13 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { ApplicationDrawer } from '@/components/ApplicationDrawer';
+import { EmptyState } from '@/components/EmptyState';
 import { Mono } from '@/components/Mono';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
-  formatFollowUpAt,
   GHOSTED_STAGE,
   PIPELINE_STAGES,
   stageLabel,
@@ -59,9 +59,12 @@ function CardBody({
   application: ApplicationSummary;
   dispatchCode: string;
 }) {
-  const followUpLabel = application.nextFollowUpAt ? formatFollowUpAt(application.nextFollowUpAt) : null;
+  const followUpDays = application.nextFollowUpAt
+    ? Math.ceil(
+        (new Date(application.nextFollowUpAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      )
+    : null;
   const lastEmail = application.lastEmail;
-  const ghosted = isGhosted(application);
 
   return (
     <>
@@ -80,14 +83,12 @@ function CardBody({
 
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mono size="xs" color={ghosted ? 'fog' : 'fog'}>
+          <Mono size="xs" color="fog">
             {dispatchCode}
           </Mono>
-          {followUpLabel && (
+          {followUpDays !== null && (
             <Mono size="xs" color="cyan">
-              F-UP·{Math.ceil(
-                (new Date(application.nextFollowUpAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-              )}D
+              {followUpDays <= 0 ? 'F-UP·DUE' : `F-UP·${followUpDays}D`}
             </Mono>
           )}
         </div>
@@ -132,14 +133,16 @@ function DraggableCard({
       {...attributes}
       role="button"
       tabIndex={0}
-      aria-label={`${application.company ?? 'Application'} — ${stageLabel(application.stage)}. Activate to drag, click for details.`}
+      aria-label={`${application.company ?? 'Application'} — ${stageLabel(application.stage)}. Press Enter for details, Space to pick up and move.`}
       onClick={() => onOpen(application.id)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onOpen(application.id);
+        listeners?.onKeyDown?.(e);
+        if (e.defaultPrevented) return;
+        if (e.key === 'Enter' && !isDragging) onOpen(application.id);
       }}
       className={cn(
-        'cursor-grab touch-none rounded-card border bg-surface p-4 transition-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pure/40 active:cursor-grabbing',
-        ghosted ? 'border-text-3' : 'border-border',
+        'focus-ring cursor-grab touch-pan-y rounded-card border border-border bg-surface p-4 transition-quick hover:border-border-strong active:cursor-grabbing',
+        ghosted && 'border-dashed',
         isDragging && 'opacity-40',
       )}
     >
@@ -168,9 +171,12 @@ function StageColumn({
   return (
     <section
       aria-label={`${stage.label} column`}
-      className={cn('flex w-[300px] shrink-0 flex-col', dimmed && 'opacity-70')}
+      className={cn(
+        'flex w-[300px] shrink-0 flex-col rounded-card border border-border bg-background p-3',
+        dimmed && 'opacity-70',
+      )}
     >
-      <div className="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+      <div className="mb-3 flex items-baseline justify-between px-1">
         <Mono size="xs" color="fog">
           {stage.label}
         </Mono>
@@ -182,7 +188,7 @@ function StageColumn({
         ref={setNodeRef}
         className={cn(
           'flex min-h-40 flex-1 flex-col gap-2.5 transition-quick',
-          isOver && 'before:block before:h-0.5 before:bg-pure before:content-[""]',
+          isOver && 'before:block before:h-0.5 before:bg-iris before:content-[""]',
         )}
       >
         {applications.map((application) => (
@@ -207,8 +213,11 @@ function BoardSkeleton() {
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
       {PIPELINE_STAGES.map((stage) => (
-        <div key={stage.id} className="w-[300px] shrink-0">
-          <div className="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+        <div
+          key={stage.id}
+          className="w-[300px] shrink-0 rounded-card border border-border bg-background p-3"
+        >
+          <div className="mb-3 flex items-baseline justify-between px-1">
             <Skeleton className="h-3 w-20 bg-surface-2" />
             <Skeleton className="h-3 w-6 bg-surface-2" />
           </div>
@@ -233,7 +242,10 @@ export function Pipeline() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
+    /* Space picks up / drops; Enter is left free for the card's open-details action. */
+    useSensor(KeyboardSensor, {
+      keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] },
+    }),
   );
 
   const stageMutation = useMutation({
@@ -311,38 +323,46 @@ export function Pipeline() {
             The <span className="italic">pipeline</span>
           </h1>
         </div>
-        <Link to="/apps/new">
-          <Button>
-            <Plus className="size-4" />
-            New dispatch
-          </Button>
+        <Link to="/apps/new" className={buttonVariants()}>
+          <Plus className="size-4" />
+          New dispatch
         </Link>
       </div>
 
       {applicationsQuery.isPending ? (
         <BoardSkeleton />
       ) : applicationsQuery.isError ? (
-        <div className="rounded-card border border-border bg-surface p-10 text-center">
-          <p className="font-sans text-sm text-text-2">Could not load the pipeline.</p>
-          <Button variant="outline" size="sm" onClick={() => void applicationsQuery.refetch()} className="mt-4">
-            Try again
-          </Button>
-        </div>
+        <EmptyState
+          className="border-danger/30"
+          headline={
+            <>
+              The pipeline <em>refused</em> to load.
+            </>
+          }
+          description={
+            <>
+              Check the connection, then pull the board again.
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 flex"
+                onClick={() => void applicationsQuery.refetch()}
+              >
+                Try again
+              </Button>
+            </>
+          }
+        />
       ) : applications.length === 0 ? (
-        <div className="rounded-card border border-border bg-surface p-12 text-center">
-          <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
-            No dispatches yet. <span className="italic">Send</span> the first.
-          </p>
-          <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-text-2">
-            Send your first outreach from a job-post screenshot and it lands here — tracked from Applied to Offer.
-          </p>
-          <Link to="/apps/new" className="mt-6 inline-block">
-            <Button>
-              <Plus className="size-4" />
-              New dispatch
-            </Button>
-          </Link>
-        </div>
+        <EmptyState
+          headline={
+            <>
+              No dispatches yet. <em>Send</em> the first.
+            </>
+          }
+          description="Send your first outreach from a job-post screenshot and it lands here — tracked from Applied to Offer."
+          action={{ to: '/apps/new', label: 'New dispatch' }}
+        />
       ) : (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
@@ -359,7 +379,7 @@ export function Pipeline() {
           </div>
           <DragOverlay>
             {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-card border border-pure/20 bg-surface-2 p-4">
+              <div className="w-[300px] rotate-2 rounded-card border border-border-strong bg-surface-2 p-4 shadow-lg">
                 <CardBody
                   application={activeApplication}
                   dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}

@@ -24,7 +24,7 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import { Mono } from '@/components/Mono';
 import { ProofSheet } from '@/components/ProofSheet';
 import { StatusLabel } from '@/components/StatusLabel';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -67,6 +67,13 @@ const UPLOAD_STEPS = [
   'Setting the email',
 ];
 
+const DRAFT_STEPS = [
+  'Matching your profile',
+  'Choosing highlights',
+  'Drafting the email',
+  'Polishing the tone',
+];
+
 /* ── Shared processing sequence ─────────────────────────────────── */
 
 function ProcessingSequence({ steps = UPLOAD_STEPS, className }: { steps?: string[]; className?: string }) {
@@ -78,7 +85,8 @@ function ProcessingSequence({ steps = UPLOAD_STEPS, className }: { steps?: strin
   }, [steps.length]);
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1', className)}>
+    <div aria-live="polite" className={cn('flex flex-wrap items-center gap-x-2 gap-y-1', className)}>
+      <span className="sr-only">{steps[active]}</span>
       {steps.map((label, index) => {
         const isActive = index === active;
         const isPast = index < active;
@@ -181,7 +189,7 @@ function UploadStep({
   /* Analyzing — the AI wait state. */
   if (analyzing) {
     return (
-      <div className="rounded-func border border-border bg-surface p-6">
+      <div className="rounded-card border border-border bg-surface p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           {analyzingPreviewUrl ? (
             <img
@@ -207,26 +215,26 @@ function UploadStep({
   /* Extraction failed on the server. */
   if (failed) {
     return (
-      <div className="rounded-func border border-border bg-surface p-10 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-border bg-background">
-          <ImageOff className="size-5 text-text-2" />
-        </div>
-        <Mono size="sm" color="pure" className="mt-4 block">
-          COULDN&apos;T READ THIS ONE
-        </Mono>
-        <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
-          We couldn&apos;t read this screenshot. Try a sharper capture — the full job post, in focus.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Button variant="outline" onClick={onReset}>
-            <UploadCloud />
-            Try another screenshot
-          </Button>
-          {onManualEntry && (
-            <Button variant="ghost" onClick={onManualEntry}>
-              Enter manually
-            </Button>
-          )}
+      <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+        <div className="flex items-start gap-3">
+          <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
+          <div className="min-w-0 flex-1">
+            <Mono size="xs" color="danger">COULDN&apos;T READ THIS ONE</Mono>
+            <p className="mt-1 font-sans text-sm font-normal text-text-2">
+              We couldn&apos;t read this screenshot. Try a sharper capture — the full job post, in focus.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button variant="outline" size="sm" onClick={onReset}>
+                <UploadCloud className="size-4" />
+                Try another screenshot
+              </Button>
+              {onManualEntry && (
+                <Button variant="ghost" size="sm" onClick={onManualEntry}>
+                  Enter manually
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -237,7 +245,7 @@ function UploadStep({
       <div
         {...getRootProps()}
         className={cn(
-          'relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-func border border-dashed border-text-3 bg-background px-6 py-12 text-center transition-quick',
+          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-func border border-dashed border-text-3 bg-background px-6 py-12 text-center transition-quick',
           isDragActive && 'border-pure bg-pure/[0.03]',
           file && 'border-pure/30',
         )}
@@ -273,7 +281,8 @@ function UploadStep({
         ) : (
           <>
             <p className="font-sans text-sm font-normal text-text-1">
-              Drag &amp; drop a job post screenshot, or <span className="text-pure">browse</span>
+              Drag &amp; drop a job post screenshot, or{' '}
+              <span className="text-text-1 underline underline-offset-4">browse</span>
             </p>
             <Mono size="xs" color="fog">
               PNG, JPEG, or WebP — up to {formatBytes(MAX_SCREENSHOT_BYTES)}
@@ -297,7 +306,7 @@ function UploadStep({
             type="button"
             aria-label="Remove selected file"
             onClick={() => setFile(null)}
-            className="rounded-func p-1.5 text-text-2 transition-quick hover:bg-background hover:text-pure"
+            className="focus-ring rounded-func p-1.5 text-text-2 transition-quick hover:bg-pure/[0.06] hover:text-text-1"
           >
             <X className="size-4" />
           </button>
@@ -326,19 +335,22 @@ function Disclosure({
   mono?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const contentId = useId();
   return (
     <div className="rounded-func border border-border bg-surface">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 transition-quick"
+        className="focus-ring flex w-full items-center justify-between rounded-func px-4 py-3 transition-quick hover:bg-pure/[0.03]"
         aria-expanded={open}
+        aria-controls={contentId}
       >
         <Mono size="xs" color="pure">{title}</Mono>
         <ChevronDown className={cn('size-4 text-text-2 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <div
+          id={contentId}
           className={cn(
             'max-h-64 overflow-y-auto border-t border-border px-4 py-3 text-sm leading-relaxed text-text-2',
             mono && 'font-mono text-xs uppercase tracking-[0.016em]',
@@ -375,10 +387,10 @@ function HrEmailSection({
   if (ranked.length === 0) {
     return (
       <div className="space-y-3">
-        <div className="rounded-func bg-surface p-4">
+        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
           <div className="flex items-start gap-3">
-            <MailWarning className="size-5 shrink-0 text-warn" />
-            <div>
+            <MailWarning className="mt-0.5 size-5 shrink-0 text-warn" />
+            <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">NO CONTACT FOUND</Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2">
                 Paste the HR email manually — you can continue either way.
@@ -406,21 +418,20 @@ function HrEmailSection({
   /* Edge case 2: ranked candidates with confidence; exactly one is preselected. */
   return (
     <div className="space-y-2">
-      <div role="radiogroup" aria-label="HR email candidates" className="space-y-2">
+      <div role="group" aria-label="HR email candidates" className="space-y-2">
         {ranked.map((candidate, index) => {
           const selected = !customMode && selectedEmail === candidate.email;
           return (
             <button
               key={candidate.email}
               type="button"
-              role="radio"
-              aria-checked={selected}
+              aria-pressed={selected}
               onClick={() => {
                 setCustomMode(false);
                 onSelect(candidate.email);
               }}
               className={cn(
-                'flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
+                'focus-ring flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
                 selected
                   ? 'border-pure bg-background'
                   : 'border-border bg-surface hover:border-pure/20',
@@ -449,11 +460,10 @@ function HrEmailSection({
 
         <button
           type="button"
-          role="radio"
-          aria-checked={customMode}
+          aria-pressed={customMode}
           onClick={() => setCustomMode(true)}
           className={cn(
-            'flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
+            'focus-ring flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
             customMode
               ? 'border-pure bg-background'
               : 'border-border bg-surface hover:border-pure/20',
@@ -498,12 +508,21 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
   const [broken, setBroken] = useState(false);
   const url = jobScreenshotUrl(jobId);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return (
     <>
       <button
         type="button"
         onClick={() => !broken && setOpen(true)}
-        className="group block w-full overflow-hidden rounded-func border border-border"
+        className="focus-ring group block w-full overflow-hidden rounded-func border border-border"
         aria-label="View screenshot larger"
       >
         {broken ? (
@@ -526,9 +545,20 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Job post screenshot"
             className="fixed inset-0 z-50 flex items-center justify-center bg-void/80 p-6 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           >
+            <button
+              type="button"
+              aria-label="Close screenshot preview"
+              onClick={() => setOpen(false)}
+              className="focus-ring absolute right-4 top-4 rounded-func p-2 text-text-2 transition-quick hover:bg-pure/[0.06] hover:text-text-1"
+            >
+              <X className="size-5" />
+            </button>
             <motion.img
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -551,8 +581,15 @@ function MatchDial({ score }: { score: number }) {
   const offset = circumference * (1 - score / 100);
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative size-14 shrink-0">
+    <div
+      role="meter"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={score}
+      aria-label="Match score"
+      className="flex items-center gap-4"
+    >
+      <div className="relative size-14 shrink-0" aria-hidden="true">
         <svg viewBox="0 0 56 56" className="size-full -rotate-90">
           <circle
             cx="28"
@@ -575,13 +612,15 @@ function MatchDial({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-xl text-pure">
+          <span className="font-display text-xl text-text-1">
             {score}
             <span className="ml-0.5 font-sans text-[10px] text-text-2">%</span>
           </span>
         </div>
       </div>
-      <Mono size="xs" color="ash">MATCH</Mono>
+      <span aria-hidden="true">
+        <Mono size="xs" color="ash">MATCH</Mono>
+      </span>
     </div>
   );
 }
@@ -704,10 +743,10 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
     <div className="space-y-6">
       {/* Edge case 3: low-confidence banner + raw text */}
       {lowConfidence && (
-        <div className="rounded-func border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
-            <div>
+            <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">LOW CONFIDENCE EXTRACTION</Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2">
                 Please verify the fields below — the screenshot may have been blurry or cropped.
@@ -719,22 +758,25 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
 
       {/* Edge case 4: duplicate warning */}
       {duplicateId !== null && (
-        <div className="rounded-func border border-danger/30 bg-danger/10 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
-              <div>
-                <Mono size="xs" color="danger">DUPLICATE APPLICATION</Mono>
-                <p className="mt-1 font-sans text-sm font-normal text-text-2">
-                  You already have an application for this email + company + role.
-                </p>
-              </div>
+        <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="danger">DUPLICATE APPLICATION</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+                You already have an application for this email + company + role.
+              </p>
+              {duplicateId && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Link
+                    to={`/apps/new?job=${duplicateId}`}
+                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                  >
+                    Open existing application
+                  </Link>
+                </div>
+              )}
             </div>
-            {duplicateId && (
-              <Link to={`/apps/new?job=${duplicateId}`} className="sm:ml-auto">
-                <Button variant="outline" size="sm">Open existing application</Button>
-              </Link>
-            )}
           </div>
         </div>
       )}
@@ -752,7 +794,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
         </div>
 
         {/* Editable extraction fields */}
-        <div className="space-y-5 rounded-func border border-border bg-surface p-6">
+        <div className="space-y-5 rounded-card border border-border bg-surface p-6">
           {extraction?.jdText && match && (
             <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
               <div className="min-w-0 flex-1">
@@ -809,7 +851,7 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
             <Button
               variant="outline"
               onClick={handleSave}
@@ -885,47 +927,44 @@ function SendFailurePanel({
 }) {
   const code = job.failureCode;
   return (
-    <div className="rounded-func border border-danger/30 bg-danger/10 p-10 text-center">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-danger/30 bg-background">
-        <AlertTriangle className="size-6 text-danger" />
-      </div>
-      <Mono size="sm" color="pure" className="mt-4 block">
-        {sendFailureTitle(code).toUpperCase()}
-      </Mono>
-      <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
-        {job.error ?? 'Something went wrong while sending this email.'}
-      </p>
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        {code === 'MX_INVALID_DOMAIN' && (
-          <Button onClick={onFixEmail}>
-            <Pencil />
-            Fix the email
-          </Button>
-        )}
-        {code === 'RESUME_MISSING' && (
-          <Link to="/onboarding">
-            <Button>
-              <UploadCloud />
-              Upload your resume
+    <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
+        <div className="min-w-0 flex-1">
+          <Mono size="xs" color="danger">{sendFailureTitle(code).toUpperCase()}</Mono>
+          <p className="mt-1 font-sans text-sm font-normal text-text-2">
+            {job.error ?? 'Something went wrong while sending this email.'}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {code === 'MX_INVALID_DOMAIN' && (
+              <Button size="sm" onClick={onFixEmail}>
+                <Pencil className="size-4" />
+                Fix the email
+              </Button>
+            )}
+            {code === 'RESUME_MISSING' && (
+              <Link to="/onboarding" className={buttonVariants({ size: 'sm' })}>
+                <UploadCloud className="size-4" />
+                Upload your resume
+              </Link>
+            )}
+            {code === 'GMAIL_NOT_CONNECTED' && (
+              <Link to="/settings" className={buttonVariants({ size: 'sm' })}>
+                <Mail className="size-4" />
+                Connect Gmail
+              </Link>
+            )}
+            <Button
+              size="sm"
+              variant={code === 'SEND_FAILED' || code === null ? 'default' : 'outline'}
+              onClick={onRetry}
+              disabled={retrying}
+            >
+              <RefreshCw className="size-4" />
+              Try again
             </Button>
-          </Link>
-        )}
-        {code === 'GMAIL_NOT_CONNECTED' && (
-          <Link to="/settings">
-            <Button>
-              <Mail />
-              Connect Gmail
-            </Button>
-          </Link>
-        )}
-        <Button
-          variant={code === 'SEND_FAILED' || code === null ? 'default' : 'outline'}
-          onClick={onRetry}
-          disabled={retrying}
-        >
-          <RefreshCw />
-          Try again
-        </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -941,14 +980,17 @@ function SendStatusCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-func border border-border bg-surface p-12 text-center">
+    <div className="rounded-card border border-border bg-surface p-10 text-center">
       <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-border bg-background">
         {icon}
       </div>
       <Mono size="sm" color="pure" className="mt-4 block">{title}</Mono>
       <div className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">{children}</div>
-      <Link to="/dashboard" className="mt-6 inline-block">
-        <Button variant="outline">Back to dashboard</Button>
+      <Link
+        to="/dashboard"
+        className={cn(buttonVariants({ variant: 'outline' }), 'mt-6')}
+      >
+        Back to dashboard
       </Link>
     </div>
   );
@@ -1049,7 +1091,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
   if (current.status === 'sent') {
     return (
       <SendStatusCard
-        icon={<CheckCircle2 className="size-6 text-pure" />}
+        icon={<CheckCircle2 className="size-6 text-text-1" />}
         title="EMAIL SENT"
       >
         Your outreach to <span className="text-text-1">{current.hrEmail}</span> is on its way.
@@ -1072,7 +1114,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
     if (pendingSend === 'scheduled' && scheduledAt) {
       return (
         <SendStatusCard
-          icon={<CalendarClock className="size-6 text-pure" />}
+          icon={<CalendarClock className="size-6 text-text-1" />}
           title={`SCHEDULED FOR ${formatDateTime(scheduledAt)}`}
         >
           It goes out automatically — send caps and human-like jitter are already applied.
@@ -1080,7 +1122,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       );
     }
     return (
-      <div className="rounded-func border border-border bg-surface p-12 text-center">
+      <div className="rounded-card border border-border bg-surface p-10 text-center">
         <StatusLabel status="queued" className="mx-auto" />
         <Mono size="sm" color="pure" className="mt-4 block">SENDING</Mono>
         <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
@@ -1098,34 +1140,38 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
           ? generateMutation.error.message
           : 'The AI provider could not write the email.';
       return (
-        <div className="rounded-func border border-danger/30 bg-danger/10 p-10 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-danger/30 bg-background">
-            <AlertTriangle className="size-6 text-danger" />
-          </div>
-          <Mono size="sm" color="pure" className="mt-4 block">
-            COULDN&apos;T GENERATE THE EMAIL
-          </Mono>
-          <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">{message}</p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <Button variant="ghost" onClick={onBack}>
-              <ArrowLeft />
-              Back to review
-            </Button>
-            <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-              <RefreshCw />
-              Try again
-            </Button>
+        <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="danger">COULDN&apos;T GENERATE THE EMAIL</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2">{message}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button size="sm" variant="ghost" onClick={onBack}>
+                  <ArrowLeft className="size-4" />
+                  Back to review
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending}
+                >
+                  <RefreshCw className="size-4" />
+                  Try again
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       );
     }
     return (
-      <div className="rounded-func border border-border bg-surface p-6">
+      <div className="rounded-card border border-border bg-surface p-6">
         <Mono size="sm" color="pure">Writing your outreach email…</Mono>
         <p className="mt-1 font-sans text-sm font-normal text-text-2">
           Matching your profile against the job description, then drafting.
         </p>
-        <ProcessingSequence className="mt-4" />
+        <ProcessingSequence steps={DRAFT_STEPS} className="mt-4" />
       </div>
     );
   }
@@ -1137,13 +1183,13 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
   const resumeName = profile?.resumeFile ? resumeAttachmentName(profile.fullName) : null;
 
   const footerActions = (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center justify-end gap-3">
       <Button
         variant="outline"
         onClick={() => sendMutation.mutate({ scheduledAt: tomorrowNineAmIso() })}
         disabled={actionsDisabled}
       >
-        <CalendarClock />
+        <CalendarClock className="size-4" />
         Tomorrow 9 AM
       </Button>
       <Button onClick={() => sendMutation.mutate({})} disabled={actionsDisabled}>
@@ -1156,10 +1202,10 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
   return (
     <div className="space-y-5">
       {current.lowMatch && match && (
-        <div className="rounded-func border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
-            <div>
+            <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">LOW MATCH — {match.score}%</Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2">
                 This role looks like a stretch for your profile. The email leans on your strongest
@@ -1171,30 +1217,39 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       )}
 
       {!user?.gmailConnected && (
-        <div className="rounded-func border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
-            <p className="font-sans text-sm font-normal text-text-2">
-              Gmail not connected —{' '}
-              <Link to="/settings" className="text-pure underline underline-offset-4 hover:text-text-1">
-                connect in Settings
-              </Link>
-            </p>
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="warn">GMAIL NOT CONNECTED</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+                Connect it in Settings before this email can send.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Link to="/settings" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  Connect Gmail
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {!resumeName && (
-        <div className="rounded-func border border-warn/30 bg-warn/10 p-4">
+        <div className="rounded-card border border-warn/30 bg-warn/10 p-4">
           <div className="flex items-start gap-3">
             <Paperclip className="mt-0.5 size-5 shrink-0 text-warn" />
-            <p className="font-sans text-sm font-normal text-text-2">
-              No resume on file —{' '}
-              <Link to="/onboarding" className="text-pure underline underline-offset-4 hover:text-text-1">
-                upload one
-              </Link>{' '}
-              or the send will fail.
-            </p>
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="warn">NO RESUME ON FILE</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2">
+                Upload one before sending — without it the send will fail.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Link to="/onboarding" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  Upload resume
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1257,6 +1312,13 @@ export function NewApplication() {
   const job = jobQuery.data?.job ?? null;
   const processing = job !== null && isJobProcessing(job.status);
 
+  /* Revoke the upload-preview object URL when it is replaced or on unmount. */
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
   /* Auto-advance once extraction finishes (edge case toasts included). */
   useEffect(() => {
     if (!job || step !== 1 || jobId === null) return;
@@ -1305,7 +1367,7 @@ export function NewApplication() {
     if ((step === 2 || step === 3) && jobId) {
       if (jobQuery.isPending) {
         return (
-          <div className="space-y-4 rounded-func border border-border bg-surface p-6">
+          <div className="space-y-4 rounded-card border border-border bg-surface p-6">
             <Skeleton className="h-5 w-40 bg-surface-2" />
             <div className="grid gap-4 sm:grid-cols-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -1322,12 +1384,22 @@ export function NewApplication() {
       }
       if (jobQuery.isError || !job) {
         return (
-          <div className="rounded-func border border-danger/30 bg-danger/10 p-10 text-center">
-            <ImageOff className="mx-auto size-6 text-danger" />
-            <p className="mt-2 font-sans text-sm text-text-2">Couldn&apos;t load this application.</p>
-            <Button variant="outline" onClick={() => void jobQuery.refetch()} className="mt-4">
-              Retry
-            </Button>
+          <div className="rounded-card border border-danger/30 bg-danger/10 p-4">
+            <div className="flex items-start gap-3">
+              <ImageOff className="mt-0.5 size-5 shrink-0 text-danger" />
+              <div className="min-w-0 flex-1">
+                <Mono size="xs" color="danger">COULDN&apos;T LOAD THIS APPLICATION</Mono>
+                <p className="mt-1 font-sans text-sm font-normal text-text-2">
+                  The application didn&apos;t come back from the server — try again.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Button variant="outline" size="sm" onClick={() => void jobQuery.refetch()}>
+                    <RefreshCw className="size-4" />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         );
       }

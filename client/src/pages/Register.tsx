@@ -48,7 +48,9 @@ export function Register() {
   return (
     <AuthLayout>
       <div className="space-y-1">
-        <h1 className="font-display text-xl font-normal text-pure">Create your account</h1>
+        <h1 className="font-display text-xl font-normal text-text-1">
+          Create your <span className="italic">account</span>
+        </h1>
         <p className="font-sans text-sm font-normal text-text-2">Start sending dispatches that get opened.</p>
       </div>
 
@@ -58,9 +60,7 @@ export function Register() {
         noValidate
       >
         <div className="space-y-1.5">
-          <Label htmlFor="name" className="font-sans text-sm font-normal text-text-1">
-            Full name
-          </Label>
+          <Label htmlFor="name">Full name</Label>
           <Input
             id="name"
             autoComplete="name"
@@ -76,9 +76,7 @@ export function Register() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="font-sans text-sm font-normal text-text-1">
-            Email
-          </Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
@@ -95,9 +93,7 @@ export function Register() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="font-sans text-sm font-normal text-text-1">
-            Password
-          </Label>
+          <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
@@ -121,7 +117,10 @@ export function Register() {
 
       <p className="mt-6 text-center font-sans text-sm text-text-2">
         Already have an account?{' '}
-        <Link to="/login" className="font-normal text-pure underline underline-offset-4 hover:text-text-1">
+        <Link
+          to="/login"
+          className="focus-ring rounded-func font-normal text-text-1 underline-offset-4 hover:underline"
+        >
           Sign in
         </Link>
       </p>

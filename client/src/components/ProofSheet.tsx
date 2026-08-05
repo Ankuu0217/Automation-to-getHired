@@ -1,5 +1,5 @@
 import type { Tone } from '@jobmail/shared';
-import { useEffect, useRef, useState, type ReactNode, type ChangeEvent } from 'react';
+import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react';
 
 import { usePrevious } from '@/hooks/usePrevious';
 
@@ -65,7 +65,6 @@ export function ProofSheet({
   const [internalEditing, setInternalEditing] = useState(false);
   const [editBody, setEditBody] = useState(body);
   const [showTrace, setShowTrace] = useState(false);
-  const traceRef = useRef<HTMLDivElement>(null);
   const wasGenerating = usePrevious(isGenerating);
 
   const isEditing = controlledEditing ?? internalEditing;
@@ -97,10 +96,10 @@ export function ProofSheet({
           disabled={isGenerating || isSending}
           onClick={() => onToneChange?.(t.value)}
           className={cn(
-            'pb-1 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+            'focus-ring pb-1 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
             tone === t.value
               ? 'border-b border-pure text-pure'
-              : 'border-b border-transparent text-text-3 hover:text-pure',
+              : 'border-b border-transparent text-text-3 hover:text-text-1',
           )}
         >
           {t.label}
@@ -111,9 +110,8 @@ export function ProofSheet({
 
   return (
     <div
-      ref={traceRef}
       className={cn(
-        'relative overflow-hidden rounded-card bg-surface p-8',
+        'relative overflow-hidden rounded-card border border-border bg-surface p-6',
         className,
       )}
     >
@@ -143,7 +141,7 @@ export function ProofSheet({
           <Mono size="xs" color="fog" className="w-16 shrink-0">
             From
           </Mono>
-          <span className="font-sans text-sm font-normal text-text-1">
+          <span className="min-w-0 flex-1 truncate font-sans text-sm font-normal text-text-1">
             {fromName} <span className="text-text-3">&lt;{fromEmail}&gt;</span>
           </span>
         </div>
@@ -151,7 +149,7 @@ export function ProofSheet({
           <Mono size="xs" color="fog" className="w-16 shrink-0">
             To
           </Mono>
-          <span className="font-mono text-xs normal-case tracking-[0.016em] text-text-1">
+          <span className="min-w-0 flex-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-text-1">
             {toName ? `${toName} <${toEmail}>` : toEmail}
           </span>
         </div>
@@ -163,8 +161,9 @@ export function ProofSheet({
             <input
               type="text"
               value={subject}
+              aria-label="Email subject"
               onChange={(e: ChangeEvent<HTMLInputElement>) => onSubjectChange(e.target.value)}
-              className="min-w-0 flex-1 bg-transparent font-sans text-sm font-normal text-text-1 outline-none placeholder:text-text-3"
+              className="focus-ring min-w-0 flex-1 rounded-func bg-transparent font-sans text-sm font-normal text-text-1 placeholder:text-text-3"
             />
           ) : (
             <span className="min-w-0 flex-1 font-sans text-sm font-normal text-text-1">{subject}</span>
@@ -187,7 +186,7 @@ export function ProofSheet({
               onSave?.({ subject, body: onBodyChange ? body : editBody });
               setEditing(false);
             }}
-            className="font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-pure"
+            className="focus-ring font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-text-1"
           >
             {onSave ? 'Save' : 'Done'}
           </button>
@@ -195,7 +194,7 @@ export function ProofSheet({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-pure"
+            className="focus-ring font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-text-1"
           >
             Edit
           </button>
@@ -207,10 +206,11 @@ export function ProofSheet({
         {isEditing ? (
           <textarea
             value={onBodyChange ? body : editBody}
+            aria-label="Email body"
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
               onBodyChange ? onBodyChange(e.target.value) : setEditBody(e.target.value)
             }
-            className="h-[280px] w-full resize-none bg-transparent font-sans text-[15px] font-normal leading-[1.6] text-text-1 placeholder:text-text-3 outline-none"
+            className="focus-ring h-[280px] w-full resize-none rounded-func bg-transparent font-sans text-[15px] font-normal leading-[1.6] text-text-1 placeholder:text-text-3"
           />
         ) : (
           <div className="whitespace-pre-wrap font-sans text-[15px] font-normal leading-[1.6] text-text-1">
@@ -226,13 +226,14 @@ export function ProofSheet({
             [PDF]
           </Mono>
           <span className="font-mono text-xs normal-case tracking-[0.016em] text-text-2">
-            {attachmentName} · {attachmentSize}
+            {attachmentName}
+            {attachmentSize ? ` · ${attachmentSize}` : ''}
           </span>
         </div>
       )}
 
       {/* Actions */}
-      <div className="mt-8 flex items-center justify-end gap-3">
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
         {footerActions ?? (
           <>
             <Button

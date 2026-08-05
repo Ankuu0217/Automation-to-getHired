@@ -22,7 +22,6 @@ import {
   updateProfile,
   updateSettings,
 } from '@/lib/api';
-import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 
 const SECTIONS = [
@@ -45,7 +44,7 @@ function SubNav() {
         <a
           key={section.id}
           href={`#${section.id}`}
-          className="rounded-func px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 transition-quick hover:bg-surface-2 hover:text-pure"
+          className="focus-ring rounded-func px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 transition-quick hover:bg-surface-2 hover:text-text-1"
         >
           {section.label}
         </a>
@@ -367,7 +366,7 @@ export function Settings() {
   return (
     <div className="flex gap-12">
       <SubNav />
-      <div className={cn('min-w-0 flex-1 space-y-16', 'max-w-2xl')}>
+      <div className="min-w-0 max-w-2xl flex-1 space-y-16">
         <div>
           <Mono size="xs" color="fog">
             Account

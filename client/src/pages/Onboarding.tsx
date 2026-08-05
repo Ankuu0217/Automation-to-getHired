@@ -50,20 +50,32 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center justify-center gap-3">
+    <ol aria-label="Setup progress" className="flex flex-wrap items-center justify-center gap-2">
       {STEPS.map((step, index) => {
         const done = index < current;
         const active = index === current;
         return (
-          <div key={step.title} className="flex items-center gap-3">
-            {index > 0 && <span className="text-text-3">·</span>}
-            <Mono size="sm" color={active ? 'pure' : done ? 'ash' : 'fog'}>
-              STEP 0{index + 1} — {step.title.toUpperCase()}
+          <li
+            key={step.title}
+            aria-current={active ? 'step' : undefined}
+            className={cn('flex items-center gap-2 rounded-pill px-3 py-1', active && 'bg-surface-2')}
+          >
+            {done ? (
+              <Check aria-hidden className="size-3 text-ok" />
+            ) : (
+              <span
+                aria-hidden
+                className={cn('size-1.5 rounded-full', active ? 'bg-iris' : 'bg-text-3')}
+              />
+            )}
+            <Mono size="sm" color={done ? 'ash' : 'fog'} className={cn(active && 'text-text-1')}>
+              0{index + 1}
+              <span className="sr-only sm:not-sr-only"> — {step.title.toUpperCase()}</span>
             </Mono>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -91,14 +103,14 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1 rounded-func bg-background px-2.5 py-1 font-sans text-xs text-text-1"
+            className="inline-flex items-center gap-1 rounded-pill border border-border-strong px-2.5 py-1 font-sans text-xs text-text-2"
           >
             {skill}
             <button
               type="button"
               aria-label={`Remove ${skill}`}
               onClick={() => onChange(skills.filter((s) => s !== skill))}
-              className="rounded-full p-0.5 text-text-3 transition-quick hover:text-pure"
+              className="focus-ring rounded-full p-0.5 text-text-3 transition-quick hover:text-text-1"
             >
               <X className="size-3" />
             </button>
@@ -134,13 +146,11 @@ interface ResumeUploadProps {
 
 function ResumeUpload({ onUploaded }: ResumeUploadProps) {
   const [dragging, setDragging] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const uploadMutation = useMutation({
     mutationFn: uploadResume,
     onSuccess: (data) => {
-      setFileName(data.resumeFile.originalName);
       onUploaded(data.prefill.skills, data.prefill.summary, data.resumeFile);
       toast.success('Resume parsed — review the prefill below.');
     },
@@ -174,7 +184,12 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       role="button"
       tabIndex={0}
       onClick={() => inputRef.current?.click()}
-      onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -182,8 +197,8 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={cn(
-        'flex cursor-pointer flex-col items-center gap-3 rounded-func border border-dashed px-6 py-10 text-center transition-quick',
-        dragging ? 'border-pure bg-pure/[0.03]' : 'border-text-3 bg-background hover:border-pure/30',
+        'focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-func border border-dashed px-6 py-10 text-center transition-quick',
+        dragging ? 'border-pure bg-pure/[0.03]' : 'border-border-strong bg-background hover:bg-pure/[0.02]',
         uploadMutation.isPending && 'pointer-events-none opacity-60',
       )}
     >
@@ -198,7 +213,7 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
         }}
       />
       {uploadMutation.isPending ? (
-        <Mono size="sm" color="pure">Parsing…</Mono>
+        <Mono size="sm" className="text-text-1">Parsing…</Mono>
       ) : (
         <UploadCloud className="size-8 text-text-2" />
       )}
@@ -210,14 +225,6 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
           PDF only, up to 10 MB
         </Mono>
       </div>
-      {fileName && (
-        <div className="mt-2 flex items-center gap-2">
-          <FileText className="size-4 text-cyan" />
-          <Mono size="xs" color="ash" className="normal-case">
-            {fileName}
-          </Mono>
-        </div>
-      )}
     </div>
   );
 }
@@ -430,7 +437,7 @@ function Field({
 
 /* ── Step 2: Tone & sending limits ──────────────────────────────── */
 
-function ToneStep({ onContinue }: { onContinue: () => void }) {
+function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const [tone, setTone] = useState<Tone>(user?.settings.tone ?? 'formal');
@@ -459,11 +466,12 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
               key={option.value}
               type="button"
               onClick={() => setTone(option.value)}
+              aria-pressed={tone === option.value}
               className={cn(
-                'rounded-func border p-4 text-left transition-quick',
+                'focus-ring rounded-func border p-4 text-left transition-quick',
                 tone === option.value
-                  ? 'border-pure bg-background'
-                  : 'border-border bg-surface hover:border-pure/20',
+                  ? 'border-pure bg-surface-2'
+                  : 'border-border bg-surface hover:border-border-strong',
               )}
             >
               <p className="font-sans text-sm font-normal text-text-1">{option.title}</p>
@@ -478,7 +486,7 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
           <Label htmlFor="daily-cap" className="font-sans text-sm font-normal text-text-1">
             Daily send cap
           </Label>
-          <Mono size="xs" color="pure">
+          <Mono size="xs" className="text-text-1">
             {dailySendCap} / DAY
           </Mono>
         </div>
@@ -507,7 +515,11 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
         <Switch checked={followUpEnabled} onCheckedChange={setFollowUpEnabled} aria-label="Automatic follow-ups" />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <span aria-hidden>←</span>
+          Back
+        </Button>
         <Button
           onClick={() => saveMutation.mutate({ tone, dailySendCap, followUpEnabled })}
           disabled={saveMutation.isPending}
@@ -522,15 +534,15 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
 
 /* ── Step 3: Gmail ──────────────────────────────────────────────── */
 
-function GmailStep({ onFinish }: { onFinish: () => void }) {
+function GmailStep({ onFinish, onBack }: { onFinish: () => void; onBack: () => void }) {
   const user = useAuthStore((s) => s.user);
   return (
     <div className="space-y-6">
-      <div className="rounded-func border border-border bg-surface p-8 text-center">
+      <div className="rounded-card border border-border bg-surface p-8 text-center">
         <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-border bg-background">
           <Mail className="size-6 text-text-2" />
         </div>
-        <Mono size="sm" color="pure" className="mt-4 block">
+        <Mono size="sm" className="mt-4 block text-text-1">
           Connect Gmail
         </Mono>
         <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
@@ -542,13 +554,19 @@ function GmailStep({ onFinish }: { onFinish: () => void }) {
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <Button type="button" variant="ghost" onClick={onFinish}>
-          Skip for now
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <span aria-hidden>←</span>
+          Back
         </Button>
-        <Button type="button" onClick={onFinish}>
-          {user?.gmailConnected && <Check className="size-4" />}
-          Finish setup
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="ghost" onClick={onFinish}>
+            Skip for now
+          </Button>
+          <Button type="button" onClick={onFinish}>
+            {user?.gmailConnected && <Check className="size-4" />}
+            Finish setup
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -565,19 +583,20 @@ export function Onboarding() {
   const [summary, setSummary] = useState('');
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const back = () => setStep((s) => Math.max(s - 1, 0));
   const finish = () => navigate('/dashboard', { replace: true });
 
   const current = STEPS[step];
 
   return (
-    <div className="min-h-screen bg-background text-pure">
+    <div className="min-h-screen bg-background text-text-1">
       <div className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6 py-10">
         <div className="mb-10 flex items-center justify-between">
           <Logo />
           <button
             type="button"
             onClick={finish}
-            className="font-sans text-sm text-text-3 transition-quick hover:text-pure"
+            className="focus-ring rounded-func font-sans text-sm text-text-3 transition-quick hover:text-text-1"
           >
             I’ll do this later
           </button>
@@ -591,7 +610,7 @@ export function Onboarding() {
               <current.icon className="size-5 text-text-2" />
             </div>
             <div>
-              <h2 className="font-display text-xl font-normal text-pure">
+              <h2 className="font-display text-xl font-normal text-text-1">
                 {current.title}
               </h2>
               <p className="font-sans text-sm text-text-2">
@@ -619,8 +638,8 @@ export function Onboarding() {
               onContinue={next}
             />
           )}
-          {step === 1 && <ToneStep onContinue={next} />}
-          {step === 2 && <GmailStep onFinish={finish} />}
+          {step === 1 && <ToneStep onContinue={next} onBack={back} />}
+          {step === 2 && <GmailStep onFinish={finish} onBack={back} />}
         </div>
       </div>
     </div>

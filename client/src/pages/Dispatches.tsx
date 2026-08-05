@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ApplicationStage } from '@jobmail/shared';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
+import { EmptyState } from '@/components/EmptyState';
 import { Ledger } from '@/components/Ledger';
 import { Mono } from '@/components/Mono';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { listApplications, updateApplication } from '@/lib/api';
+import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const FILTERS: { label: string; value: ApplicationStage | 'all' }[] = [
@@ -17,6 +19,7 @@ const FILTERS: { label: string; value: ApplicationStage | 'all' }[] = [
   { label: 'Interview', value: 'interview' },
   { label: 'Offer', value: 'offer' },
   { label: 'Rejected', value: 'rejected' },
+  { label: 'Ghosted', value: 'ghosted' },
 ];
 
 export function Dispatches() {
@@ -30,6 +33,9 @@ export function Dispatches() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['applications'] });
       void queryClient.invalidateQueries({ queryKey: ['analytics', 'funnel'] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiRequestError ? error.message : 'Could not update the stage.');
     },
   });
 
@@ -62,12 +68,13 @@ export function Dispatches() {
           <button
             key={f.value}
             type="button"
+            aria-pressed={filter === f.value}
             onClick={() => setFilter(f.value)}
             className={cn(
-              'inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+              'focus-ring inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
               filter === f.value
                 ? 'border-pure bg-pure text-void'
-                : 'border-pure/20 bg-transparent text-text-2 hover:border-pure/40 hover:text-pure',
+                : 'border-border-strong text-text-2 hover:bg-pure/[0.06] hover:text-text-1',
             )}
           >
             {f.label}
@@ -76,7 +83,7 @@ export function Dispatches() {
       </div>
 
       {applicationsQuery.isPending ? (
-        <div className="space-y-4 border border-border bg-surface p-4">
+        <div className="space-y-4 rounded-card border border-border bg-surface p-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4">
               <Skeleton className="h-4 w-1/3 bg-surface-2" />
@@ -84,19 +91,37 @@ export function Dispatches() {
             </div>
           ))}
         </div>
+      ) : applications.length === 0 ? (
+        <EmptyState
+          headline={
+            <>
+              No dispatches yet. <em>Send</em> the first.
+            </>
+          }
+          description="Upload a job posting and the first dispatch drafts itself."
+          action={{ to: '/apps/new', label: 'New dispatch' }}
+        />
       ) : filtered.length === 0 ? (
-        <div className="border border-border bg-surface px-6 py-8">
-          <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
-            No dispatches match. <span className="italic">Send</span> the first.
-          </p>
-          <p className="mt-2 font-sans text-base font-normal text-text-2">
-            Upload a job posting and the ledger builds itself.
-          </p>
-          <Link to="/apps/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-4')}>
-            New dispatch
-            <span aria-hidden>→</span>
-          </Link>
-        </div>
+        <EmptyState
+          headline={
+            <>
+              Nothing in <em>this</em> stage.
+            </>
+          }
+          description={
+            <>
+              No dispatches match the current filter.
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 flex"
+                onClick={() => setFilter('all')}
+              >
+                Show all
+              </Button>
+            </>
+          }
+        />
       ) : (
         <Ledger
           applications={filtered}

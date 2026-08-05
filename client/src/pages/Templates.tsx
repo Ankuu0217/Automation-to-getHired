@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Sheet, SheetBody, SheetClose, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -140,7 +141,12 @@ function TemplateSheet({
 
             <div className="space-y-2">
               <Label htmlFor="tpl-body">Body template</Label>
-              <Textarea id="tpl-body" rows={10} placeholder={PLACEHOLDERS} {...register('bodyTemplate')} />
+              <Textarea
+                id="tpl-body"
+                rows={10}
+                placeholder="Write the guidance the AI should follow for the email body…"
+                {...register('bodyTemplate')}
+              />
               <p className="text-xs text-text-3">{PLACEHOLDERS}</p>
               {formState.errors.bodyTemplate && (
                 <p className="text-xs text-danger">{formState.errors.bodyTemplate.message}</p>
@@ -204,8 +210,8 @@ function TemplateCard({
   return (
     <div
       className={cn(
-        'rounded-card border bg-surface p-5 transition-quick',
-        template.isDefault ? 'border-pure/40' : 'border-border hover:border-pure/20',
+        'rounded-card border bg-surface p-4 transition-quick',
+        template.isDefault ? 'border-border-strong' : 'border-border hover:border-border-strong',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -216,7 +222,7 @@ function TemplateCard({
             </Mono>
             <p className="truncate font-sans text-base font-normal text-text-1">{template.name}</p>
             {template.isDefault && (
-              <Mono size="xs" color="orchid">
+              <Mono size="xs" color="ash">
                 DEFAULT
               </Mono>
             )}
@@ -231,16 +237,24 @@ function TemplateCard({
               variant="ghost"
               size="icon"
               title="Set as default"
+              aria-label={`Set ${template.name} as default`}
               onClick={() => defaultMutation.mutate(template.id)}
               disabled={defaultMutation.isPending}
             >
               <Star className="size-4 text-text-3" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" title="Edit" onClick={() => onEdit(template)}>
+          <Button variant="ghost" size="icon" title="Edit" aria-label={`Edit ${template.name}`} onClick={() => onEdit(template)}>
             <Pencil className="size-4 text-text-3" />
           </Button>
-          <Button variant="ghost" size="icon" title="Delete" onClick={handleDelete} disabled={deleteMutation.isPending}>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Delete"
+            aria-label={`Delete ${template.name}`}
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
             <Trash2 className="size-4 text-danger" />
           </Button>
         </div>
@@ -251,7 +265,7 @@ function TemplateCard({
         <p className="truncate font-sans text-sm text-text-2">{template.subjectTemplate}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2 rounded-func border border-border bg-background p-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 rounded-func border border-border bg-background p-3 sm:grid-cols-4">
         <Stat label="Sent" value={template.stats.sent} icon={Send} />
         <Stat label="Opened" value={template.stats.opened} icon={MailOpen} />
         <Stat label="Replied" value={template.stats.replied} icon={Reply} />
@@ -325,7 +339,7 @@ export function Templates() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <Mono size="xs" color="fog">
                 Templates
@@ -343,20 +357,20 @@ export function Templates() {
           {templatesQuery.isPending ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-40 rounded-card bg-surface" />
+                <Skeleton key={i} className="h-40 w-full rounded-card" />
               ))}
             </div>
           ) : templates.length === 0 ? (
-            <div className="rounded-card border border-border bg-surface p-12 text-center">
-              <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
-                No templates yet. <span className="italic">Save</span> one.
+            <div className="rounded-card border border-border bg-surface px-6 py-10">
+              <p className="font-display text-[38px] font-normal leading-[0.9] text-text-1">
+                No templates yet. <em>Save</em> one.
               </p>
-              <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-text-2">
+              <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2">
                 Save your best-performing prompts as templates and compare reply rates over time.
               </p>
-              <Button onClick={() => setCreating(true)} className="mt-6">
-                <Plus className="size-4" />
-                Create your first template
+              <Button size="sm" onClick={() => setCreating(true)} className="mt-5">
+                New template
+                <span aria-hidden>→</span>
               </Button>
             </div>
           ) : (

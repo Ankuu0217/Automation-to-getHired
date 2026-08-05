@@ -14,7 +14,7 @@ import { CategoryTile } from '@/components/CategoryTile';
 import { Logo } from '@/components/Logo';
 import { Mono } from '@/components/Mono';
 import { StatSpotlight } from '@/components/StatSpotlight';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 
 const FEATURES = [
   {
@@ -63,15 +63,13 @@ function Header() {
         <div className="flex items-center gap-4">
           <Link
             to="/login"
-            className="font-sans text-sm font-normal text-text-2 transition-quick hover:text-pure"
+            className="focus-ring rounded-func font-sans text-sm font-normal text-text-2 transition-quick hover:text-text-1"
           >
             Log in
           </Link>
-          <Link to="/register">
-            <Button>
-              Get started
-              <span aria-hidden>→</span>
-            </Button>
+          <Link to="/register" className={buttonVariants()}>
+            Get started
+            <span aria-hidden>→</span>
           </Link>
         </div>
       </div>
@@ -83,7 +81,7 @@ export function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background text-pure">
+    <div className="min-h-screen bg-background text-text-1">
       <Header />
 
       {/* Hero */}
@@ -101,7 +99,7 @@ export function Landing() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2.5, ease: [0.455, 0.03, 0.515, 0.955] }}
+              transition={{ duration: 0.6, ease: [0.455, 0.03, 0.515, 0.955] }}
             >
               <Mono size="sm" color="ash">
                 Cold email, perfected
@@ -111,8 +109,8 @@ export function Landing() {
             <motion.h1
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2.5, delay: 0.08, ease: [0.455, 0.03, 0.515, 0.955] }}
-              className="mt-6 font-display text-[clamp(56px,8vw,96px)] font-normal leading-[0.9] text-pure"
+              transition={{ duration: 0.6, delay: 0.08, ease: [0.455, 0.03, 0.515, 0.955] }}
+              className="mt-6 font-display text-[clamp(40px,8vw,96px)] font-normal leading-[0.9] text-pure"
             >
               The job you screenshotted, <span className="italic">applied</span>.
             </motion.h1>
@@ -120,7 +118,7 @@ export function Landing() {
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2.5, delay: 0.16, ease: [0.455, 0.03, 0.515, 0.955] }}
+              transition={{ duration: 0.6, delay: 0.16, ease: [0.455, 0.03, 0.515, 0.955] }}
               className="mx-auto mt-5 max-w-[560px] font-sans text-lg font-light leading-[1.5] text-text-2"
             >
               Turn LinkedIn job posts into sent, tracked, personalized HR outreach emails — with
@@ -130,11 +128,11 @@ export function Landing() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2.5, delay: 0.24, ease: [0.455, 0.03, 0.515, 0.955] }}
+              transition={{ duration: 0.6, delay: 0.24, ease: [0.455, 0.03, 0.515, 0.955] }}
               className="mx-auto mt-8 max-w-xl"
             >
               <AiPromptInput
-                placeholder="Paste a LinkedIn job URL or drop a screenshot…"
+                placeholder="Drop a job-post screenshot — we draft the outreach"
                 onSubmit={(value) => {
                   if (value.trim()) navigate('/register');
                 }}
@@ -144,14 +142,12 @@ export function Landing() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 2.5, delay: 0.32, ease: [0.455, 0.03, 0.515, 0.955] }}
+              transition={{ duration: 0.6, delay: 0.32, ease: [0.455, 0.03, 0.515, 0.955] }}
               className="mt-6 flex justify-center"
             >
-              <Link to="/register">
-                <Button size="lg">
-                  Get started
-                  <span aria-hidden>→</span>
-                </Button>
+              <Link to="/register" className={buttonVariants({ size: 'lg' })}>
+                Get started
+                <span aria-hidden>→</span>
               </Link>
             </motion.div>
           </div>
@@ -200,7 +196,7 @@ export function Landing() {
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 2.5, ease: [0.455, 0.03, 0.515, 0.955] }}
+            transition={{ duration: 0.6, ease: [0.455, 0.03, 0.515, 0.955] }}
             className="mx-auto mt-12 max-w-5xl"
           >
             <div className="chrome-frame">
@@ -218,7 +214,7 @@ export function Landing() {
                     </Mono>
                   </div>
                   <div className="flex flex-1">
-                    <div className="w-48 border-r border-border p-4">
+                    <div className="hidden w-48 border-r border-border p-4 sm:block">
                       <div className="space-y-2">
                         <div className="h-2 w-20 rounded bg-text-3/20" />
                         <div className="h-2 w-28 rounded bg-text-3/20" />
@@ -227,7 +223,7 @@ export function Landing() {
                     </div>
                     <div className="flex-1 p-6">
                       <div className="h-4 w-48 rounded bg-text-3/20" />
-                      <div className="mt-6 grid grid-cols-4 gap-3">
+                      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {Array.from({ length: 4 }).map((_, i) => (
                           <div key={i} className="h-16 rounded-func bg-text-3/10" />
                         ))}
@@ -252,9 +248,9 @@ export function Landing() {
         <div className="mx-auto w-full max-w-[1200px] px-6">
           <div className="mx-auto max-w-xl">
             <StatSpotlight
-              label="Response rate"
-              value="18%"
-              description="Average reply rate for GetHired users who review before sending. Human-in-the-loop beats spray-and-pray."
+              label="Tracked live"
+              value="Opens & replies"
+              description="Every dispatch reports opens, replies, and bounces back to your pipeline. Human-in-the-loop beats spray-and-pray."
             />
           </div>
         </div>
@@ -268,10 +264,16 @@ export function Landing() {
             © {new Date().getFullYear()} GetHired · Your data stays yours
           </Mono>
           <div className="flex gap-4">
-            <Link to="/login" className="font-sans text-sm text-text-2 transition-quick hover:text-pure">
+            <Link
+              to="/login"
+              className="focus-ring rounded-func font-sans text-sm text-text-2 transition-quick hover:text-text-1"
+            >
               Log in
             </Link>
-            <Link to="/register" className="font-sans text-sm text-text-2 transition-quick hover:text-pure">
+            <Link
+              to="/register"
+              className="focus-ring rounded-func font-sans text-sm text-text-2 transition-quick hover:text-text-1"
+            >
               Sign up
             </Link>
           </div>

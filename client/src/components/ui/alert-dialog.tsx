@@ -4,9 +4,9 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 
 /**
- * Themed confirmation dialog — replaces window.confirm for destructive
- * actions. Controlled: render it with open/onOpenChange and a confirm
- * handler; the caller owns any async state via `loading`.
+ * Themed confirmation dialog for destructive actions. Controlled: render
+ * it with open/onOpenChange and a confirm handler; the caller owns any
+ * async state via `loading`.
  */
 interface AlertDialogProps {
   open: boolean;
