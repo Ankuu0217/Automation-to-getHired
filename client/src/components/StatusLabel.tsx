@@ -9,19 +9,25 @@ interface StatusLabelProps {
   className?: string;
 }
 
+/*
+ * One color logic across both status families:
+ * cyan = in flight, iris = engaged, orchid = deep engagement,
+ * warn = waiting, ok = won, danger = lost, gray = inactive
+ * (draft solid, ghosted hollow).
+ */
 const DOT_COLOR: Record<StatusKind, string> = {
-  applied: 'bg-text-3',
-  hr_screen: 'bg-text-3',
-  interview: 'bg-text-3',
+  applied: 'bg-cyan',
+  hr_screen: 'bg-iris',
+  interview: 'bg-orchid',
   offer: 'bg-ok',
   rejected: 'bg-danger',
-  ghosted: 'bg-text-3',
-  sent: 'bg-text-3',
-  opened: 'bg-cyan',
+  ghosted: 'border border-text-3 bg-transparent',
+  sent: 'bg-cyan',
+  opened: 'bg-iris',
   replied: 'bg-ok',
   bounced: 'bg-danger',
   draft: 'bg-text-3',
-  queued: 'bg-cyan',
+  queued: 'bg-warn',
 };
 
 const LABEL: Record<StatusKind, string> = {
@@ -41,11 +47,11 @@ const LABEL: Record<StatusKind, string> = {
 
 export function StatusLabel({ status, className }: StatusLabelProps) {
   return (
-    <div className={cn('inline-flex items-center gap-2', className)}>
+    <span className={cn('inline-flex items-center gap-2', className)}>
       <span className={cn('size-1.5 rounded-full', DOT_COLOR[status])} />
       <Mono size="xs" color="ash">
         {LABEL[status]}
       </Mono>
-    </div>
+    </span>
   );
 }

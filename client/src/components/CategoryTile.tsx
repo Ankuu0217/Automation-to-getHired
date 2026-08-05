@@ -33,7 +33,7 @@ export function CategoryTile({
   return (
     <div
       className={cn(
-        'flex flex-col justify-between rounded-tile transition-quick',
+        'flex flex-col justify-between rounded-tile',
         COLOR_MAP[color],
         compact ? 'p-6' : 'p-8',
         className,

@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 import { Mono } from '@/components/Mono';
 import { StatusLabel, type StatusKind } from '@/components/StatusLabel';
+import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { formatDateTime } from '@/pages/pipelineUtils';
 
 const GRID_TEMPLATE = 'grid-cols-[1fr_1.5fr_1.5fr_120px_80px_90px]';
 
@@ -52,55 +52,44 @@ function timelineItems(app: ApplicationSummary): { label: string; at: string }[]
 
 interface LedgerProps {
   applications: ApplicationSummary[];
-  maxRows?: number;
   className?: string;
   onStageChange?: (id: string, stage: ApplicationStage) => void;
 }
 
-export function Ledger({ applications, maxRows, className, onStageChange }: LedgerProps) {
+export function Ledger({ applications, className, onStageChange }: LedgerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const rows = maxRows ? applications.slice(0, maxRows) : applications;
 
   return (
-    <div className={cn('bg-background', className)}>
-      {/* Header */}
-      <div
-        className={cn(
-          'grid h-10 items-center gap-4 border-b border-border px-4',
-          GRID_TEMPLATE,
-        )}
-      >
-        <Mono size="xs" color="fog">
-          Company
-        </Mono>
-        <Mono size="xs" color="fog">
-          Role
-        </Mono>
-        <Mono size="xs" color="fog">
-          Contact
-        </Mono>
-        <Mono size="xs" color="fog">
-          Stage
-        </Mono>
-        <Mono size="xs" color="fog" className="text-right">
-          Sent
-        </Mono>
-        <Mono size="xs" color="fog" className="text-right">
-          Follow-up
-        </Mono>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="px-4 py-8">
-          <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
-            No dispatches yet. <span className="italic">Send</span> the first.
-          </p>
-          <p className="mt-2 font-sans text-base font-normal text-text-2">
-            Upload a job posting and the ledger builds itself.
-          </p>
+    <div className={cn('overflow-x-auto rounded-card border border-border bg-surface', className)}>
+      <div className="min-w-[640px]">
+        {/* Header */}
+        <div
+          className={cn(
+            'grid h-10 items-center gap-4 border-b border-border px-4',
+            GRID_TEMPLATE,
+          )}
+        >
+          <Mono size="xs" color="fog">
+            Company
+          </Mono>
+          <Mono size="xs" color="fog">
+            Role
+          </Mono>
+          <Mono size="xs" color="fog">
+            Contact
+          </Mono>
+          <Mono size="xs" color="fog">
+            Stage
+          </Mono>
+          <Mono size="xs" color="fog" className="text-right">
+            Sent
+          </Mono>
+          <Mono size="xs" color="fog" className="text-right">
+            Follow-up
+          </Mono>
         </div>
-      ) : (
-        rows.map((app) => {
+
+        {applications.map((app) => {
           const isExpanded = expandedId === app.id;
           const status = resolveStatus(app);
           const followUp = followUpLabel(app);
@@ -109,11 +98,12 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
             <div key={app.id} className="border-b border-border last:border-b-0">
               <button
                 type="button"
+                aria-expanded={isExpanded}
                 onClick={() => setExpandedId(isExpanded ? null : app.id)}
                 className={cn(
-                  'grid h-12 w-full items-center gap-4 px-4 text-left transition-quick',
+                  'focus-ring grid h-12 w-full items-center gap-4 px-4 text-left transition-quick',
                   GRID_TEMPLATE,
-                  isExpanded ? 'bg-surface' : 'hover:bg-surface-2',
+                  isExpanded ? 'bg-surface-2' : 'hover:bg-surface-2',
                 )}
               >
                 <span className="truncate font-sans text-[15px] font-normal text-text-1">
@@ -187,15 +177,12 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
                                   <button
                                     key={stage}
                                     type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onStageChange(app.id, stage);
-                                    }}
+                                    onClick={() => onStageChange(app.id, stage)}
                                     className={cn(
-                                      'rounded-func border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+                                      'focus-ring rounded-func border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
                                       app.stage === stage
                                         ? 'border-pure bg-pure text-void'
-                                        : 'border-pure/20 text-text-2 hover:border-pure/40 hover:text-pure',
+                                        : 'border-border-strong text-text-2 hover:bg-pure/[0.06] hover:text-text-1',
                                     )}
                                   >
                                     {stage.replace('_', ' ')}
@@ -212,8 +199,8 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
               </AnimatePresence>
             </div>
           );
-        })
-      )}
+        })}
+      </div>
     </div>
   );
 }

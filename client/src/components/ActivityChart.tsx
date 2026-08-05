@@ -54,7 +54,7 @@ function ChartTooltip({
 
 export function ActivityChart({ data, height = 260, showTooltip = true }: ActivityChartProps) {
   return (
-    <div className="h-64 w-full" style={{ height }}>
+    <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
           <CartesianGrid stroke={chartTheme.grid} vertical={false} />

@@ -96,14 +96,7 @@ export function formatFollowUpAt(iso: string, now: number = Date.now()): string 
   return 'Follow-up soon';
 }
 
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+export { formatDateTime } from '@/lib/format';
 
 /* ── Events timeline ────────────────────────────────────────────── */
 
