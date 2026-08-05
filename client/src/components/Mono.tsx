@@ -11,8 +11,8 @@ interface MonoProps {
 }
 
 const COLOR_CLASS: Record<MonoColor, string> = {
-  ash: 'text-ash',
-  fog: 'text-fog',
+  ash: 'text-text-2',
+  fog: 'text-text-3',
   pure: 'text-pure',
   cyan: 'text-cyan',
   warn: 'text-warn',

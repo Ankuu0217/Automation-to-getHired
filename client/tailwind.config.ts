@@ -1,6 +1,11 @@
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
 
+/*
+ * Class-level tokens for the Midnight Gallery system.
+ * Values must stay in sync with the CSS variables in src/index.css
+ * (kept as literals here so Tailwind alpha modifiers like bg-iris/10 work).
+ */
 export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -19,7 +24,7 @@ export default {
         mono: ['Roboto Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       colors: {
-        /* Midnight Gallery chromatic colors */
+        /* Accents — focus rings, links, active states, data-viz only */
         iris: '#847dff',
         cyan: '#00b3dd',
         pale: '#d1c9ff',
@@ -27,92 +32,36 @@ export default {
         orchid: '#dd90d8',
         peri: '#90b8f0',
 
-        /* Surfaces */
-        obsidian: '#0f1011',
-        abyss: '#090a0b',
-        graphite: '#2e2e2e',
-        steel: '#3f4041',
-        silver: '#cacaca',
-
-        /* Ink */
-        pure: '#ffffff',
-        cloud: '#f5f5f7',
-        ash: '#9f9fa0',
-        fog: '#6a6b6b',
-        void: '#000000',
-
         /* Status */
         ok: '#7fb069',
         warn: '#d9a441',
         danger: '#c4574e',
 
-        /* Legacy aliases for transitioning screens */
-        'paper-0': 'var(--paper-0)',
-        'paper-1': 'var(--paper-1)',
-        'paper-2': 'var(--paper-2)',
-        'paper-3': 'var(--paper-3)',
-        rule: {
-          DEFAULT: 'var(--rule)',
-          faint: 'var(--rule-faint)',
-          strong: 'var(--rule-strong)',
+        /* Surface ladder */
+        background: '#0d0e0f',
+        surface: {
+          DEFAULT: '#151617',
+          2: '#1d1e20',
         },
-        press: {
-          DEFAULT: 'var(--press)',
-          soft: 'var(--press-soft)',
-          rule: 'var(--press-rule)',
-        },
-        ink: {
-          1: 'var(--ink-1)',
-          2: 'var(--ink-2)',
-          3: 'var(--ink-3)',
-          ok: 'var(--ink-ok)',
-          warn: 'var(--ink-warn)',
-          danger: 'var(--ink-danger)',
-          info: 'var(--ink-info)',
-        },
-        'gray-0': 'var(--gray-0)',
-        'gray-5': 'var(--gray-5)',
-        'gray-10': 'var(--gray-10)',
-        'gray-15': 'var(--gray-15)',
-        'gray-20': 'var(--gray-20)',
-        'border-strong': 'var(--border-strong)',
-        'text-primary': 'var(--text-primary)',
-        'text-secondary': 'var(--text-secondary)',
-        'text-tertiary': 'var(--text-tertiary)',
-        'accent-soft': 'var(--accent-soft)',
 
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        /* Hairlines */
+        border: {
+          DEFAULT: 'rgba(255, 255, 255, 0.06)',
+          strong: 'rgba(255, 255, 255, 0.12)',
+        },
+
+        /* Text ladder */
+        'text-1': '#f5f5f7',
+        'text-2': '#9f9fa0',
+        'text-3': '#6a6b6b',
+        pure: '#ffffff',
+        void: '#000000',
+        silver: '#cacaca',
+
+        /* Primary action — white on black (Krea inversion) */
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+          DEFAULT: '#ffffff',
+          foreground: '#000000',
         },
       },
       borderRadius: {
@@ -120,12 +69,10 @@ export default {
         card: '16px',
         tile: '30px',
         pill: '9999px',
-        lg: '8px',
-        md: '6px',
-        sm: '4px',
       },
       boxShadow: {
         lg: 'rgba(0, 0, 0, 0.2) 0px 18px 20px 0px',
+        'inset-hairline': 'rgba(255, 255, 255, 0.04) 0px 1px 0px 0px inset',
       },
       keyframes: {
         'fade-in': {

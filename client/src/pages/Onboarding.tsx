@@ -56,7 +56,7 @@ function StepIndicator({ current }: { current: number }) {
         const active = index === current;
         return (
           <div key={step.title} className="flex items-center gap-3">
-            {index > 0 && <span className="text-fog">·</span>}
+            {index > 0 && <span className="text-text-3">·</span>}
             <Mono size="sm" color={active ? 'pure' : done ? 'ash' : 'fog'}>
               STEP 0{index + 1} — {step.title.toUpperCase()}
             </Mono>
@@ -91,20 +91,20 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1 rounded-[8px] bg-obsidian px-2.5 py-1 font-sans text-xs text-cloud"
+            className="inline-flex items-center gap-1 rounded-func bg-background px-2.5 py-1 font-sans text-xs text-text-1"
           >
             {skill}
             <button
               type="button"
               aria-label={`Remove ${skill}`}
               onClick={() => onChange(skills.filter((s) => s !== skill))}
-              className="rounded-full p-0.5 text-fog transition-quick hover:text-pure"
+              className="rounded-full p-0.5 text-text-3 transition-quick hover:text-pure"
             >
               <X className="size-3" />
             </button>
           </span>
         ))}
-        {skills.length === 0 && <p className="font-sans text-sm text-fog">No skills yet — add a few below.</p>}
+        {skills.length === 0 && <p className="font-sans text-sm text-text-3">No skills yet — add a few below.</p>}
       </div>
       <div className="flex gap-2">
         <Input
@@ -117,7 +117,7 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
             }
           }}
           placeholder="Add a skill (e.g. React) and press Enter"
-          className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+          className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
         />
         <Button type="button" variant="outline" size="icon" onClick={addSkill} aria-label="Add skill">
           <span aria-hidden>+</span>
@@ -183,8 +183,8 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={cn(
-        'flex cursor-pointer flex-col items-center gap-3 rounded-[8px] border border-dashed px-6 py-10 text-center transition-quick',
-        dragging ? 'border-pure bg-pure/[0.03]' : 'border-fog bg-obsidian hover:border-pure/30',
+        'flex cursor-pointer flex-col items-center gap-3 rounded-func border border-dashed px-6 py-10 text-center transition-quick',
+        dragging ? 'border-pure bg-pure/[0.03]' : 'border-text-3 bg-background hover:border-pure/30',
         uploadMutation.isPending && 'pointer-events-none opacity-60',
       )}
     >
@@ -201,10 +201,10 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       {uploadMutation.isPending ? (
         <Mono size="sm" color="pure">Parsing…</Mono>
       ) : (
-        <UploadCloud className="size-8 text-ash" />
+        <UploadCloud className="size-8 text-text-2" />
       )}
       <div>
-        <p className="font-sans text-sm font-normal text-cloud">
+        <p className="font-sans text-sm font-normal text-text-1">
           {uploadMutation.isPending ? 'Parsing your resume…' : 'Drop your resume PDF here, or click to browse'}
         </p>
         <Mono size="xs" color="fog" className="mt-1">
@@ -324,12 +324,12 @@ function ProfileStep({
           )}
 
           <div className="space-y-1.5">
-            <Label className="font-sans text-sm font-normal text-cloud">Extracted skills — edit to taste</Label>
+            <Label className="font-sans text-sm font-normal text-text-1">Extracted skills — edit to taste</Label>
             <SkillsEditor skills={skills} onChange={onSkillsChange} />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="prefill-summary" className="font-sans text-sm font-normal text-cloud">
+            <Label htmlFor="prefill-summary" className="font-sans text-sm font-normal text-text-1">
               Professional summary
             </Label>
             <Textarea
@@ -338,7 +338,7 @@ function ProfileStep({
               value={summary}
               onChange={(e) => onSummaryChange(e.target.value)}
               placeholder="A short paragraph on who you are and what you do best."
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             />
           </div>
         </div>
@@ -349,21 +349,21 @@ function ProfileStep({
           <Field label="Full name" error={errors.fullName?.message}>
             <Input
               placeholder="Ada Lovelace"
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('fullName')}
             />
           </Field>
           <Field label="Headline" error={errors.headline?.message}>
             <Input
               placeholder="Backend Engineer · Node.js · Fintech"
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('headline')}
             />
           </Field>
           <Field label="Location" error={errors.location?.message}>
             <Input
               placeholder="Bengaluru, India"
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('location')}
             />
           </Field>
@@ -372,7 +372,7 @@ function ProfileStep({
               type="number"
               min={0}
               max={50}
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('yearsExp')}
             />
           </Field>
@@ -381,7 +381,7 @@ function ProfileStep({
         <Field label="Phone" error={errors.phone?.message}>
           <Input
             placeholder="+91 98765 43210"
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...register('phone')}
           />
         </Field>
@@ -389,7 +389,7 @@ function ProfileStep({
         <Field label="LinkedIn URL" error={errors.linkedin?.message}>
           <Input
             placeholder="https://linkedin.com/in/…"
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...register('linkedin')}
           />
         </Field>
@@ -398,14 +398,14 @@ function ProfileStep({
           <Field label="GitHub URL" error={errors.github?.message}>
             <Input
               placeholder="https://github.com/…"
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('github')}
             />
           </Field>
           <Field label="Portfolio URL" error={errors.portfolio?.message}>
             <Input
               placeholder="https://…"
-              className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+              className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
               {...register('portfolio')}
             />
           </Field>
@@ -433,7 +433,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="font-sans text-sm font-normal text-cloud">{label}</Label>
+      <Label className="font-sans text-sm font-normal text-text-1">{label}</Label>
       {children}
       {error && (
         <Mono size="xs" color="danger">
@@ -468,7 +468,7 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label className="font-sans text-sm font-normal text-cloud">Email tone</Label>
+        <Label className="font-sans text-sm font-normal text-text-1">Email tone</Label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {TONE_OPTIONS.map((option) => (
             <button
@@ -476,22 +476,22 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
               type="button"
               onClick={() => setTone(option.value)}
               className={cn(
-                'rounded-[8px] border p-4 text-left transition-quick',
+                'rounded-func border p-4 text-left transition-quick',
                 tone === option.value
-                  ? 'border-pure bg-obsidian'
-                  : 'border-pure/[0.06] bg-graphite hover:border-pure/20',
+                  ? 'border-pure bg-background'
+                  : 'border-border bg-surface hover:border-pure/20',
               )}
             >
-              <p className="font-sans text-sm font-normal text-cloud">{option.title}</p>
-              <p className="mt-1 font-sans text-xs leading-relaxed text-ash">{option.description}</p>
+              <p className="font-sans text-sm font-normal text-text-1">{option.title}</p>
+              <p className="mt-1 font-sans text-xs leading-relaxed text-text-2">{option.description}</p>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="space-y-3 rounded-[8px] border border-pure/[0.06] bg-graphite p-4">
+      <div className="space-y-3 rounded-func border border-border bg-surface p-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="daily-cap" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="daily-cap" className="font-sans text-sm font-normal text-text-1">
             Daily send cap
           </Label>
           <Mono size="xs" color="pure">
@@ -508,15 +508,15 @@ function ToneStep({ onContinue }: { onContinue: () => void }) {
           aria-label="Daily send cap"
           className="slider w-full"
         />
-        <p className="font-sans text-xs text-fog">
+        <p className="font-sans text-xs text-text-3">
           We never exceed this, and we pace sends with human-like jitter. Lower caps keep deliverability high.
         </p>
       </div>
 
-      <div className="flex items-center justify-between rounded-[8px] border border-pure/[0.06] bg-graphite p-4">
+      <div className="flex items-center justify-between rounded-func border border-border bg-surface p-4">
         <div>
-          <p className="font-sans text-sm font-normal text-cloud">Automatic follow-ups</p>
-          <p className="mt-0.5 font-sans text-xs text-fog">
+          <p className="font-sans text-sm font-normal text-text-1">Automatic follow-ups</p>
+          <p className="mt-0.5 font-sans text-xs text-text-3">
             Send a polite nudge on day 3 and day 7 when there’s no reply. Stops automatically on reply or bounce.
           </p>
         </div>
@@ -542,14 +542,14 @@ function GmailStep({ onFinish }: { onFinish: () => void }) {
   const user = useAuthStore((s) => s.user);
   return (
     <div className="space-y-6">
-      <div className="rounded-[8px] border border-pure/[0.06] bg-graphite p-8 text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-pure/[0.06] bg-obsidian">
-          <Mail className="size-6 text-ash" />
+      <div className="rounded-func border border-border bg-surface p-8 text-center">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-border bg-background">
+          <Mail className="size-6 text-text-2" />
         </div>
         <Mono size="sm" color="pure" className="mt-4 block">
           Connect Gmail
         </Mono>
-        <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-ash">
+        <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2">
           Emails are sent from your own Gmail account, with your resume attached — recruiters see you, not a tool.
         </p>
         <div className="mx-auto mt-6 w-full max-w-md text-left">
@@ -586,14 +586,14 @@ export function Onboarding() {
   const current = STEPS[step];
 
   return (
-    <div className="min-h-screen bg-obsidian text-pure">
+    <div className="min-h-screen bg-background text-pure">
       <div className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6 py-10">
         <div className="mb-10 flex items-center justify-between">
           <Logo />
           <button
             type="button"
             onClick={finish}
-            className="font-sans text-sm text-fog transition-quick hover:text-pure"
+            className="font-sans text-sm text-text-3 transition-quick hover:text-pure"
           >
             I’ll do this later
           </button>
@@ -601,16 +601,16 @@ export function Onboarding() {
 
         <StepIndicator current={step} />
 
-        <div className="mt-8 rounded-[16px] border border-pure/[0.06] bg-graphite p-6 animate-fade-in">
+        <div className="mt-8 rounded-card border border-border bg-surface p-6 animate-fade-in">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-[8px] border border-pure/[0.06] bg-obsidian">
-              <current.icon className="size-5 text-ash" />
+            <div className="flex size-10 items-center justify-center rounded-func border border-border bg-background">
+              <current.icon className="size-5 text-text-2" />
             </div>
             <div>
               <h2 className="font-display text-xl font-normal text-pure">
                 {current.title}
               </h2>
-              <p className="font-sans text-sm text-ash">
+              <p className="font-sans text-sm text-text-2">
                 {step === 0 && 'Upload your resume and confirm your profile.'}
                 {step === 1 && 'How should your emails sound, and how many per day?'}
                 {step === 2 && 'The last piece — where your emails are sent from.'}

@@ -22,7 +22,7 @@ const CONFIG: Record<StampStatus, StampConfig> = {
   opened: { label: 'OPENED', color: 'text-ok' },
   replied: { label: 'REPLIED', color: 'text-ok' },
   bounced: { label: 'RETURNED', color: 'text-danger' },
-  draft: { label: 'DRAFT', color: 'text-fog' },
+  draft: { label: 'DRAFT', color: 'text-text-3' },
   'ai-drafted': {
     label: 'AI DRAFTED',
     color: 'text-pure',

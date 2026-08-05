@@ -66,14 +66,14 @@ function CardBody({
   return (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 truncate font-sans text-sm font-semibold text-cloud">
+        <p className="min-w-0 truncate font-sans text-sm font-semibold text-text-1">
           {application.company ?? 'Unknown company'}
         </p>
       </div>
-      <p className="mt-0.5 truncate font-sans text-[13px] font-normal text-ash">
+      <p className="mt-0.5 truncate font-sans text-[13px] font-normal text-text-2">
         {application.role ?? 'Role unknown'}
       </p>
-      <p className="mt-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-fog">
+      <p className="mt-1 truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3">
         {application.hrName ? `${application.hrName} · ` : ''}
         {application.hrEmail}
       </p>
@@ -138,8 +138,8 @@ function DraggableCard({
         if (e.key === 'Enter') onOpen(application.id);
       }}
       className={cn(
-        'cursor-grab touch-none rounded-[16px] border bg-graphite p-4 transition-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pure/40 active:cursor-grabbing',
-        ghosted ? 'border-fog' : 'border-pure/[0.06]',
+        'cursor-grab touch-none rounded-card border bg-surface p-4 transition-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pure/40 active:cursor-grabbing',
+        ghosted ? 'border-text-3' : 'border-border',
         isDragging && 'opacity-40',
       )}
     >
@@ -170,7 +170,7 @@ function StageColumn({
       aria-label={`${stage.label} column`}
       className={cn('flex w-[300px] shrink-0 flex-col', dimmed && 'opacity-70')}
     >
-      <div className="mb-3 flex items-baseline justify-between border-b border-pure/[0.06] pb-2">
+      <div className="mb-3 flex items-baseline justify-between border-b border-border pb-2">
         <Mono size="xs" color="fog">
           {stage.label}
         </Mono>
@@ -194,7 +194,7 @@ function StageColumn({
           />
         ))}
         {applications.length === 0 && (
-          <p className="px-2 py-6 text-center font-mono text-[10px] uppercase tracking-[0.16px] text-fog">
+          <p className="px-2 py-6 text-center font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">
             Drop cards here
           </p>
         )}
@@ -208,13 +208,13 @@ function BoardSkeleton() {
     <div className="flex gap-4 overflow-x-auto pb-4">
       {PIPELINE_STAGES.map((stage) => (
         <div key={stage.id} className="w-[300px] shrink-0">
-          <div className="mb-3 flex items-baseline justify-between border-b border-pure/[0.06] pb-2">
-            <Skeleton className="h-3 w-20 bg-steel" />
-            <Skeleton className="h-3 w-6 bg-steel" />
+          <div className="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+            <Skeleton className="h-3 w-20 bg-surface-2" />
+            <Skeleton className="h-3 w-6 bg-surface-2" />
           </div>
           <div className="space-y-2.5">
-            <Skeleton className="h-24 w-full bg-steel rounded-[16px]" />
-            <Skeleton className="h-24 w-full bg-steel rounded-[16px]" />
+            <Skeleton className="h-24 w-full bg-surface-2 rounded-card" />
+            <Skeleton className="h-24 w-full bg-surface-2 rounded-card" />
           </div>
         </div>
       ))}
@@ -307,7 +307,7 @@ export function Pipeline() {
           <Mono size="xs" color="fog">
             Pipeline
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-cloud">
+          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
             Wire <span className="italic">Board</span>
           </h1>
         </div>
@@ -322,18 +322,18 @@ export function Pipeline() {
       {applicationsQuery.isPending ? (
         <BoardSkeleton />
       ) : applicationsQuery.isError ? (
-        <div className="rounded-[16px] border border-pure/[0.06] bg-graphite p-10 text-center">
-          <p className="font-sans text-sm text-ash">Could not load the pipeline.</p>
+        <div className="rounded-card border border-border bg-surface p-10 text-center">
+          <p className="font-sans text-sm text-text-2">Could not load the pipeline.</p>
           <Button variant="outline" size="sm" onClick={() => void applicationsQuery.refetch()} className="mt-4">
             Try again
           </Button>
         </div>
       ) : applications.length === 0 ? (
-        <div className="rounded-[16px] border border-pure/[0.06] bg-graphite p-12 text-center">
+        <div className="rounded-card border border-border bg-surface p-12 text-center">
           <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
             No dispatches yet. <span className="italic">Send</span> the first.
           </p>
-          <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-ash">
+          <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-text-2">
             Send your first outreach from a job-post screenshot and it lands here — tracked from Applied to Offer.
           </p>
           <Link to="/apps/new" className="mt-6 inline-block">
@@ -359,7 +359,7 @@ export function Pipeline() {
           </div>
           <DragOverlay>
             {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-[16px] border border-pure/20 bg-steel p-4">
+              <div className="w-[300px] rotate-2 rounded-card border border-pure/20 bg-surface-2 p-4">
                 <CardBody
                   application={activeApplication}
                   dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}

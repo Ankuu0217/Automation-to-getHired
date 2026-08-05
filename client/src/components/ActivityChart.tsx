@@ -35,13 +35,13 @@ function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0 || !label) return null;
   return (
-    <div className="rounded-[8px] border border-pure/[0.06] bg-graphite px-3.5 py-2.5 shadow-lg">
-      <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-fog">
+    <div className="rounded-func border border-border bg-surface px-3.5 py-2.5 shadow-lg">
+      <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">
         {formatDay(label)}
       </p>
       <div className="flex items-center gap-2 text-xs">
         <span className="size-1.5 rounded-full bg-cyan" />
-        <span className="text-ash">Sent</span>
+        <span className="text-text-2">Sent</span>
         <span className="ml-auto pl-4 font-mono text-xs tabular-nums text-pure">
           {payload[0]?.value ?? 0}
         </span>

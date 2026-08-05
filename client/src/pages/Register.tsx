@@ -49,7 +49,7 @@ export function Register() {
     <AuthLayout>
       <div className="space-y-1">
         <h1 className="font-display text-xl font-normal text-pure">Create your account</h1>
-        <p className="font-sans text-sm font-normal text-ash">Start sending dispatches that get opened.</p>
+        <p className="font-sans text-sm font-normal text-text-2">Start sending dispatches that get opened.</p>
       </div>
 
       <form
@@ -58,7 +58,7 @@ export function Register() {
         noValidate
       >
         <div className="space-y-1.5">
-          <Label htmlFor="name" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="name" className="font-sans text-sm font-normal text-text-1">
             Full name
           </Label>
           <Input
@@ -66,7 +66,7 @@ export function Register() {
             autoComplete="name"
             placeholder="Ada Lovelace"
             aria-invalid={!!errors.name}
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('name')}
           />
           {errors.name && (
@@ -77,7 +77,7 @@ export function Register() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="email" className="font-sans text-sm font-normal text-text-1">
             Email
           </Label>
           <Input
@@ -86,7 +86,7 @@ export function Register() {
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('email')}
           />
           {errors.email && (
@@ -97,7 +97,7 @@ export function Register() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="password" className="font-sans text-sm font-normal text-text-1">
             Password
           </Label>
           <Input
@@ -106,7 +106,7 @@ export function Register() {
             autoComplete="new-password"
             placeholder="8+ characters, with a letter and a number"
             aria-invalid={!!errors.password}
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('password')}
           />
           {errors.password && (
@@ -122,9 +122,9 @@ export function Register() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center font-sans text-sm text-ash">
+      <p className="mt-6 text-center font-sans text-sm text-text-2">
         Already have an account?{' '}
-        <Link to="/login" className="font-normal text-pure underline underline-offset-4 hover:text-cloud">
+        <Link to="/login" className="font-normal text-pure underline underline-offset-4 hover:text-text-1">
           Sign in
         </Link>
       </p>

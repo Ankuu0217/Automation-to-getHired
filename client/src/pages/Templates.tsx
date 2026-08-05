@@ -140,16 +140,16 @@ function TemplateSheet({
             <div className="space-y-2">
               <Label htmlFor="tpl-body">Body template</Label>
               <Textarea id="tpl-body" rows={10} placeholder={PLACEHOLDERS} {...register('bodyTemplate')} />
-              <p className="text-xs text-fog">{PLACEHOLDERS}</p>
+              <p className="text-xs text-text-3">{PLACEHOLDERS}</p>
               {formState.errors.bodyTemplate && (
                 <p className="text-xs text-danger">{formState.errors.bodyTemplate.message}</p>
               )}
             </div>
 
-            <div className="flex items-start justify-between gap-4 rounded-[8px] border border-pure/[0.06] bg-obsidian p-4">
+            <div className="flex items-start justify-between gap-4 rounded-func border border-border bg-background p-4">
               <div className="space-y-1">
-                <p className="font-sans text-sm font-normal text-cloud">Default template</p>
-                <p className="text-xs text-fog">Used automatically when no other template is picked.</p>
+                <p className="font-sans text-sm font-normal text-text-1">Default template</p>
+                <p className="text-xs text-text-3">Used automatically when no other template is picked.</p>
               </div>
               <Switch
                 checked={watch('isDefault')}
@@ -158,7 +158,7 @@ function TemplateSheet({
             </div>
           </form>
         </SheetBody>
-        <div className="border-t border-pure/[0.06] p-6">
+        <div className="border-t border-border p-6">
           <Button type="submit" form="template-form" disabled={saveMutation.isPending} className="w-full">
             {saveMutation.isPending && <Loader2 className="size-4 animate-spin" />}
             {isEdit ? 'Save changes' : 'Create template'}
@@ -205,8 +205,8 @@ function TemplateCard({
   return (
     <div
       className={cn(
-        'rounded-[16px] border bg-graphite p-5 transition-quick',
-        template.isDefault ? 'border-pure/40' : 'border-pure/[0.06] hover:border-pure/20',
+        'rounded-card border bg-surface p-5 transition-quick',
+        template.isDefault ? 'border-pure/40' : 'border-border hover:border-pure/20',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -215,7 +215,7 @@ function TemplateCard({
             <Mono size="xs" color="fog">
               TPL-{String(index + 1).padStart(3, '0')}
             </Mono>
-            <p className="truncate font-sans text-base font-normal text-cloud">{template.name}</p>
+            <p className="truncate font-sans text-base font-normal text-text-1">{template.name}</p>
             {template.isDefault && (
               <Mono size="xs" color="orchid">
                 DEFAULT
@@ -235,11 +235,11 @@ function TemplateCard({
               onClick={() => defaultMutation.mutate(template.id)}
               disabled={defaultMutation.isPending}
             >
-              <Star className="size-4 text-fog" />
+              <Star className="size-4 text-text-3" />
             </Button>
           )}
           <Button variant="ghost" size="icon" title="Edit" onClick={() => onEdit(template)}>
-            <Pencil className="size-4 text-fog" />
+            <Pencil className="size-4 text-text-3" />
           </Button>
           <Button variant="ghost" size="icon" title="Delete" onClick={handleDelete} disabled={deleteMutation.isPending}>
             <Trash2 className="size-4 text-danger" />
@@ -248,16 +248,16 @@ function TemplateCard({
       </div>
 
       <div className="mt-4 space-y-1">
-        <p className="font-sans text-xs text-fog">Subject</p>
-        <p className="truncate font-sans text-sm text-ash">{template.subjectTemplate}</p>
+        <p className="font-sans text-xs text-text-3">Subject</p>
+        <p className="truncate font-sans text-sm text-text-2">{template.subjectTemplate}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2 rounded-[8px] border border-pure/[0.06] bg-obsidian p-3">
+      <div className="mt-4 grid grid-cols-4 gap-2 rounded-func border border-border bg-background p-3">
         <Stat label="Sent" value={template.stats.sent} icon={Send} />
         <Stat label="Opened" value={template.stats.opened} icon={MailOpen} />
         <Stat label="Replied" value={template.stats.replied} icon={Reply} />
-        <div className="flex flex-col items-center justify-center gap-1 border-l border-pure/[0.06] pl-2">
-          <span className="font-display text-lg font-normal text-cloud">{rr}</span>
+        <div className="flex flex-col items-center justify-center gap-1 border-l border-border pl-2">
+          <span className="font-display text-lg font-normal text-text-1">{rr}</span>
           <Mono size="xs" color="fog">
             Reply rate
           </Mono>
@@ -270,8 +270,8 @@ function TemplateCard({
 function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: React.ElementType }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1">
-      <Icon className="size-3.5 text-fog" />
-      <span className="font-display text-lg font-normal text-cloud">{value}</span>
+      <Icon className="size-3.5 text-text-3" />
+      <span className="font-display text-lg font-normal text-text-1">{value}</span>
       <Mono size="xs" color="fog">
         {label}
       </Mono>
@@ -305,9 +305,9 @@ export function Templates() {
             compact
           />
           {defaultTemplate && (
-            <p className="mt-4 flex items-center gap-2 font-sans text-xs text-ash">
+            <p className="mt-4 flex items-center gap-2 font-sans text-xs text-text-2">
               <Check className="size-3.5 text-ok" />
-              Default: <span className="text-cloud">{defaultTemplate.name}</span>
+              Default: <span className="text-text-1">{defaultTemplate.name}</span>
             </p>
           )}
         </div>
@@ -318,7 +318,7 @@ export function Templates() {
               <Mono size="xs" color="fog">
                 Templates
               </Mono>
-              <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-cloud">
+              <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
                 Saved <span className="italic">prompts</span>
               </h1>
             </div>
@@ -331,15 +331,15 @@ export function Templates() {
           {templatesQuery.isPending ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-40 rounded-[16px] bg-graphite" />
+                <div key={i} className="h-40 rounded-card bg-surface" />
               ))}
             </div>
           ) : templates.length === 0 ? (
-            <div className="rounded-[16px] border border-pure/[0.06] bg-graphite p-12 text-center">
+            <div className="rounded-card border border-border bg-surface p-12 text-center">
               <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
                 No templates yet. <span className="italic">Save</span> one.
               </p>
-              <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-ash">
+              <p className="mx-auto mt-3 max-w-sm font-sans text-base font-normal text-text-2">
                 Save your best-performing prompts as templates and compare reply rates over time.
               </p>
               <Button onClick={() => setCreating(true)} className="mt-6">

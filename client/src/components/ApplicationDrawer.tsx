@@ -53,7 +53,7 @@ const TIMELINE_ICON: Record<TimelineKind, typeof Send> = {
 };
 
 const TIMELINE_TONE: Record<TimelineKind, string> = {
-  sent: 'border-pure/[0.06] bg-graphite text-fog',
+  sent: 'border-border bg-surface text-text-3',
   opened: 'border-cyan/30 bg-cyan/10 text-cyan',
   replied: 'border-ok/30 bg-ok/10 text-ok',
   bounced: 'border-danger/30 bg-danger/10 text-danger',
@@ -61,24 +61,24 @@ const TIMELINE_TONE: Record<TimelineKind, string> = {
 
 function EmailThread({ application }: { application: ApplicationDetailResponse }) {
   if (application.emails.length === 0) {
-    return <p className="font-sans text-sm text-fog">No emails sent yet.</p>;
+    return <p className="font-sans text-sm text-text-3">No emails sent yet.</p>;
   }
   return (
     <ol className="space-y-3">
       {application.emails.map((email, index) => (
         <li
           key={`${email.messageId ?? 'draft'}-${index}`}
-          className="rounded-[16px] border border-pure/[0.06] bg-obsidian"
+          className="rounded-card border border-border bg-background"
         >
-          <div className="flex flex-wrap items-center gap-2 border-b border-pure/[0.06] px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
             <Badge variant={email.kind === 'initial' ? 'default' : 'secondary'}>
               {emailKindLabel(email.kind)}
             </Badge>
-            <p className="min-w-0 flex-1 truncate font-sans text-sm font-normal text-cloud">
+            <p className="min-w-0 flex-1 truncate font-sans text-sm font-normal text-text-1">
               {email.subject || '(no subject)'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-3 font-sans text-xs text-fog">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-3 font-sans text-xs text-text-3">
             {email.sentAt ? (
               <span className="inline-flex items-center gap-1">
                 <Send className="size-3" /> Sent {formatDateTime(email.sentAt)}
@@ -105,7 +105,7 @@ function EmailThread({ application }: { application: ApplicationDetailResponse }
             )}
           </div>
           {email.bodyText && (
-            <p className="whitespace-pre-wrap px-4 py-3 font-sans text-sm leading-relaxed text-ash">
+            <p className="whitespace-pre-wrap px-4 py-3 font-sans text-sm leading-relaxed text-text-2">
               {email.bodyText}
             </p>
           )}
@@ -118,10 +118,10 @@ function EmailThread({ application }: { application: ApplicationDetailResponse }
 function EventsTimeline({ application }: { application: ApplicationDetailResponse }) {
   const timeline = buildTimeline(application);
   if (timeline.length === 0) {
-    return <p className="font-sans text-sm text-fog">No activity yet.</p>;
+    return <p className="font-sans text-sm text-text-3">No activity yet.</p>;
   }
   return (
-    <ol className="relative space-y-4 border-l border-pure/[0.06] pl-5">
+    <ol className="relative space-y-4 border-l border-border pl-5">
       {timeline.map((entry) => {
         const Icon = TIMELINE_ICON[entry.kind];
         return (
@@ -134,9 +134,9 @@ function EventsTimeline({ application }: { application: ApplicationDetailRespons
             >
               <Icon className="size-3" />
             </span>
-            <p className="min-w-0 flex-1 truncate font-sans text-sm text-cloud">{entry.label}</p>
+            <p className="min-w-0 flex-1 truncate font-sans text-sm text-text-1">{entry.label}</p>
             <span
-              className="shrink-0 font-sans text-xs text-fog"
+              className="shrink-0 font-sans text-xs text-text-3"
               title={formatDateTime(entry.at)}
             >
               {formatRelativeTime(entry.at)}
@@ -152,13 +152,13 @@ function DrawerSkeleton() {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <Skeleton className="h-4 w-24 bg-steel" />
-        <Skeleton className="h-28 w-full bg-steel" />
+        <Skeleton className="h-4 w-24 bg-surface-2" />
+        <Skeleton className="h-28 w-full bg-surface-2" />
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-4 w-24 bg-steel" />
-        <Skeleton className="h-20 w-full bg-steel" />
-        <Skeleton className="h-20 w-full bg-steel" />
+        <Skeleton className="h-4 w-24 bg-surface-2" />
+        <Skeleton className="h-20 w-full bg-surface-2" />
+        <Skeleton className="h-20 w-full bg-surface-2" />
       </div>
     </div>
   );
@@ -235,7 +235,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
           <div className="min-w-0 space-y-1.5">
             <SheetTitle className="truncate">
               {detailQuery.isPending ? (
-                <Skeleton className="h-5 w-40 bg-steel" />
+                <Skeleton className="h-5 w-40 bg-surface-2" />
               ) : (
                 (application?.company ?? 'Unknown company')
               )}
@@ -263,7 +263,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
         ) : detailQuery.isError || !application ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <AlertTriangle className="size-6 text-danger" />
-            <p className="font-sans text-sm text-ash">Could not load this application.</p>
+            <p className="font-sans text-sm text-text-2">Could not load this application.</p>
             <Button variant="outline" size="sm" onClick={() => void detailQuery.refetch()}>
               Try again
             </Button>
@@ -303,7 +303,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
 
             {/* Email thread */}
             <section className="space-y-3">
-              <h3 className="font-sans text-sm font-normal text-cloud">Email thread</h3>
+              <h3 className="font-sans text-sm font-normal text-text-1">Email thread</h3>
               <EmailThread application={application} />
             </section>
 
@@ -311,7 +311,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
 
             {/* Events timeline */}
             <section className="space-y-3">
-              <h3 className="font-sans text-sm font-normal text-cloud">Activity</h3>
+              <h3 className="font-sans text-sm font-normal text-text-1">Activity</h3>
               <EventsTimeline application={application} />
             </section>
 
@@ -322,7 +322,7 @@ export function ApplicationDrawer({ applicationId, onClose }: ApplicationDrawerP
               <div className="flex items-center justify-between">
                 <Label htmlFor="drawer-notes">Notes</Label>
                 {notesMutation.isPending && (
-                  <Loader2 className="size-3.5 animate-spin text-fog" />
+                  <Loader2 className="size-3.5 animate-spin text-text-3" />
                 )}
               </div>
               <Textarea

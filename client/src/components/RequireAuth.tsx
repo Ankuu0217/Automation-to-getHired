@@ -9,9 +9,9 @@ import { useAuthStore } from '@/stores/auth';
 
 function FullPageLoader() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-obsidian">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background">
       <Logo />
-      <div className="flex items-center gap-2 font-sans text-sm text-ash">
+      <div className="flex items-center gap-2 font-sans text-sm text-text-2">
         <Loader2 className="size-4 animate-spin text-cyan" />
         <Mono size="xs" color="fog">Loading your workspace…</Mono>
       </div>

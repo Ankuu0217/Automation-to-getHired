@@ -76,7 +76,7 @@ export function Dashboard() {
           <Mono size="xs" color="fog">
             Dispatches · {applications.length}
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-cloud">
+          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
             {greeting(user?.name?.split(' ')[0])}
             <span className="italic">.</span>
           </h1>
@@ -89,23 +89,23 @@ export function Dashboard() {
 
       {/* Stats */}
       {funnelQuery.isPending ? (
-        <div className="flex h-[88px] items-stretch divide-x divide-pure/[0.06] border border-pure/[0.06] bg-graphite">
+        <div className="flex h-[88px] items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex flex-1 flex-col justify-center gap-2 px-6">
-              <Skeleton className="h-3 w-16 bg-steel" />
-              <Skeleton className="h-8 w-12 bg-steel" />
+              <Skeleton className="h-3 w-16 bg-surface-2" />
+              <Skeleton className="h-8 w-12 bg-surface-2" />
             </div>
           ))}
         </div>
       ) : stats ? (
-        <div className="flex items-stretch divide-x divide-pure/[0.06] border border-pure/[0.06] bg-graphite">
+        <div className="flex items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
           {stats.map((stat) => (
             <div key={stat.label} className="flex flex-1 flex-col justify-center px-6 py-5">
               <Mono size="xs" color="fog">
                 {stat.label}
               </Mono>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="font-display text-[28px] font-normal leading-[0.95] text-cloud">
+                <span className="font-display text-[28px] font-normal leading-[0.95] text-text-1">
                   {stat.value}
                 </span>
                 {stat.delta && (
@@ -121,17 +121,17 @@ export function Dashboard() {
 
       {/* Chart */}
       {funnelQuery.isPending ? (
-        <div className="border border-pure/[0.06] bg-graphite p-6">
-          <Skeleton className="h-5 w-40 bg-steel" />
-          <Skeleton className="mt-4 h-64 w-full bg-steel" />
+        <div className="border border-border bg-surface p-6">
+          <Skeleton className="h-5 w-40 bg-surface-2" />
+          <Skeleton className="mt-4 h-64 w-full bg-surface-2" />
         </div>
       ) : funnel && funnel.totals.sent > 0 ? (
-        <section className="border border-pure/[0.06] bg-graphite p-6">
+        <section className="border border-border bg-surface p-6">
           <div className="mb-4">
             <Mono size="xs" color="fog">
               Last 30 days
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-cloud">Sent per day</p>
+            <p className="mt-1 font-sans text-base font-normal text-text-1">Sent per day</p>
           </div>
           <ActivityChart data={funnel.trend} />
         </section>
@@ -165,7 +165,7 @@ export function Dashboard() {
             <Mono size="xs" color="fog">
               Recent dispatches
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-cloud">Latest outreach, newest first.</p>
+            <p className="mt-1 font-sans text-base font-normal text-text-1">Latest outreach, newest first.</p>
           </div>
           <Link to="/dispatches">
             <Button variant="outline" size="sm">
@@ -176,20 +176,20 @@ export function Dashboard() {
         </div>
 
         {applicationsQuery.isPending ? (
-          <div className="space-y-4 border border-pure/[0.06] bg-graphite p-4">
+          <div className="space-y-4 border border-border bg-surface p-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-4 w-1/3 bg-steel" />
-                <Skeleton className="ml-auto h-4 w-20 bg-steel" />
+                <Skeleton className="h-4 w-1/3 bg-surface-2" />
+                <Skeleton className="ml-auto h-4 w-20 bg-surface-2" />
               </div>
             ))}
           </div>
         ) : recent.length === 0 ? (
-          <div className="border border-pure/[0.06] bg-graphite px-6 py-8">
+          <div className="border border-border bg-surface px-6 py-8">
             <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
               No dispatches yet. <span className="italic">Send</span> the first.
             </p>
-            <p className="mt-2 font-sans text-base font-normal text-ash">
+            <p className="mt-2 font-sans text-base font-normal text-text-2">
               Upload a job posting — the ledger builds itself.
             </p>
             <Link to="/apps/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-4')}>
@@ -203,22 +203,22 @@ export function Dashboard() {
       </section>
 
       {/* Setup checklist */}
-      <section className="border border-pure/[0.06] bg-graphite">
-        <div className="border-b border-pure/[0.06] px-6 py-4">
+      <section className="border border-border bg-surface">
+        <div className="border-b border-border px-6 py-4">
           <Mono size="xs" color="fog">
             Setup
           </Mono>
-          <p className="mt-1 font-sans text-base font-normal text-cloud">Everything ready to send.</p>
+          <p className="mt-1 font-sans text-base font-normal text-text-1">Everything ready to send.</p>
         </div>
         <div className="px-6 py-2">
           {profileQuery.isPending ? (
             <div className="space-y-4 py-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="size-9 bg-steel" />
+                  <Skeleton className="size-9 bg-surface-2" />
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-1/3 bg-steel" />
-                    <Skeleton className="h-3 w-1/2 bg-steel" />
+                    <Skeleton className="h-4 w-1/3 bg-surface-2" />
+                    <Skeleton className="h-3 w-1/2 bg-surface-2" />
                   </div>
                 </div>
               ))}
@@ -281,17 +281,17 @@ function SetupItem({
     <li className="flex items-center gap-4 py-4 first:pt-2 last:pb-2">
       <div
         className={cn(
-          'flex size-9 shrink-0 items-center justify-center rounded-[8px] border transition-quick',
+          'flex size-9 shrink-0 items-center justify-center rounded-func border transition-quick',
           done
             ? 'border-ok/30 bg-ok/10 text-ok'
-            : 'border-pure/[0.06] bg-graphite text-fog',
+            : 'border-border bg-surface text-text-3',
         )}
       >
         {done ? <CheckCircle2 className="size-4" /> : <Icon className="size-4" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-sans text-[13.5px] font-normal text-cloud">{title}</p>
-        <p className="truncate font-sans text-xs text-fog">{body ?? ''}</p>
+        <p className="font-sans text-[13.5px] font-normal text-text-1">{title}</p>
+        <p className="truncate font-sans text-xs text-text-3">{body ?? ''}</p>
       </div>
       {action && !done ? (
         <Link to={action.to}>

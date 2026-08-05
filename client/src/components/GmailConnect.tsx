@@ -63,24 +63,24 @@ export function GmailConnectPanel() {
     <div className="space-y-3">
       <div
         className={cn(
-          'flex flex-col items-start justify-between gap-4 rounded-[16px] border p-4 sm:flex-row sm:items-center',
-          connected ? 'border-pure/[0.06] bg-graphite' : 'border-pure/[0.06] bg-obsidian',
+          'flex flex-col items-start justify-between gap-4 rounded-card border p-4 sm:flex-row sm:items-center',
+          connected ? 'border-border bg-surface' : 'border-border bg-background',
         )}
       >
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-[8px] border',
-              connected ? 'border-ok/30 bg-ok/10 text-ok' : 'border-pure/[0.06] bg-graphite text-fog',
+              'flex size-10 shrink-0 items-center justify-center rounded-func border',
+              connected ? 'border-ok/30 bg-ok/10 text-ok' : 'border-border bg-surface text-text-3',
             )}
           >
             <Mail className="size-5" />
           </div>
           <div className="min-w-0">
-            <p className="font-sans text-sm font-normal text-cloud">
+            <p className="font-sans text-sm font-normal text-text-1">
               {connected ? user?.connectedEmail : 'Not connected'}
             </p>
-            <p className="font-sans text-xs text-fog">
+            <p className="font-sans text-xs text-text-3">
               {connected
                 ? 'Your Gmail account is connected.'
                 : 'Tokens are encrypted at rest; you can revoke access anytime.'}
@@ -116,7 +116,7 @@ export function GmailConnectPanel() {
       </div>
 
       {oauthMissing && !connected && (
-        <div className="rounded-[8px] border border-warn/30 bg-warn/10 p-3">
+        <div className="rounded-func border border-warn/30 bg-warn/10 p-3">
           <Mono size="xs" color="warn" className="leading-relaxed">
             Gmail OAuth is not configured on this server. For local development, set the app-password
             fallback env vars instead (see server/.env.example).

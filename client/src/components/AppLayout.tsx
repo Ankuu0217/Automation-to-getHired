@@ -32,7 +32,7 @@ function GmailDisconnectedBanner() {
           type="button"
           aria-label="Dismiss banner"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-[8px] p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
+          className="shrink-0 rounded-func p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
         >
           <X className="size-3.5" />
         </button>
@@ -58,7 +58,7 @@ export function AppLayout() {
   const dailyCap = user?.settings.dailySendCap ?? 30;
 
   return (
-    <div className="flex min-h-screen flex-col bg-obsidian text-pure">
+    <div className="flex min-h-screen flex-col bg-background text-pure">
       <Nav variant="app" sentToday={sentToday} dailyCap={dailyCap} />
 
       <GmailDisconnectedBanner />

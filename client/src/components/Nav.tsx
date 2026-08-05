@@ -64,31 +64,31 @@ function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-[8px] border border-pure/[0.06] bg-graphite py-1 pl-1 pr-2 transition-quick hover:bg-steel"
+        className="flex items-center gap-2 rounded-func border border-border bg-surface py-1 pl-1 pr-2 transition-quick hover:bg-surface-2"
       >
-        <span className="flex size-7 items-center justify-center rounded-[8px] bg-obsidian font-sans text-xs font-normal text-pure">
+        <span className="flex size-7 items-center justify-center rounded-func bg-background font-sans text-xs font-normal text-pure">
           {initial}
         </span>
-        <span className="hidden max-w-[120px] truncate font-sans text-sm font-normal text-cloud sm:block">
+        <span className="hidden max-w-[120px] truncate font-sans text-sm font-normal text-text-1 sm:block">
           {user?.name ?? 'Account'}
         </span>
         <ChevronDown
-          className={cn('size-3.5 text-fog transition-transform', open && 'rotate-180')}
+          className={cn('size-3.5 text-text-3 transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-[8px] border border-pure/[0.06] bg-graphite p-2 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-func border border-border bg-surface p-2 shadow-lg">
           <div className="px-3 py-2">
-            <p className="truncate font-sans text-sm font-normal text-cloud">{user?.name}</p>
-            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-fog">{user?.email}</p>
+            <p className="truncate font-sans text-sm font-normal text-text-1">{user?.name}</p>
+            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3">{user?.email}</p>
           </div>
           <Separator className="my-1 bg-pure/[0.06]" />
           <button
             type="button"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
-            className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 font-sans text-sm font-normal text-ash transition-quick hover:bg-steel hover:text-pure disabled:opacity-50"
+            className="flex w-full items-center gap-2 rounded-func px-3 py-2 font-sans text-sm font-normal text-text-2 transition-quick hover:bg-surface-2 hover:text-pure disabled:opacity-50"
           >
             <LogOut className="size-4" />
             {logoutMutation.isPending ? 'Signing out…' : 'Sign out'}
@@ -104,7 +104,7 @@ export function Nav({ variant = 'public', sentToday = 0, dailyCap = 30 }: NavPro
   const isApp = variant === 'app';
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-pure/[0.06] bg-obsidian/80 backdrop-blur-[24px]">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-[24px]">
       <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-6">
         <Link to={isApp ? '/dashboard' : '/'} aria-label="GetHired home">
           <Logo />
@@ -118,8 +118,8 @@ export function Nav({ variant = 'public', sentToday = 0, dailyCap = 30 }: NavPro
                 to={link.to}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-[8px] px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
-                    isActive ? 'bg-graphite text-pure' : 'text-ash hover:bg-graphite hover:text-pure',
+                    'rounded-func px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+                    isActive ? 'bg-surface text-pure' : 'text-text-2 hover:bg-surface-2 hover:text-pure',
                   )
                 }
               >
@@ -132,7 +132,7 @@ export function Nav({ variant = 'public', sentToday = 0, dailyCap = 30 }: NavPro
         <div className="flex items-center gap-4">
           {isApp ? (
             <>
-              <span className="hidden font-mono text-[11px] uppercase tracking-[0.16px] text-ash sm:inline">
+              <span className="hidden font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 sm:inline">
                 Sent today · {sentToday}/{dailyCap}
               </span>
               <UserMenu />
@@ -144,7 +144,7 @@ export function Nav({ variant = 'public', sentToday = 0, dailyCap = 30 }: NavPro
                   key={link.to}
                   to={link.to}
                   className={cn(
-                    'font-sans text-sm font-normal text-ash transition-quick hover:text-pure',
+                    'font-sans text-sm font-normal text-text-2 transition-quick hover:text-pure',
                     location.pathname === link.to && 'text-pure',
                   )}
                 >

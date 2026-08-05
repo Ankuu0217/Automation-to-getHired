@@ -100,7 +100,7 @@ export function ProofSheet({
             'pb-1 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
             tone === t.value
               ? 'border-b border-pure text-pure'
-              : 'border-b border-transparent text-fog hover:text-pure',
+              : 'border-b border-transparent text-text-3 hover:text-pure',
           )}
         >
           {t.label}
@@ -113,7 +113,7 @@ export function ProofSheet({
     <div
       ref={traceRef}
       className={cn(
-        'relative overflow-hidden rounded-[16px] bg-graphite p-8',
+        'relative overflow-hidden rounded-card bg-surface p-8',
         className,
       )}
     >
@@ -139,23 +139,23 @@ export function ProofSheet({
 
       {/* Header */}
       <div className="space-y-0">
-        <div className="flex items-baseline gap-4 border-b border-pure/[0.06] py-3">
+        <div className="flex items-baseline gap-4 border-b border-border py-3">
           <Mono size="xs" color="fog" className="w-16 shrink-0">
             From
           </Mono>
-          <span className="font-sans text-sm font-normal text-cloud">
-            {fromName} <span className="text-fog">&lt;{fromEmail}&gt;</span>
+          <span className="font-sans text-sm font-normal text-text-1">
+            {fromName} <span className="text-text-3">&lt;{fromEmail}&gt;</span>
           </span>
         </div>
-        <div className="flex items-baseline gap-4 border-b border-pure/[0.06] py-3">
+        <div className="flex items-baseline gap-4 border-b border-border py-3">
           <Mono size="xs" color="fog" className="w-16 shrink-0">
             To
           </Mono>
-          <span className="font-mono text-xs normal-case tracking-[0.016em] text-cloud">
+          <span className="font-mono text-xs normal-case tracking-[0.016em] text-text-1">
             {toName ? `${toName} <${toEmail}>` : toEmail}
           </span>
         </div>
-        <div className="flex items-baseline gap-4 border-b border-pure/[0.06] py-3">
+        <div className="flex items-baseline gap-4 border-b border-border py-3">
           <Mono size="xs" color="fog" className="w-16 shrink-0">
             Subject
           </Mono>
@@ -164,10 +164,10 @@ export function ProofSheet({
               type="text"
               value={subject}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onSubjectChange(e.target.value)}
-              className="min-w-0 flex-1 bg-transparent font-sans text-sm font-normal text-cloud outline-none placeholder:text-fog"
+              className="min-w-0 flex-1 bg-transparent font-sans text-sm font-normal text-text-1 outline-none placeholder:text-text-3"
             />
           ) : (
-            <span className="min-w-0 flex-1 font-sans text-sm font-normal text-cloud">{subject}</span>
+            <span className="min-w-0 flex-1 font-sans text-sm font-normal text-text-1">{subject}</span>
           )}
           {queuedAt && (
             <Mono size="xs" color="cyan" className="ml-auto">
@@ -187,7 +187,7 @@ export function ProofSheet({
               onSave?.({ subject, body: onBodyChange ? body : editBody });
               setEditing(false);
             }}
-            className="font-mono text-[11px] uppercase tracking-[0.16px] text-fog transition-quick hover:text-pure"
+            className="font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-pure"
           >
             {onSave ? 'Save' : 'Done'}
           </button>
@@ -195,7 +195,7 @@ export function ProofSheet({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="font-mono text-[11px] uppercase tracking-[0.16px] text-fog transition-quick hover:text-pure"
+            className="font-mono text-[11px] uppercase tracking-[0.16px] text-text-3 transition-quick hover:text-pure"
           >
             Edit
           </button>
@@ -210,10 +210,10 @@ export function ProofSheet({
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
               onBodyChange ? onBodyChange(e.target.value) : setEditBody(e.target.value)
             }
-            className="h-[280px] w-full resize-none bg-transparent font-sans text-[15px] font-normal leading-[1.6] text-cloud placeholder:text-fog outline-none"
+            className="h-[280px] w-full resize-none bg-transparent font-sans text-[15px] font-normal leading-[1.6] text-text-1 placeholder:text-text-3 outline-none"
           />
         ) : (
-          <div className="whitespace-pre-wrap font-sans text-[15px] font-normal leading-[1.6] text-cloud">
+          <div className="whitespace-pre-wrap font-sans text-[15px] font-normal leading-[1.6] text-text-1">
             {onBodyChange ? body : editBody}
           </div>
         )}
@@ -221,11 +221,11 @@ export function ProofSheet({
 
       {/* Attachment */}
       {attachmentName && (
-        <div className="mt-6 inline-flex items-center gap-3 rounded-[8px] border border-pure/[0.06] px-4 py-2">
+        <div className="mt-6 inline-flex items-center gap-3 rounded-func border border-border px-4 py-2">
           <Mono size="xs" color="ash">
             [PDF]
           </Mono>
-          <span className="font-mono text-xs normal-case tracking-[0.016em] text-ash">
+          <span className="font-mono text-xs normal-case tracking-[0.016em] text-text-2">
             {attachmentName} · {attachmentSize}
           </span>
         </div>

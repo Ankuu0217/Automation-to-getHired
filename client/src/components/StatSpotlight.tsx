@@ -11,7 +11,7 @@ export function StatSpotlight({ label, value, description, className }: StatSpot
   return (
     <div
       className={cn(
-        'flex flex-col justify-between rounded-[30px] bg-silver p-8 text-void',
+        'flex flex-col justify-between rounded-tile bg-silver p-8 text-void',
         className,
       )}
     >

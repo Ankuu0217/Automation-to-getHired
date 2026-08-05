@@ -10,17 +10,17 @@ interface StatusLabelProps {
 }
 
 const DOT_COLOR: Record<StatusKind, string> = {
-  applied: 'bg-fog',
-  hr_screen: 'bg-fog',
-  interview: 'bg-fog',
+  applied: 'bg-text-3',
+  hr_screen: 'bg-text-3',
+  interview: 'bg-text-3',
   offer: 'bg-ok',
   rejected: 'bg-danger',
-  ghosted: 'bg-fog',
-  sent: 'bg-fog',
+  ghosted: 'bg-text-3',
+  sent: 'bg-text-3',
   opened: 'bg-cyan',
   replied: 'bg-ok',
   bounced: 'bg-danger',
-  draft: 'bg-fog',
+  draft: 'bg-text-3',
   queued: 'bg-cyan',
 };
 

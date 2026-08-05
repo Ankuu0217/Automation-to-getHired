@@ -44,7 +44,7 @@ export function Login() {
     <AuthLayout>
       <div className="space-y-1">
         <h1 className="font-display text-xl font-normal text-pure">Welcome back</h1>
-        <p className="font-sans text-sm font-normal text-ash">Sign in to your dispatch desk.</p>
+        <p className="font-sans text-sm font-normal text-text-2">Sign in to your dispatch desk.</p>
       </div>
 
       <form
@@ -53,7 +53,7 @@ export function Login() {
         noValidate
       >
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="email" className="font-sans text-sm font-normal text-text-1">
             Email
           </Label>
           <Input
@@ -62,7 +62,7 @@ export function Login() {
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('email')}
           />
           {errors.email && (
@@ -73,7 +73,7 @@ export function Login() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="font-sans text-sm font-normal text-cloud">
+          <Label htmlFor="password" className="font-sans text-sm font-normal text-text-1">
             Password
           </Label>
           <Input
@@ -82,7 +82,7 @@ export function Login() {
             autoComplete="current-password"
             placeholder="••••••••"
             aria-invalid={!!errors.password}
-            className="bg-obsidian border-pure/[0.06] text-cloud placeholder:text-fog focus-visible:border-cyan focus-visible:ring-cyan/30"
+            className="bg-background border-border text-text-1 placeholder:text-text-3 focus-visible:border-cyan focus-visible:ring-cyan/30"
             {...registerField('password')}
           />
           {errors.password && (
@@ -98,9 +98,9 @@ export function Login() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center font-sans text-sm text-ash">
+      <p className="mt-6 text-center font-sans text-sm text-text-2">
         New to GetHired?{' '}
-        <Link to="/register" className="font-normal text-pure underline underline-offset-4 hover:text-cloud">
+        <Link to="/register" className="font-normal text-pure underline underline-offset-4 hover:text-text-1">
           Create an account
         </Link>
       </p>

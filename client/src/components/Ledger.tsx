@@ -62,11 +62,11 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
   const rows = maxRows ? applications.slice(0, maxRows) : applications;
 
   return (
-    <div className={cn('bg-obsidian', className)}>
+    <div className={cn('bg-background', className)}>
       {/* Header */}
       <div
         className={cn(
-          'grid h-10 items-center gap-4 border-b border-pure/[0.06] px-4',
+          'grid h-10 items-center gap-4 border-b border-border px-4',
           GRID_TEMPLATE,
         )}
       >
@@ -95,7 +95,7 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
           <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
             No dispatches yet. <span className="italic">Send</span> the first.
           </p>
-          <p className="mt-2 font-sans text-base font-normal text-ash">
+          <p className="mt-2 font-sans text-base font-normal text-text-2">
             Upload a job posting and the ledger builds itself.
           </p>
         </div>
@@ -106,23 +106,23 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
           const followUp = followUpLabel(app);
 
           return (
-            <div key={app.id} className="border-b border-pure/[0.06] last:border-b-0">
+            <div key={app.id} className="border-b border-border last:border-b-0">
               <button
                 type="button"
                 onClick={() => setExpandedId(isExpanded ? null : app.id)}
                 className={cn(
                   'grid h-12 w-full items-center gap-4 px-4 text-left transition-quick',
                   GRID_TEMPLATE,
-                  isExpanded ? 'bg-graphite' : 'hover:bg-graphite',
+                  isExpanded ? 'bg-surface' : 'hover:bg-surface-2',
                 )}
               >
-                <span className="truncate font-sans text-[15px] font-normal text-cloud">
+                <span className="truncate font-sans text-[15px] font-normal text-text-1">
                   {app.company ?? '—'}
                 </span>
-                <span className="truncate font-sans text-[15px] font-normal text-ash">
+                <span className="truncate font-sans text-[15px] font-normal text-text-2">
                   {app.role ?? '—'}
                 </span>
-                <span className="truncate font-mono text-xs normal-case tracking-[0.016em] text-fog">
+                <span className="truncate font-mono text-xs normal-case tracking-[0.016em] text-text-3">
                   {app.hrEmail}
                 </span>
                 <StatusLabel status={status} />
@@ -143,7 +143,7 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
                     transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-pure/[0.06] bg-abyss px-4 py-4">
+                    <div className="border-t border-border bg-background px-4 py-4">
                       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
                         <div>
                           <Mono size="xs" color="fog">
@@ -192,10 +192,10 @@ export function Ledger({ applications, maxRows, className, onStageChange }: Ledg
                                       onStageChange(app.id, stage);
                                     }}
                                     className={cn(
-                                      'rounded-[8px] border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+                                      'rounded-func border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
                                       app.stage === stage
                                         ? 'border-pure bg-pure text-void'
-                                        : 'border-pure/20 text-ash hover:border-pure/40 hover:text-pure',
+                                        : 'border-pure/20 text-text-2 hover:border-pure/40 hover:text-pure',
                                     )}
                                   >
                                     {stage.replace('_', ' ')}

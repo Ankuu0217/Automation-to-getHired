@@ -44,13 +44,13 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
   const max = Math.max(totals.sent, 1);
 
   return (
-    <section className="border border-pure/[0.06] bg-graphite p-6">
+    <section className="border border-border bg-surface p-6">
       <div className="mb-6 flex items-end justify-between">
         <div>
           <Mono size="xs" color="fog">
             Funnel
           </Mono>
-          <p className="mt-1 font-sans text-base font-normal text-cloud">Application-level conversion.</p>
+          <p className="mt-1 font-sans text-base font-normal text-text-1">Application-level conversion.</p>
         </div>
         <Mono size="xs" color="fog">
           Sent · {totals.sent}
@@ -65,7 +65,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
           const conversion = index === 0 ? null : rateOf(value, prev);
           return (
             <div key={step.key} className="space-y-1.5">
-              <div className="flex items-center justify-between font-sans text-sm text-cloud">
+              <div className="flex items-center justify-between font-sans text-sm text-text-1">
                 <span>{step.label}</span>
                 <div className="flex items-center gap-3">
                   {conversion !== null && (
@@ -78,9 +78,9 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
                   </Mono>
                 </div>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-[9999px] border border-pure/[0.06] bg-obsidian">
+              <div className="h-1.5 w-full overflow-hidden rounded-pill border border-border bg-background">
                 <div
-                  className="h-full rounded-[9999px] bg-cyan transition-[width] duration-500 ease-out"
+                  className="h-full rounded-pill bg-cyan transition-[width] duration-500 ease-out"
                   style={{ width: `${Math.max(pct, 2)}%` }}
                 />
               </div>
@@ -102,14 +102,14 @@ function TemplateLedger({
   templates: { id: string; tone: string }[];
 }) {
   return (
-    <section className="border border-pure/[0.06] bg-graphite">
-      <div className="border-b border-pure/[0.06] px-6 py-4">
+    <section className="border border-border bg-surface">
+      <div className="border-b border-border px-6 py-4">
         <div className="flex items-end justify-between">
           <div>
             <Mono size="xs" color="fog">
               Templates
             </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-cloud">A/B reply-rate ledger.</p>
+            <p className="mt-1 font-sans text-base font-normal text-text-1">A/B reply-rate ledger.</p>
           </div>
           <Mono size="xs" color="fog">
             {stats.length} total
@@ -120,7 +120,7 @@ function TemplateLedger({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-pure/[0.06]">
+            <tr className="border-b border-border">
               <th className="px-6 py-3 text-left">
                 <Mono size="xs" color="fog">
                   Template
@@ -162,12 +162,12 @@ function TemplateLedger({
                   key={t.templateId}
                   className={cn(
                     'transition-quick',
-                    i !== stats.length - 1 && 'border-b border-pure/[0.06]',
-                    'hover:bg-steel',
+                    i !== stats.length - 1 && 'border-b border-border',
+                    'hover:bg-surface-2',
                   )}
                 >
                   <td className="px-6 py-3.5">
-                    <p className="font-sans text-[15px] font-normal text-cloud">{t.name}</p>
+                    <p className="font-sans text-[15px] font-normal text-text-1">{t.name}</p>
                   </td>
                   <td className="px-6 py-3.5">
                     <Mono size="xs" color="ash" className="capitalize">
@@ -208,11 +208,11 @@ function TemplateLedger({
 
 function EmptyState() {
   return (
-    <div className="border border-pure/[0.06] bg-graphite px-6 py-10">
+    <div className="border border-border bg-surface px-6 py-10">
       <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
         No dispatches yet. <span className="italic">Send</span> the first.
       </p>
-      <p className="mt-2 max-w-md font-sans text-base font-normal text-ash">
+      <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2">
         Once outreach is in flight, opens, replies, interviews, and offers appear here.
       </p>
       <Link to="/apps/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-6')}>
@@ -251,7 +251,7 @@ export function Analytics() {
             <Mono size="xs" color="fog">
               Performance
             </Mono>
-            <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-cloud">
+            <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
               Your outreach, <span className="italic">measured</span>.
             </h1>
           </div>
@@ -271,23 +271,23 @@ export function Analytics() {
 
       {funnelQuery.isPending || templatesQuery.isPending ? (
         <div className="space-y-6">
-          <div className="flex h-[88px] items-stretch divide-x divide-pure/[0.06] border border-pure/[0.06] bg-graphite">
+          <div className="flex h-[88px] items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex flex-1 flex-col justify-center gap-2 px-6">
-                <Skeleton className="h-3 w-16 bg-steel" />
-                <Skeleton className="h-8 w-12 bg-steel" />
+                <Skeleton className="h-3 w-16 bg-surface-2" />
+                <Skeleton className="h-8 w-12 bg-surface-2" />
               </div>
             ))}
           </div>
-          <Skeleton className="h-80 w-full rounded-[16px] bg-graphite" />
-          <Skeleton className="h-80 w-full rounded-[16px] bg-graphite" />
+          <Skeleton className="h-80 w-full rounded-card bg-surface" />
+          <Skeleton className="h-80 w-full rounded-card bg-surface" />
         </div>
       ) : !hasData ? (
         <EmptyState />
       ) : (
         <>
           {/* Summary stats */}
-          <div className="flex items-stretch divide-x divide-pure/[0.06] border border-pure/[0.06] bg-graphite">
+          <div className="flex items-stretch divide-x divide-pure/[0.06] border border-border bg-surface">
             <Stat label="Sent" value={funnel.totals.sent} />
             <Stat label="Opened" value={funnel.totals.opened} />
             <Stat label="Replied" value={funnel.totals.replied} />
@@ -301,13 +301,13 @@ export function Analytics() {
           </div>
 
           {/* Trend */}
-          <section className="border border-pure/[0.06] bg-graphite p-6">
+          <section className="border border-border bg-surface p-6">
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <Mono size="xs" color="fog">
                   Trend
                 </Mono>
-                <p className="mt-1 font-sans text-base font-normal text-cloud">Sent per day — last 30 days</p>
+                <p className="mt-1 font-sans text-base font-normal text-text-1">Sent per day — last 30 days</p>
               </div>
               <Mono size="xs" color="fog">
                 {formatDateRange(funnel.trend)}
@@ -327,7 +327,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <Mono size="xs" color="fog">
         {label}
       </Mono>
-      <span className="mt-1 font-display text-[28px] font-normal leading-[0.95] text-cloud">{value}</span>
+      <span className="mt-1 font-display text-[28px] font-normal leading-[0.95] text-text-1">{value}</span>
     </div>
   );
 }

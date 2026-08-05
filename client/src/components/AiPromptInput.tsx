@@ -31,7 +31,7 @@ export function AiPromptInput({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'flex items-center gap-3 rounded-[8px] border border-pure/10 bg-void py-2 pl-[22px] pr-2 transition-quick focus-within:border-pure/25',
+        'flex items-center gap-3 rounded-func border border-pure/10 bg-void py-2 pl-[22px] pr-2 transition-quick focus-within:border-pure/25',
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function AiPromptInput({
           onChange?.(e.target.value);
         }}
         placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent py-[6px] font-sans text-base font-normal text-pure placeholder:text-fog outline-none"
+        className="min-w-0 flex-1 bg-transparent py-[6px] font-sans text-base font-normal text-pure placeholder:text-text-3 outline-none"
       />
       <button
         type="submit"

@@ -46,7 +46,7 @@ export function Dispatches() {
           <Mono size="xs" color="fog">
             Dispatches
           </Mono>
-          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-cloud">
+          <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
             The <span className="italic">Ledger</span>
           </h1>
         </div>
@@ -64,10 +64,10 @@ export function Dispatches() {
             type="button"
             onClick={() => setFilter(f.value)}
             className={cn(
-              'inline-flex items-center rounded-[9999px] border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
+              'inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
               filter === f.value
                 ? 'border-pure bg-pure text-void'
-                : 'border-pure/20 bg-transparent text-ash hover:border-pure/40 hover:text-pure',
+                : 'border-pure/20 bg-transparent text-text-2 hover:border-pure/40 hover:text-pure',
             )}
           >
             {f.label}
@@ -76,20 +76,20 @@ export function Dispatches() {
       </div>
 
       {applicationsQuery.isPending ? (
-        <div className="space-y-4 border border-pure/[0.06] bg-graphite p-4">
+        <div className="space-y-4 border border-border bg-surface p-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-4 w-1/3 bg-steel" />
-              <Skeleton className="ml-auto h-4 w-20 bg-steel" />
+              <Skeleton className="h-4 w-1/3 bg-surface-2" />
+              <Skeleton className="ml-auto h-4 w-20 bg-surface-2" />
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="border border-pure/[0.06] bg-graphite px-6 py-8">
+        <div className="border border-border bg-surface px-6 py-8">
           <p className="font-display text-[38px] font-normal leading-[0.9] text-pure">
             No dispatches match. <span className="italic">Send</span> the first.
           </p>
-          <p className="mt-2 font-sans text-base font-normal text-ash">
+          <p className="mt-2 font-sans text-base font-normal text-text-2">
             Upload a job posting and the ledger builds itself.
           </p>
           <Link to="/apps/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-4')}>

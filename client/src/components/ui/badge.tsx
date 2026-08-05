@@ -9,9 +9,9 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'border-pure/[0.06] bg-graphite text-cloud',
-        secondary: 'border-pure/[0.12] bg-steel text-ash',
-        outline: 'border-pure/[0.12] text-ash',
+          'border-border bg-surface text-text-1',
+        secondary: 'border-border-strong bg-surface-2 text-text-2',
+        outline: 'border-border-strong text-text-2',
         success: 'border-ok/30 bg-ok/10 text-ok',
         warning: 'border-warn/30 bg-warn/10 text-warn',
         destructive: 'border-danger/30 bg-danger/10 text-danger',
