@@ -147,7 +147,7 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="hidden font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 lg:inline">
+          <span className="hidden font-mono text-[11px] uppercase tracking-[0.16px] text-text-2 md:inline">
             Sent today · {sentToday}/{dailyCap}
           </span>
           <UserMenu />

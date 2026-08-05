@@ -32,18 +32,40 @@ function AlertDialog({
   onConfirm,
 }: AlertDialogProps) {
   const cancelRef = React.useRef<HTMLButtonElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     cancelRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpenChange(false);
+      if (event.key === 'Escape') {
+        onOpenChange(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = panelRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
+      if (!items || items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (!panelRef.current?.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = '';
+      previouslyFocused?.focus();
     };
   }, [open, onOpenChange]);
 
@@ -65,6 +87,7 @@ function AlertDialog({
             onClick={() => onOpenChange(false)}
           />
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}

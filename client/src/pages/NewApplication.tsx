@@ -85,8 +85,10 @@ function ProcessingSequence({ steps = UPLOAD_STEPS, className }: { steps?: strin
   }, [steps.length]);
 
   return (
-    <div aria-live="polite" className={cn('flex flex-wrap items-center gap-x-2 gap-y-1', className)}>
-      <span className="sr-only">{steps[active]}</span>
+    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1', className)}>
+      <span role="status" className="sr-only">
+        Processing — please wait.
+      </span>
       {steps.map((label, index) => {
         const isActive = index === active;
         const isPast = index < active;
@@ -96,6 +98,7 @@ function ProcessingSequence({ steps = UPLOAD_STEPS, className }: { steps?: strin
             size="xs"
             color={isActive ? 'pure' : isPast ? 'ash' : 'fog'}
             className="transition-quick"
+            aria-hidden
           >
             {label}
             {index < steps.length - 1 ? ' →' : ''}
@@ -418,14 +421,15 @@ function HrEmailSection({
   /* Edge case 2: ranked candidates with confidence; exactly one is preselected. */
   return (
     <div className="space-y-2">
-      <div role="group" aria-label="HR email candidates" className="space-y-2">
+      <div role="radiogroup" aria-label="HR email candidates" className="space-y-2">
         {ranked.map((candidate, index) => {
           const selected = !customMode && selectedEmail === candidate.email;
           return (
             <button
               key={candidate.email}
               type="button"
-              aria-pressed={selected}
+              role="radio"
+              aria-checked={selected}
               onClick={() => {
                 setCustomMode(false);
                 onSelect(candidate.email);
@@ -460,7 +464,8 @@ function HrEmailSection({
 
         <button
           type="button"
-          aria-pressed={customMode}
+          role="radio"
+          aria-checked={customMode}
           onClick={() => setCustomMode(true)}
           className={cn(
             'focus-ring flex w-full items-center gap-3 rounded-func border px-4 py-3 text-left transition-quick',
@@ -507,19 +512,31 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState(false);
   const url = jobScreenshotUrl(jobId);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
+      // The close button is the dialog's only focusable element.
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        closeRef.current?.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      triggerRef.current?.focus();
+    };
   }, [open]);
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !broken && setOpen(true)}
         className="focus-ring group block w-full overflow-hidden rounded-func border border-border"
@@ -552,6 +569,7 @@ function ScreenshotThumb({ jobId }: { jobId: string }) {
             onClick={() => setOpen(false)}
           >
             <button
+              ref={closeRef}
               type="button"
               aria-label="Close screenshot preview"
               onClick={() => setOpen(false)}
