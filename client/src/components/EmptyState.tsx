@@ -1,11 +1,11 @@
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/**
- * The house empty-state: serif headline with an italic word (use <em> in
- * the headline node), quiet description, optional CTA.
+/*
+ * The house empty-state: Aspekta 36px headline (single weight, period-
+ * terminated), mono caption, optional lime arrow-square CTA.
  */
 interface EmptyStateProps {
   headline: React.ReactNode;
@@ -17,14 +17,26 @@ interface EmptyStateProps {
 export function EmptyState({ headline, description, action, className }: EmptyStateProps) {
   return (
     <div className={cn('rounded-card border border-graphite bg-ink-2 px-6 py-10', className)}>
-      <p className="font-sans text-[38px] font-normal leading-[0.9] text-paper">{headline}</p>
+      <p className="font-sans text-heading font-normal text-paper">{headline}</p>
       {description && (
-        <p className="mt-2 font-sans text-base font-normal text-text-2-dark">{description}</p>
+        <p className="mt-3 font-mono text-[13px] font-normal uppercase leading-relaxed tracking-[-0.02em] text-text-2-dark">
+          {description}
+        </p>
       )}
       {action && (
-        <Link to={action.to} className={cn(buttonVariants({ size: 'sm' }), 'mt-5')}>
-          {action.label}
-          <span aria-hidden>→</span>
+        <Link
+          to={action.to}
+          className="focus-ring group mt-6 inline-flex items-center gap-3 rounded-btn"
+        >
+          <span className="font-mono text-[13px] uppercase tracking-[-0.02em] text-paper">
+            {action.label}
+          </span>
+          <span
+            aria-hidden
+            className="inline-flex size-10 items-center justify-center rounded-btn bg-lime text-ink transition-quick group-hover:opacity-90"
+          >
+            <ArrowRight className="size-4" strokeWidth={1.5} />
+          </span>
         </Link>
       )}
     </div>

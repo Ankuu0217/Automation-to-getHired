@@ -20,8 +20,43 @@ const APP_LINKS = [
 ] as const;
 
 interface NavProps {
+  variant?: 'app' | 'public';
   sentToday?: number;
   dailyCap?: number;
+}
+
+const PUBLIC_PILL =
+  'focus-ring rounded-nav px-3 py-2 font-mono text-[13px] uppercase tracking-[-0.02em] text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper';
+
+/** Landing header: transparent on ink, in flow (not sticky). */
+function PublicNav() {
+  return (
+    <header className="absolute inset-x-0 top-0 z-40">
+      <div className="mx-auto flex h-20 w-full max-w-[1200px] items-center justify-between px-6">
+        <Link to="/" aria-label="GetHired home" className="focus-ring rounded-btn">
+          <Logo />
+        </Link>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <a href="#method" className={cn(PUBLIC_PILL, 'hidden sm:inline-block')}>
+            Method
+          </a>
+          <a href="#platform" className={cn(PUBLIC_PILL, 'hidden sm:inline-block')}>
+            Platform
+          </a>
+          <Link to="/login" className={PUBLIC_PILL}>
+            Log in
+          </Link>
+          <Link
+            to="/register"
+            className="focus-ring ml-1 inline-flex h-9 items-center gap-2 rounded-nav bg-paper px-4 font-mono text-[13px] uppercase tracking-[-0.02em] text-ink transition-quick hover:opacity-[0.92]"
+          >
+            Start applying
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
 }
 
 function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number }) {
@@ -73,9 +108,9 @@ function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex items-center gap-2 rounded-btn border border-graphite bg-ink-2 py-1 pl-1 pr-2 transition-quick hover:bg-ink-3"
+        className="focus-ring flex items-center gap-2 rounded-nav border border-graphite bg-ink-2 py-1 pl-1 pr-2 transition-quick hover:bg-ink-3"
       >
-        <span className="flex size-7 items-center justify-center rounded-btn bg-ink font-sans text-xs font-normal text-paper">
+        <span className="flex size-7 items-center justify-center rounded-btn bg-ink font-mono text-xs font-normal text-paper">
           {initial}
         </span>
         <span className="hidden max-w-[120px] truncate font-sans text-sm font-normal text-paper sm:block">
@@ -87,7 +122,7 @@ function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-btn border border-graphite bg-ink-2 p-2">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-fade-in rounded-card border border-graphite bg-ink-2 p-2">
           <div className="px-3 py-2">
             <p className="truncate font-sans text-sm font-normal text-paper">{user?.name}</p>
             <p className="truncate font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">{user?.email}</p>
@@ -111,7 +146,7 @@ function UserMenu({ sentToday, dailyCap }: { sentToday: number; dailyCap: number
   );
 }
 
-export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
+export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -130,9 +165,11 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'focus-ring rounded-btn px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
-      isActive ? 'bg-ink-3 text-paper' : 'text-text-2-dark hover:bg-ink-3 hover:text-paper',
+      'focus-ring rounded-nav px-3 py-2 font-mono text-[13px] uppercase tracking-[-0.02em] transition-quick',
+      isActive ? 'bg-lime text-ink' : 'text-text-2-dark hover:bg-ink-3 hover:text-paper',
     );
+
+  if (variant === 'public') return <PublicNav />;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-graphite bg-ink/80 backdrop-blur-[24px]">
@@ -180,9 +217,9 @@ export function Nav({ sentToday = 0, dailyCap = 30 }: NavProps) {
                 to={link.to}
                 className={({ isActive }) =>
                   cn(
-                    'focus-ring rounded-btn px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.16px] transition-quick',
+                    'focus-ring rounded-nav px-3 py-2.5 font-mono text-[13px] uppercase tracking-[-0.02em] transition-quick',
                     isActive
-                      ? 'bg-ink-3 text-paper'
+                      ? 'bg-lime text-ink'
                       : 'text-text-2-dark hover:bg-ink-3 hover:text-paper',
                   )
                 }

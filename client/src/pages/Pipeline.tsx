@@ -320,7 +320,7 @@ export function Pipeline() {
             Applications
           </Mono>
           <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-            The <span className="italic">pipeline</span>
+            The pipeline
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
@@ -336,7 +336,7 @@ export function Pipeline() {
           className="border-danger/30"
           headline={
             <>
-              The pipeline <em>refused</em> to load.
+              The pipeline refused to load.
             </>
           }
           description={
@@ -357,7 +357,7 @@ export function Pipeline() {
         <EmptyState
           headline={
             <>
-              No dispatches yet. <em>Send</em> the first.
+              No dispatches yet. Send the first.
             </>
           }
           description="Send your first outreach from a job-post screenshot and it lands here — tracked from Applied to Offer."

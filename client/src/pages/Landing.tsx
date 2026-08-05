@@ -112,7 +112,7 @@ export function Landing() {
               transition={{ duration: 0.6, delay: 0.08, ease: [0.455, 0.03, 0.515, 0.955] }}
               className="mt-6 font-sans text-[clamp(40px,8vw,96px)] font-normal leading-[0.9] text-paper"
             >
-              The job you screenshotted, <span className="italic">applied</span>.
+              The job you screenshotted, applied.
             </motion.h1>
 
             <motion.p
@@ -162,7 +162,7 @@ export function Landing() {
               The system
             </Mono>
             <h2 className="mt-3 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-              Six modules, one <span className="italic">workflow</span>.
+              Six modules, one workflow.
             </h2>
           </div>
 
@@ -188,7 +188,7 @@ export function Landing() {
               The product
             </Mono>
             <h2 className="mt-3 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-              A quiet desk for a noisy <span className="italic">search</span>.
+              A quiet desk for a noisy search.
             </h2>
           </div>
 

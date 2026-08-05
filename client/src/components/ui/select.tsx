@@ -12,7 +12,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          'focus-ring flex h-9 w-full appearance-none items-center rounded-btn border border-graphite bg-ink px-3 pr-8 font-sans text-sm font-normal text-paper transition-quick hover:border-text-3-dark-dark disabled:cursor-not-allowed disabled:opacity-50',
+          'focus-ring flex h-9 w-full appearance-none items-center rounded-btn border border-graphite bg-transparent px-3 pr-8 font-sans text-sm font-normal text-paper transition-quick hover:border-text-3-dark focus-visible:border-lime disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-ink-2 [&>option]:text-paper',
           className,
         )}
         {...props}

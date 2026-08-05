@@ -348,7 +348,7 @@ export function Templates() {
                 Templates
               </Mono>
               <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-                Saved <span className="italic">prompts</span>
+                Saved prompts
               </h1>
             </div>
             <Button onClick={() => setCreating(true)}>
@@ -366,7 +366,7 @@ export function Templates() {
           ) : templates.length === 0 ? (
             <div className="rounded-card border border-graphite bg-ink-2 px-6 py-10">
               <p className="font-sans text-[38px] font-normal leading-[0.9] text-paper">
-                No templates yet. <em>Save</em> one.
+                No templates yet. Save one.
               </p>
               <p className="mt-2 max-w-md font-sans text-base font-normal text-text-2-dark">
                 Save your best-performing prompts as templates and compare reply rates over time.

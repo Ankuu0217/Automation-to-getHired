@@ -49,7 +49,7 @@ export function Register() {
     <AuthLayout>
       <div className="space-y-1">
         <h1 className="font-sans text-xl font-normal text-paper">
-          Create your <span className="italic">account</span>
+          Create your account
         </h1>
         <p className="font-sans text-sm font-normal text-text-2-dark">Start sending dispatches that get opened.</p>
       </div>

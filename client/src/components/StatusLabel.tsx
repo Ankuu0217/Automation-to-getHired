@@ -10,24 +10,24 @@ interface StatusLabelProps {
 }
 
 /*
- * One color logic across both status families:
- * cyan = in flight, iris = engaged, orchid = deep engagement,
- * warn = waiting, ok = won, danger = lost, gray = inactive
- * (draft solid, ghosted hollow).
+ * One signal logic across both status families, on the rationed palette:
+ * solid lime = won, hollow lime = engaged, amber = waiting/in-tension,
+ * red = lost, neutral solid = in flight, neutral faint = inactive
+ * (draft solid, ghosted hollow). 6px dots + mono labels.
  */
 const DOT_COLOR: Record<StatusKind, string> = {
-  applied: 'bg-lime',
-  hr_screen: 'bg-lime',
+  applied: 'bg-text-2-dark',
+  hr_screen: 'border border-lime bg-transparent',
   interview: 'bg-warn',
   offer: 'bg-ok',
   rejected: 'bg-danger',
   ghosted: 'border border-text-3-dark bg-transparent',
-  sent: 'bg-lime',
-  opened: 'bg-lime',
+  sent: 'bg-text-2-dark',
+  opened: 'border border-lime bg-transparent',
   replied: 'bg-ok',
   bounced: 'bg-danger',
   draft: 'bg-text-3-dark',
-  queued: 'bg-warn',
+  queued: 'border border-warn bg-transparent',
 };
 
 const LABEL: Record<StatusKind, string> = {

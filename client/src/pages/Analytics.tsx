@@ -229,7 +229,7 @@ export function Analytics() {
               Performance
             </Mono>
             <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-              Your outreach, <span className="italic">measured</span>.
+              Your outreach, measured.
             </h1>
           </div>
           <div className="mt-4 flex items-center gap-3">
@@ -248,7 +248,7 @@ export function Analytics() {
 
       {funnelQuery.isPending || templatesQuery.isPending ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex flex-col justify-center gap-2 bg-ink-2 p-4">
                 <Skeleton className="h-3 w-16" />
@@ -263,7 +263,7 @@ export function Analytics() {
         <EmptyState
           headline={
             <>
-              No dispatches yet. <em>Send</em> the first.
+              No dispatches yet. Send the first.
             </>
           }
           description="Once outreach is in flight, opens, replies, interviews, and offers appear here."
@@ -272,7 +272,7 @@ export function Analytics() {
       ) : (
         <>
           {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
             <Stat label="Sent" value={funnel.totals.sent} />
             <Stat label="Opened" value={funnel.totals.opened} />
             <Stat label="Replied" value={funnel.totals.replied} />

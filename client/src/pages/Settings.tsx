@@ -63,7 +63,7 @@ function GmailSection() {
           Connection
         </Mono>
         <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-          Gmail <span className="italic">account</span>
+          Gmail account
         </h2>
         <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Outreach is sent from your own Gmail account, so recruiters see you — not a tool.
@@ -106,7 +106,7 @@ function SendingSection() {
           Guardrails
         </Mono>
         <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-          Sending <span className="italic">controls</span>
+          Sending controls
         </h2>
         <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Hard limits that keep your Gmail reputation safe and your outreach human.
@@ -219,7 +219,7 @@ function SignatureSection() {
           Identity
         </Mono>
         <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-          Email <span className="italic">signature</span>
+          Email signature
         </h2>
         <p className="mt-2 max-w-lg font-sans text-base font-normal text-text-2-dark">
           Appended to every generated email. Your name, phone, and links from your profile are a good default.
@@ -281,7 +281,7 @@ function DangerSection() {
           Irreversible
         </Mono>
         <h2 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-          Danger <span className="italic">zone</span>
+          Danger zone
         </h2>
       </div>
 
@@ -372,7 +372,7 @@ export function Settings() {
             Account
           </Mono>
           <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-            Your <span className="italic">settings</span>
+            Your settings
           </h1>
         </div>
 

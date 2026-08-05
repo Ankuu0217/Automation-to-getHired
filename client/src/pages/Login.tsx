@@ -44,7 +44,7 @@ export function Login() {
     <AuthLayout>
       <div className="space-y-1">
         <h1 className="font-sans text-xl font-normal text-paper">
-          Welcome <span className="italic">back</span>
+          Welcome back
         </h1>
         <p className="font-sans text-sm font-normal text-text-2-dark">Sign in to your dispatch desk.</p>
       </div>

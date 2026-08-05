@@ -74,7 +74,7 @@ export function Dashboard() {
           </Mono>
           <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
             {greeting(user?.name?.split(' ')[0])}
-            <span className="italic">.</span>
+            .
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
@@ -85,7 +85,7 @@ export function Dashboard() {
 
       {/* Stats */}
       {funnelQuery.isPending ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex h-[88px] min-w-0 flex-col justify-center gap-2 bg-ink-2 px-4">
               <Skeleton className="h-3 w-16 bg-ink-3" />
@@ -94,7 +94,7 @@ export function Dashboard() {
           ))}
         </div>
       ) : stats ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-border sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="flex min-w-0 flex-col justify-center bg-ink-2 px-4 py-4">
               <Mono size="xs" color="fog">
@@ -143,7 +143,7 @@ export function Dashboard() {
                 <m.icon className="size-4" strokeWidth={1.5} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-sans text-sm font-medium text-paper">{m.title}</h3>
+                <h3 className="font-sans text-sm font-normal text-paper">{m.title}</h3>
                 <p className="mt-0.5 font-sans text-xs font-normal text-text-3-dark">{m.description}</p>
               </div>
             </div>
@@ -179,7 +179,7 @@ export function Dashboard() {
           <EmptyState
             headline={
               <>
-                No dispatches yet. <em>Send</em> the first.
+                No dispatches yet. Send the first.
               </>
             }
             description="Upload a job posting — the ledger builds itself."

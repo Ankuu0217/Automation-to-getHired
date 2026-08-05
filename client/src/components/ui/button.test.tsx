@@ -19,7 +19,7 @@ describe('Button', () => {
       </Button>,
     );
     const button = screen.getByRole('button', { name: 'Cancel' });
-    expect(button.className).toContain('border-border-strong');
+    expect(button.className).toContain('border-graphite');
     expect(button.className).toContain('h-8');
   });
 });

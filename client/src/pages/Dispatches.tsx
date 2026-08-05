@@ -53,7 +53,7 @@ export function Dispatches() {
             Dispatches
           </Mono>
           <h1 className="mt-1 font-sans text-[38px] font-normal leading-[0.9] text-paper">
-            Every <span className="italic">dispatch</span>
+            Every dispatch
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
@@ -95,7 +95,7 @@ export function Dispatches() {
         <EmptyState
           headline={
             <>
-              No dispatches yet. <em>Send</em> the first.
+              No dispatches yet. Send the first.
             </>
           }
           description="Upload a job posting and the first dispatch drafts itself."
@@ -105,7 +105,7 @@ export function Dispatches() {
         <EmptyState
           headline={
             <>
-              Nothing in <em>this</em> stage.
+              Nothing in this stage.
             </>
           }
           description={
