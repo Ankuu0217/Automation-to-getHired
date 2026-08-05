@@ -8,13 +8,13 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          'border-graphite bg-ink-3 text-paper',
-        secondary: 'border-text-3-dark-dark bg-ink-3 text-text-2-dark',
-        outline: 'border-text-3-dark-dark text-text-2-dark',
-        success: 'border-ok/30 bg-ok/10 text-ok',
-        warning: 'border-warn/30 bg-warn/10 text-warn',
-        destructive: 'border-danger/30 bg-danger/10 text-danger',
+        /* hairline tags — status is carried by border + text, never fills */
+        default: 'border-graphite bg-transparent text-paper',
+        secondary: 'border-graphite bg-transparent text-text-2-dark',
+        outline: 'border-graphite bg-transparent text-text-2-dark',
+        success: 'border-ok/40 bg-transparent text-ok',
+        warning: 'border-warn/40 bg-transparent text-warn',
+        destructive: 'border-danger/40 bg-transparent text-danger',
       },
     },
     defaultVariants: {

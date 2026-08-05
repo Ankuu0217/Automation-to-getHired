@@ -141,7 +141,7 @@ function DraggableCard({
         if (e.key === 'Enter' && !isDragging) onOpen(application.id);
       }}
       className={cn(
-        'focus-ring cursor-grab touch-pan-y rounded-card border border-graphite bg-ink-2 p-4 transition-quick hover:border-text-3-dark-dark active:cursor-grabbing',
+        'focus-ring cursor-grab touch-pan-y rounded-card border border-graphite bg-ink-2 p-4 transition-quick hover:border-text-3-dark active:cursor-grabbing',
         ghosted && 'border-dashed',
         isDragging && 'opacity-40',
       )}
@@ -379,7 +379,7 @@ export function Pipeline() {
           </div>
           <DragOverlay>
             {activeApplication && (
-              <div className="w-[300px] rotate-2 rounded-card border border-text-3-dark-dark bg-ink-3 p-4">
+              <div className="w-[300px] rotate-2 rounded-card border border-text-3-dark bg-ink-3 p-4">
                 <CardBody
                   application={activeApplication}
                   dispatchCode={dispatchMap.get(activeApplication.id) ?? 'DSP-000'}

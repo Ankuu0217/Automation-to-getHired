@@ -210,7 +210,7 @@ function TemplateCard({
     <div
       className={cn(
         'rounded-card border bg-ink-2 p-4 transition-quick',
-        template.isDefault ? 'border-text-3-dark-dark' : 'border-graphite hover:border-text-3-dark-dark',
+        template.isDefault ? 'border-text-3-dark' : 'border-graphite hover:border-text-3-dark',
       )}
     >
       <div className="flex items-start justify-between gap-3">

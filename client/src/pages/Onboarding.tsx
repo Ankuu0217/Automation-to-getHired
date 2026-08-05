@@ -103,7 +103,7 @@ function SkillsEditor({ skills, onChange }: { skills: string[]; onChange: (skill
         {skills.map((skill) => (
           <span
             key={skill}
-            className="inline-flex items-center gap-1 rounded-pill border border-text-3-dark-dark px-2.5 py-1 font-sans text-xs text-text-2-dark"
+            className="inline-flex items-center gap-1 rounded-pill border border-text-3-dark px-2.5 py-1 font-sans text-xs text-text-2-dark"
           >
             {skill}
             <button
@@ -198,7 +198,7 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
       onDrop={onDrop}
       className={cn(
         'focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-btn border border-dashed px-6 py-10 text-center transition-quick',
-        dragging ? 'border-paper bg-paper/[0.03]' : 'border-text-3-dark-dark bg-ink hover:bg-paper/[0.02]',
+        dragging ? 'border-paper bg-paper/[0.03]' : 'border-text-3-dark bg-ink hover:bg-paper/[0.02]',
         uploadMutation.isPending && 'pointer-events-none opacity-60',
       )}
     >
@@ -471,7 +471,7 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
                 'focus-ring rounded-btn border p-4 text-left transition-quick',
                 tone === option.value
                   ? 'border-paper bg-ink-3'
-                  : 'border-graphite bg-ink-2 hover:border-text-3-dark-dark',
+                  : 'border-graphite bg-ink-2 hover:border-text-3-dark',
               )}
             >
               <p className="font-sans text-sm font-normal text-paper">{option.title}</p>

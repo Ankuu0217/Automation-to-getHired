@@ -74,7 +74,7 @@ export function Dispatches() {
               'focus-ring inline-flex items-center rounded-pill border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16px] transition-quick',
               filter === f.value
                 ? 'border-paper bg-paper text-ink'
-                : 'border-text-3-dark-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
+                : 'border-text-3-dark text-text-2-dark hover:bg-paper/[0.06] hover:text-paper',
             )}
           >
             {f.label}
