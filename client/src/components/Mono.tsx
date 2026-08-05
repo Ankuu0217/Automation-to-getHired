@@ -1,13 +1,13 @@
 import { cn } from '@/lib/utils';
 
 type MonoColor = 'ash' | 'fog' | 'pure' | 'cyan' | 'warn' | 'danger' | 'ok' | 'orchid';
+type MonoSize = 'xs' | 'sm' | 'md';
 
 interface MonoProps {
   children: React.ReactNode;
   color?: MonoColor;
-  size?: 'xs' | 'sm' | 'md';
+  size?: MonoSize;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
 }
 
 const COLOR_CLASS: Record<MonoColor, string> = {
@@ -21,29 +21,16 @@ const COLOR_CLASS: Record<MonoColor, string> = {
   orchid: 'text-orchid',
 };
 
-const SIZE_CLASS: Record<MonoProps['size'] & string, string> = {
+const SIZE_CLASS: Record<MonoSize, string> = {
   xs: 'text-[10px] leading-[2] tracking-[0.16px]',
   sm: 'text-[11px] leading-[2] tracking-[0.16px]',
   md: 'text-xs leading-[1.35] tracking-[0.016em]',
 };
 
-export function Mono({
-  children,
-  color = 'ash',
-  size = 'sm',
-  className,
-  as: Component = 'span',
-}: MonoProps) {
+export function Mono({ children, color = 'ash', size = 'sm', className }: MonoProps) {
   return (
-    <Component
-      className={cn(
-        'font-mono uppercase',
-        COLOR_CLASS[color],
-        SIZE_CLASS[size],
-        className,
-      )}
-    >
+    <span className={cn('font-mono uppercase', COLOR_CLASS[color], SIZE_CLASS[size], className)}>
       {children}
-    </Component>
+    </span>
   );
 }

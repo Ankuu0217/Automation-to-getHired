@@ -47,7 +47,7 @@ export function Dispatches() {
             Dispatches
           </Mono>
           <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
-            The <span className="italic">Ledger</span>
+            Every <span className="italic">dispatch</span>
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>

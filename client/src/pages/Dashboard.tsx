@@ -21,7 +21,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const MODULES = [
   { color: 'iris' as const, title: 'Outreach autopilot', description: 'Screenshot to sent email.', icon: Send },
-  { color: 'peri' as const, title: 'Wire Board', description: 'Track every stage.', icon: BarChart3 },
+  { color: 'peri' as const, title: 'Pipeline', description: 'Track every stage.', icon: BarChart3 },
   { color: 'deep' as const, title: 'Follow-up engine', description: 'Stops on reply or bounce.', icon: Mail },
   { color: 'orchid' as const, title: 'Template studio', description: 'Save what gets replies.', icon: FileText },
   { color: 'pale' as const, title: 'AI writer', description: 'Tailored to the JD.', icon: Send },
@@ -82,7 +82,7 @@ export function Dashboard() {
           </h1>
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
-          New Dispatch
+          New dispatch
           <span aria-hidden>→</span>
         </Link>
       </div>
@@ -169,7 +169,7 @@ export function Dashboard() {
           </div>
           <Link to="/dispatches">
             <Button variant="outline" size="sm">
-              Open ledger
+              All dispatches
               <span aria-hidden>→</span>
             </Button>
           </Link>

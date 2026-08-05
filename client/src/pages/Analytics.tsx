@@ -257,7 +257,7 @@ export function Analytics() {
           </div>
           <div className="mt-4 flex items-center gap-3">
             <Link to="/pipeline" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-              Wire Board
+              Pipeline
               <span aria-hidden>→</span>
             </Link>
             <Link to="/apps/new" className={buttonVariants({ size: 'sm' })}>

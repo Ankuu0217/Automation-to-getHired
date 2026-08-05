@@ -20,11 +20,11 @@ function GmailDisconnectedBanner() {
       <div className="mx-auto flex w-full max-w-[1200px] items-center gap-3 px-6 py-2.5">
         <AlertTriangle className="size-4 shrink-0 text-danger" />
         <p className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-[0.16px] text-danger">
-          Wire down — reconnect Gmail · <span className="text-danger/70">{lastSendError}</span>
+          Sending paused — reconnect Gmail · <span className="text-danger/70">{lastSendError}</span>
         </p>
         <Link
           to="/settings#gmail"
-          className="shrink-0 font-sans text-xs font-normal text-danger underline-offset-4 hover:underline"
+          className="focus-ring shrink-0 rounded-func font-sans text-xs font-normal text-danger underline-offset-4 hover:underline"
         >
           Reconnect
         </Link>
@@ -32,7 +32,7 @@ function GmailDisconnectedBanner() {
           type="button"
           aria-label="Dismiss banner"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-func p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
+          className="focus-ring shrink-0 rounded-func p-1 text-danger/70 transition-quick hover:bg-danger/10 hover:text-danger"
         >
           <X className="size-3.5" />
         </button>
@@ -58,12 +58,15 @@ export function AppLayout() {
   const dailyCap = user?.settings.dailySendCap ?? 30;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-pure">
-      <Nav variant="app" sentToday={sentToday} dailyCap={dailyCap} />
+    <div className="flex min-h-screen flex-col bg-background text-text-1">
+      <Nav sentToday={sentToday} dailyCap={dailyCap} />
 
-      <GmailDisconnectedBanner />
+      {/* pt-16 clears the fixed 64px header so the banner is visible below it */}
+      <div className="pt-16">
+        <GmailDisconnectedBanner />
+      </div>
 
-      <main className="flex-1 pt-24">
+      <main className="flex-1 pt-8">
         <div className="mx-auto w-full max-w-[1200px] px-6 pb-16">
           <Outlet />
         </div>

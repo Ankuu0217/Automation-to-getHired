@@ -305,10 +305,10 @@ export function Pipeline() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Mono size="xs" color="fog">
-            Pipeline
+            Applications
           </Mono>
           <h1 className="mt-1 font-display text-[38px] font-normal leading-[0.9] text-text-1">
-            Wire <span className="italic">Board</span>
+            The <span className="italic">pipeline</span>
           </h1>
         </div>
         <Link to="/apps/new">

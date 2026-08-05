@@ -26,7 +26,7 @@ const FEATURES = [
   {
     color: 'peri' as const,
     icon: BarChart3,
-    title: 'Wire Board pipeline',
+    title: 'Pipeline tracking',
     description: 'Kanban + funnel analytics show opens, replies, interviews, and best-performing templates.',
   },
   {
