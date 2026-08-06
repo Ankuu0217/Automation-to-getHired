@@ -73,7 +73,7 @@ export const importJobSchema = z.object({
     .trim()
     .min(40, 'Paste at least 40 characters of the job description')
     .max(20000, 'Job description text is limited to 20,000 characters'),
-  sourceUrl: z.string().trim().url().max(2000).optional(),
+  sourceUrl: z.string().trim().url().max(2000).optional().refine((u) => u === undefined || /^https?:\/\//i.test(u), 'Only http(s) URLs are allowed'),
 });
 export type ImportJobInput = z.infer<typeof importJobSchema>;
 

@@ -88,6 +88,11 @@ describe('buildApplicationsCsv', () => {
 });
 
 describe('escapeCsvCell', () => {
+  it('neutralizes tab- and CR-prefixed formula payloads', () => {
+    expect(escapeCsvCell('\t=1+1')).toContain("'");
+    expect(escapeCsvCell('\r@cmd')).toContain("'");
+  });
+
   it('passes plain cells through untouched', () => {
     expect(escapeCsvCell('Acme')).toBe('Acme');
   });

@@ -36,6 +36,9 @@ function formatInterviewTime(at: Date): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    // The server's timezone stands in for the user's (no per-user tz
+    // preference exists) — name it explicitly so the time is unambiguous.
+    timeZoneName: 'short',
   });
 }
 

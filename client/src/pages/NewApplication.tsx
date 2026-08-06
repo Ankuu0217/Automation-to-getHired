@@ -313,9 +313,10 @@ function UploadStep({
       onClick={() => setMode(value)}
       className={cn(
         'focus-ring rounded-nav px-3 py-1.5 font-mono text-[13px] uppercase tracking-[-0.02em] transition-quick',
+        'border',
         mode === value
-          ? 'bg-lime text-ink'
-          : 'border border-graphite text-text-2-dark hover:bg-ink-3',
+          ? 'border-lime bg-lime text-ink'
+          : 'border-graphite text-text-2-dark hover:bg-ink-3',
       )}
     >
       {label}

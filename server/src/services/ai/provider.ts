@@ -79,8 +79,10 @@ class GeminiVisionProvider implements AIProvider {
 
   async extractJobFromText(rawText: string) {
     try {
-      const { extraction, rawText: modelText } = await extractTextWithGemini(rawText);
-      return { extraction, source: 'vision' as const, rawText: modelText };
+      const { extraction } = await extractTextWithGemini(rawText);
+      // Keep the USER'S pasted text as rawExtractedText — the model's raw
+      // JSON response must never replace the source the user provided.
+      return { extraction, source: 'vision' as const, rawText };
     } catch (err) {
       // Same degradation contract as images: API down/quota/bad output → heuristics.
       logger.warn(

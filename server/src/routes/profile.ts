@@ -142,7 +142,14 @@ profileRouter.get('/resume/download', async (req, res, next) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     res.setHeader('Cache-Control', 'private, no-store');
-    fs.createReadStream(resumeFile.path).pipe(res);
+    const stream = fs.createReadStream(resumeFile.path);
+    stream.on('error', () => {
+      // File vanished between stat and read, or a mid-stream read error:
+      // never let an unhandled stream 'error' crash the process.
+      if (res.headersSent) res.destroy();
+      else next(new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'Resume file not found'));
+    });
+    stream.pipe(res);
   } catch (err) {
     next(err);
   }

@@ -12,6 +12,7 @@ import { User, type IUser } from '../models/User';
 import { Profile } from '../models/Profile';
 import { JobPost } from '../models/JobPost';
 import { Application } from '../models/Application';
+import { Notification } from '../models/Notification';
 import { EmailTemplate } from '../models/EmailTemplate';
 import { EmailEvent } from '../models/EmailEvent';
 import { AppError, errorBody } from '../middleware/error';
@@ -224,6 +225,7 @@ authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) =
       Application.deleteMany({ userId }),
       JobPost.deleteMany({ userId }),
       EmailTemplate.deleteMany({ userId }),
+      Notification.deleteMany({ userId }),
       Profile.deleteOne({ userId }),
       User.deleteOne({ _id: userId }),
     ]);

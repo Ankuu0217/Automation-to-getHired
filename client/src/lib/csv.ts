@@ -46,7 +46,7 @@ function isoDate(iso: string | null): string {
  */
 export function escapeCsvCell(raw: string): string {
   let cell = raw;
-  if (/^[=+\-@]/.test(cell)) cell = `'${cell}`;
+  if (/^[=+\-@\t\r]/.test(cell)) cell = `'${cell}`;
   if (/[",\r\n]/.test(cell)) cell = `"${cell.replace(/"/g, '""')}"`;
   return cell;
 }

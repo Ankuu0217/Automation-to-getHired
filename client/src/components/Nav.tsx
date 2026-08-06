@@ -150,7 +150,7 @@ function NotificationsMenu() {
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -165,7 +165,7 @@ function NotificationsMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 animate-fade-in rounded-card border border-graphite bg-ink-2 p-2">
+        <div className="fixed inset-x-4 top-20 z-50 animate-fade-in rounded-card border border-graphite bg-ink-2 p-2 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
           <div className="flex items-center justify-between px-3 py-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.16px] text-text-3-dark">
               Notifications
@@ -346,7 +346,7 @@ export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps)
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {APP_LINKS.map((link) => (
             <NavLink key={link.to} to={link.to} className={linkClass}>
               {link.label}
@@ -355,7 +355,7 @@ export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps)
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2-dark lg:inline">
+          <span className="hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.16px] text-text-2-dark xl:inline">
             Sent today · {sentToday}/{dailyCap}
           </span>
           <NotificationsMenu />
@@ -366,7 +366,7 @@ export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps)
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
             onClick={() => setMobileOpen((v) => !v)}
-            className="focus-ring rounded-btn p-2 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper md:hidden"
+            className="focus-ring rounded-btn p-2 text-text-2-dark transition-quick hover:bg-ink-3 hover:text-paper lg:hidden"
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -377,7 +377,7 @@ export function Nav({ variant = 'app', sentToday = 0, dailyCap = 30 }: NavProps)
         <nav
           id="mobile-nav"
           aria-label="Primary"
-          className="animate-fade-in border-t border-graphite bg-ink/95 backdrop-blur-[24px] md:hidden"
+          className="animate-fade-in border-t border-graphite bg-ink/95 backdrop-blur-[24px] lg:hidden"
         >
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-1 px-4 py-3">
             {APP_LINKS.map((link) => (

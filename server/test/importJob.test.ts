@@ -117,6 +117,17 @@ describe('jobs import (pasted text)', () => {
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('rejects non-http(s) sourceUrl schemes', async () => {
+    const res = await request(app)
+      .post('/api/v1/jobs/import')
+      .set('Cookie', cookie)
+      .send({
+        rawText: 'Acme Robotics is hiring a Data Analyst to join us. Contact hr@acme-robotics.dev soon please.',
+        sourceUrl: 'javascript:alert(1)',
+      });
+    expect(res.status).toBe(400);
+  });
+
   it('imports pasted text and extracts company/role heuristically (no API key)', async () => {
     const id = await importText(JOB_TEXT);
     const job = await waitForExtraction(id);
