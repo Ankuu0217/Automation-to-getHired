@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "pnpm --filter @jobmail/shared build && concurrently -n server,client -c blue,magenta \"pnpm --filter @jobmail/server dev\" \"pnpm --filter @jobmail/client dev\"",
     "build": "pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server build && pnpm --filter @jobmail/client build",
-    "test": "pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server test && pnpm --filter @jobmail/client test",
     "lint": "pnpm -r lint",
     "seed": "pnpm --filter @jobmail/server seed"
   },

@@ -192,6 +192,7 @@ export const sendFailureCodeSchema = z.enum([
   'MX_INVALID_DOMAIN',
   'RESUME_MISSING',
   'GMAIL_NOT_CONNECTED',
+  'EMAIL_NOT_VERIFIED',
   'SEND_FAILED',
 ]);
 export type SendFailureCode = z.infer<typeof sendFailureCodeSchema>;

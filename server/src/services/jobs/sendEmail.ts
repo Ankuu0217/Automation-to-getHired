@@ -165,6 +165,19 @@ export async function processSendEmail(data: SendEmailJobData): Promise<SendEmai
     return { status: 'skipped' };
   }
 
+  // ── Terminal guard 0: the sending gate (email verification). The request
+  //    boundary blocks this, but defend in depth right before we send — never
+  //    send outreach on behalf of an unverified account. ──
+  const owner = await User.findById(data.userId).select('emailVerified');
+  if (!owner?.emailVerified) {
+    await failJob(
+      data.jobPostId,
+      'EMAIL_NOT_VERIFIED',
+      'Verify your email to start sending — this dispatch is paused until then',
+    );
+    return { status: 'failed' };
+  }
+
   // ── Terminal guard 1: draft + recipient must exist (route validates, but
   //    the job may run long after enqueue) ──
   if (!job.hrEmail || !job.draft.subject || !job.draft.bodyText) {
@@ -222,11 +235,18 @@ export async function processSendEmail(data: SendEmailJobData): Promise<SendEmai
     // retry. Record it and fail the job with an actionable message.
     if (isPermanentSendError(err)) {
       await recordInitialBounce(applicationId, data, job, finalHtml, new Date(data.scheduledAt), err);
-      await failJob(
-        data.jobPostId,
-        'SEND_FAILED',
-        'The recipient server rejected this email (bounce) — check the HR address and re-queue',
-      );
+      const smtp = err as { response?: string; responseCode?: number };
+      const serverMessage = smtp.response?.split('\n')[0]?.trim();
+      let reason: string;
+      if (!serverMessage) {
+        reason = 'The recipient server rejected this email (bounce) — check the HR address and re-queue';
+      } else if (/Username and Password not accepted/i.test(serverMessage)) {
+        reason =
+          'Gmail rejected the login. Use an App Password (not your normal password) and enable 2-Step Verification on the Google account, then update GMAIL_APP_PASSWORD in server/.env and restart.';
+      } else {
+        reason = `Bounced: ${serverMessage}`;
+      }
+      await failJob(data.jobPostId, 'SEND_FAILED', reason);
       return { status: 'failed' };
     }
     if (err instanceof GmailNotConnectedError) {

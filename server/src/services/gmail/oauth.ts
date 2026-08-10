@@ -15,9 +15,14 @@ export type GoogleOAuthClient = InstanceType<typeof google.auth.OAuth2>;
 
 export const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
-  // Read-only inbox access for phase-2 reply detection (SPEC §5 history.list poller).
-  'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
+  // NOTE: gmail.readonly (restricted scope) is intentionally NOT requested. Reply
+  // detection (SPEC §5) is a stub; asking for full inbox read now would tank
+  // consent conversion and force the paid restricted-scope CASA assessment. When
+  // Phase 2 ships, add it back via INCREMENTAL authorization (a second consent
+  // that adds only that scope), and consider gmail.metadata first if bodies
+  // aren't needed:
+  // 'https://www.googleapis.com/auth/gmail.readonly',
 ];
 
 export function isOAuthConfigured(): boolean {
@@ -34,16 +39,27 @@ export function createOAuthClient(): GoogleOAuthClient {
 
 /**
  * OAuth `state` carries the user identity through Google's redirect (the
- * callback route is unauthenticated). Short-lived JWT, purpose-bound.
+ * callback route is unauthenticated). Short-lived JWT, purpose-bound. It also
+ * carries `nonce` — the sha256 of a random value set in an httpOnly cookie on
+ * the initiating browser — so the callback can bind the flow to that browser
+ * and reject a completion smuggled in from anywhere else (connection-CSRF).
  */
-export function signOAuthState(userId: string): string {
-  return jwt.sign({ sub: userId, purpose: 'gmail-oauth' }, env.JWT_SECRET, { expiresIn: '10m' });
+export function signOAuthState(userId: string, nonceHash: string): string {
+  return jwt.sign(
+    { sub: userId, purpose: 'gmail-oauth', nonce: nonceHash },
+    env.JWT_SECRET,
+    { expiresIn: '10m' },
+  );
 }
 
-export function verifyOAuthState(state: string): { sub: string } {
-  const payload = jwt.verify(state, env.JWT_SECRET) as { sub: string; purpose?: string };
+export function verifyOAuthState(state: string): { sub: string; nonce: string } {
+  const payload = jwt.verify(state, env.JWT_SECRET) as {
+    sub: string;
+    purpose?: string;
+    nonce?: string;
+  };
   if (payload.purpose !== 'gmail-oauth') throw new Error('Invalid OAuth state');
-  return { sub: payload.sub };
+  return { sub: payload.sub, nonce: payload.nonce ?? '' };
 }
 
 export function buildConsentUrl(state: string): string {

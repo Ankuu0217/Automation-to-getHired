@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import fs from 'node:fs';
 import bcrypt from 'bcryptjs';
 import {
@@ -6,6 +6,7 @@ import {
   loginSchema,
   registerSchema,
   settingsUpdateSchema,
+  verifyEmailSchema,
   type PublicUser,
 } from '@jobmail/shared';
 import { User, type IUser } from '../models/User';
@@ -23,7 +24,10 @@ import { decrypt } from '../utils/crypto';
 import { logger } from '../utils/logger';
 import { isOAuthConfigured, revokeToken } from '../services/gmail/oauth';
 import { cancelUserJobs } from '../services/queue';
+import { env } from '../config/env';
+import { issueEmailVerification, verifyEmailToken } from '../services/emailVerification';
 import {
+  ACCESS_COOKIE,
   clearAuthCookies,
   hasRefreshToken,
   REFRESH_COOKIE,
@@ -32,6 +36,7 @@ import {
   signAccessToken,
   signRefreshToken,
   storeRefreshToken,
+  verifyAccessToken,
   verifyRefreshToken,
 } from '../services/tokenService';
 
@@ -44,9 +49,21 @@ function toPublicUser(user: IUser): PublicUser {
     id: user._id.toString(),
     email: user.email,
     name: user.name,
-    gmailConnected: Boolean(user.gmailAuth?.connectedEmail),
+    // `gmailConnected` means a WORKING connection (not merely "an address is on
+    // file") — a revoked/expired grant (needs_reconnect) reads as false so the
+    // compose-screen warning + setup checklist correctly flag it. Surfaces that
+    // need the address regardless of health read connectedEmail / gmailStatus.
+    gmailConnected: Boolean(user.gmailAuth?.connectedEmail) && !user.gmailAuth?.needsReconnect,
+    hasEmailFallback:
+      env.NODE_ENV !== 'production' && Boolean(env.GMAIL_USER && env.GMAIL_APP_PASSWORD),
     connectedEmail: user.gmailAuth?.connectedEmail ?? null,
+    gmailStatus: !user.gmailAuth?.connectedEmail
+      ? 'disconnected'
+      : user.gmailAuth.needsReconnect
+        ? 'needs_reconnect'
+        : 'connected',
     lastSendError: user.lastSendError ?? null,
+    emailVerified: Boolean(user.emailVerified),
     settings: {
       autoSend: user.settings.autoSend,
       dailySendCap: user.settings.dailySendCap,
@@ -77,6 +94,13 @@ authRouter.post('/register', authLimiter, validate(registerSchema), async (req, 
     const user = await User.create({ name, email, passwordHash });
     // 1:1 profile shell created at registration so GET /profile never 404s.
     await Profile.create({ userId: user._id, fullName: name });
+    // Fire the verification email — a mail failure must NOT fail registration;
+    // the user still lands in-app (logged in) and can Resend from the banner.
+    try {
+      await issueEmailVerification(user);
+    } catch (err) {
+      logger.warn({ err, userId: String(user._id) }, 'Failed to send verification email at register');
+    }
     await issueSession(res, user);
     res.status(201).json({ user: toPublicUser(user) });
   } catch (err) {
@@ -168,6 +192,72 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
     const user = await User.findById(req.userId);
     if (!user) throw new AppError(401, ErrorCodes.UNAUTHORIZED, 'Account not found');
     res.json({ user: toPublicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Best-effort read of the current session user — verify-email is public, so a
+ *  session may or may not be present. Returns the user only if already verified. */
+async function sessionUserIfVerified(req: Request): Promise<IUser | null> {
+  const token = req.cookies?.[ACCESS_COOKIE] as string | undefined;
+  if (!token) return null;
+  try {
+    const { sub } = verifyAccessToken(token);
+    const user = await User.findById(sub);
+    return user?.emailVerified ? user : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * POST /auth/verify-email — public (the token is the proof, so a link opened on
+ * another device with no session still works). Single-use; distinguishes an
+ * invalid from an expired link. A repeat click from the same authenticated,
+ * already-verified device is treated as idempotent success.
+ */
+authRouter.post('/verify-email', authLimiter, validate(verifyEmailSchema), async (req, res, next) => {
+  try {
+    const { token } = req.body as { token: string };
+    const result = await verifyEmailToken(token);
+    if (result.ok) {
+      res.json({ user: toPublicUser(result.user) });
+      return;
+    }
+    const already = await sessionUserIfVerified(req);
+    if (already) {
+      res.json({ user: toPublicUser(already) });
+      return;
+    }
+    throw new AppError(
+      400,
+      ErrorCodes.BAD_REQUEST,
+      result.reason === 'expired'
+        ? 'This verification link has expired — request a new one.'
+        : 'This verification link is invalid or has already been used.',
+      { reason: result.reason },
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /auth/resend-verification — auth-gated (never reveals other accounts).
+ * No-op success when already verified; otherwise re-issues (respecting the 60s
+ * cooldown inside issueEmailVerification).
+ */
+authRouter.post('/resend-verification', authLimiter, requireAuth, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId).select('+emailVerification');
+    if (!user) throw new AppError(401, ErrorCodes.UNAUTHORIZED, 'Account not found');
+    if (user.emailVerified) {
+      res.json({ ok: true });
+      return;
+    }
+    await issueEmailVerification(user);
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

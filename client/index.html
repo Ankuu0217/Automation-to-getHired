@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="GetHired — turn job screenshots into sent, tracked, personalized outreach." />
     <title>GetHired</title>
+    <!-- Preload the display/body variable font so the LCP <h1> paints without a swap flash. -->
+    <link rel="preload" href="/fonts/AspektaVF.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Preload the hero video poster so the hero paints instantly, before video decode. -->
+    <link rel="preload" href="/hero/underwater-poster.jpg" as="image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

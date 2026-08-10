@@ -85,14 +85,24 @@
   .transition-quick {
     transition: background-color 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
+
+  /*
+   * Below-the-fold sections opt out of rendering until near the viewport.
+   * contain-intrinsic-size reserves a plausible height so the scrollbar and
+   * anchor offsets stay stable (CLS-neutral).
+   */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 720px;
+  }
 }
 
 @layer components {
   /*
-   * Landing hero backdrop: layered ink-green folds with one warm bronze
-   * bloom, drifting very slowly. Sits behind the hero render so the page
-   * never depends on a missing image. Reduced motion is handled by the
-   * global media rule below.
+   * Landing hero backdrop: a STATIC layered ink-green gradient that sits under
+   * the hero <video> so there's never a flash before the poster paints, and a
+   * load failure degrades to this. Deliberately static — a per-frame animating
+   * full-bleed paint layer is exactly the scroll-jank source we removed.
    */
   .hero-mesh {
     position: relative;
@@ -103,22 +113,115 @@
       radial-gradient(52rem 38rem at 55% 70%, rgba(16, 34, 29, 0.9), transparent 60%);
     overflow: hidden;
   }
-  .hero-mesh::before {
-    content: '';
-    position: absolute;
-    inset: -20%;
-    background-image:
-      radial-gradient(46rem 30rem at 68% 52%, rgba(185, 138, 94, 0.4), transparent 58%),
-      radial-gradient(26rem 16rem at 60% 46%, rgba(224, 181, 134, 0.28), transparent 55%);
-    animation: mesh-drift 24s ease-in-out infinite alternate;
+
+  /*
+   * The hero <video> lives on its own GPU layer (translateZ) with paint
+   * containment so it never triggers layout on the page, and a filter pulls the
+   * blue footage toward the ink-green brand.
+   */
+  .hero-video {
+    transform: translateZ(0);
+    contain: paint;
+    filter: saturate(0.9) hue-rotate(-12deg);
   }
-  @keyframes mesh-drift {
-    from {
-      transform: translate3d(-2%, 1%, 0) scale(1);
-    }
-    to {
-      transform: translate3d(2%, -2%, 0) scale(1.06);
-    }
+
+  /*
+   * Hero legibility stack — sits between the video and the copy so bright blue
+   * footage still reads as ink-green brand surface. Every layer is
+   * pointer-events:none decoration. The dark stops are keyed to the .hero-mesh
+   * base (#0d1a17) so scrim/vignette stay on-system without new brand tokens.
+   */
+  .hero-scrim {
+    background-image: linear-gradient(
+      to top,
+      rgba(13, 26, 23, 0.88) 0%,
+      rgba(13, 26, 23, 0.45) 32%,
+      transparent 60%
+    );
+  }
+  /*
+   * Top scrim — the brief's scrim guards the bottom cluster, but the headline
+   * sits over the brightest upper water. This mirror-scrim brings the headline
+   * band to WCAG AA (see docs/HERO_MOTION.md / the contrast report). Same ink
+   * base as .hero-scrim so the two read as one graded surface.
+   */
+  .hero-scrim-top {
+    background-image: linear-gradient(
+      to bottom,
+      rgba(13, 26, 23, 0.82) 0%,
+      rgba(13, 26, 23, 0.6) 24%,
+      rgba(13, 26, 23, 0.3) 42%,
+      transparent 60%
+    );
+  }
+  .hero-vignette {
+    background-image: radial-gradient(120% 90% at 50% 38%, transparent 46%, rgba(0, 0, 0, 0.36) 100%);
+  }
+  /*
+   * Film grain — inline feTurbulence data-URI tiled at 180px. Kills gradient
+   * banding and reads as film rather than CSS. Highest-ROI premium trick.
+   */
+  .hero-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    will-change: auto;
+  }
+
+  /*
+   * Cursor-follow light — a single soft-light lime bloom whose position is
+   * smoothed toward the pointer by a framer spring (settles and stops; no
+   * perpetual rAF). Desktop hover only; the component unmounts it under
+   * reduced-motion / coarse pointers. Promoted to its own layer so the blend
+   * over the video never forces a full-region recomposite on the main thread.
+   */
+  .hero-cursor-light {
+    width: 520px;
+    height: 520px;
+    margin: -260px 0 0 -260px;
+    border-radius: var(--r-pill);
+    background: radial-gradient(circle, rgba(206, 247, 158, 0.5) 0%, transparent 70%);
+    opacity: 0.06;
+    mix-blend-mode: soft-light;
+    will-change: transform;
+  }
+
+  /*
+   * Footer poster brand stack — a static top-down scrim so the giant wordmark
+   * and white headline stay legible over the underwater still. Same ink base
+   * as the hero scrims; keeps the footer cheap (no second video).
+   */
+  .footer-scrim {
+    background-image: linear-gradient(
+      to bottom,
+      rgba(13, 26, 23, 0.7) 0%,
+      rgba(0, 0, 0, 0.35) 40%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
+  }
+
+  /*
+   * Notched feature card — integratedbio's exact technique: border-radius rounds
+   * the three outer corners while a clip-path polygon cuts a clean square notch
+   * at the bottom-right. The two stack (the rounding survives because it sits
+   * inside the polygon), giving a crisp cut with no mask anti-aliasing and no
+   * per-card SVG. The ArrowSquare is a SIBLING (see FeatureShowcase), so the
+   * notch never clips it. Hairline is a plain border, clipped cleanly at the cut.
+   */
+  .notch-card {
+    --notch: 72px; /* square cut — holds the 56px arrow square + breathing gap */
+    position: relative;
+    border: 1px solid var(--hairline, var(--graphite));
+    border-radius: 20px 20px 0 20px; /* TL TR BR(notch → sharp) BL */
+    clip-path: polygon(
+      100% 0,
+      100% calc(100% - var(--notch)),
+      calc(100% - var(--notch)) calc(100% - var(--notch)),
+      calc(100% - var(--notch)) 100%,
+      0 100%,
+      0 0
+    );
   }
 
   /* The one focus treatment — lime signal lamp. */
@@ -141,6 +244,39 @@
   }
   .slider::-moz-range-thumb {
     @apply size-4 rounded-full border-2 border-ink bg-paper transition-transform hover:scale-110;
+  }
+}
+
+/* Walking crab (landing seam). Bounds are var(--x-left)/var(--x-right), each a
+   calc(vw…) set inline on the element, so they re-resolve on resize with zero JS.
+   Travel is LINEAR (constant velocity = least foot-slip against the in-place SMIL
+   walk cycle); brief dwells at 50%/100% read as the crab scanning before it turns;
+   a ±1.25° lean telegraphs direction without a flip. The reduced-motion rule below
+   parks it at keyframe 0 (visual centre on the 50% mark). */
+@keyframes crab-patrol {
+  0%, 3% {
+    transform: translateX(var(--x-left)) rotateZ(0deg);
+  }
+  25% {
+    transform: translateX(calc((var(--x-left) + var(--x-right)) / 2)) rotateZ(1.25deg);
+  }
+  47%, 53% {
+    transform: translateX(var(--x-right)) rotateZ(0deg);
+  }
+  75% {
+    transform: translateX(calc((var(--x-left) + var(--x-right)) / 2)) rotateZ(-1.25deg);
+  }
+  97%, 100% {
+    transform: translateX(var(--x-left)) rotateZ(0deg);
+  }
+}
+@keyframes crab-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
   }
 }
 

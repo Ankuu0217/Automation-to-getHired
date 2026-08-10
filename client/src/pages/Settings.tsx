@@ -719,6 +719,8 @@ export function Settings() {
         .catch(() => undefined);
     } else if (gmail === 'denied') {
       toast.warning('Gmail access was denied — you can connect anytime from Settings.');
+    } else if (gmail === 'expired') {
+      toast.error('That connect link expired — please connect Gmail again.');
     } else {
       toast.error('Gmail connection failed — please try again.');
     }

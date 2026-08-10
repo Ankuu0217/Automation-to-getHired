@@ -12,9 +12,10 @@ interface EmptyStateProps {
   description?: React.ReactNode;
   action?: { to: string; label: string };
   className?: string;
+  children?: React.ReactNode;
 }
 
-export function EmptyState({ headline, description, action, className }: EmptyStateProps) {
+export function EmptyState({ headline, description, action, className, children }: EmptyStateProps) {
   return (
     <div className={cn('rounded-card border border-graphite bg-ink-2 px-6 py-10', className)}>
       <p className="font-sans text-heading font-normal text-paper">{headline}</p>
@@ -39,6 +40,7 @@ export function EmptyState({ headline, description, action, className }: EmptySt
           </span>
         </Link>
       )}
+      {children}
     </div>
   );
 }

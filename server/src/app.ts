@@ -16,6 +16,7 @@ import { notificationsRouter } from './routes/notifications';
 import { templatesRouter } from './routes/templates';
 import { analyticsRouter } from './routes/analytics';
 import { trackingRouter } from './routes/tracking';
+import { getQueueStatus } from './services/queue';
 
 export function createApp(): express.Express {
   const app = express();
@@ -53,6 +54,11 @@ export function createApp(): express.Express {
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, service: 'jobmail-server' });
+  });
+
+  app.get('/health/queue', (_req, res) => {
+    const status = getQueueStatus();
+    res.json({ ok: status.healthy, ...status });
   });
 
   app.use('/api/v1/auth', authRouter);

@@ -1,6 +1,7 @@
 import type { ApplicationStage, Tone } from '@jobmail/shared';
 import { Application, type IApplication, type IApplicationEmail } from '../../models/Application';
 import { EmailEvent } from '../../models/EmailEvent';
+import { User } from '../../models/User';
 import { isPermanentSendError, sendMail } from '../mailer';
 import { injectTrackingPixel } from '../tracking';
 import { countWords, emailBodyToHtml } from '../emailRules';
@@ -269,6 +270,19 @@ export async function processSendFollowUp(data: SendFollowUpJobData): Promise<Fo
       'Follow-up sequence stopped before send',
     );
     return 'stopped';
+  }
+
+  // ── Sending gate (defense in depth): follow-ups are outreach too, so never
+  //    send on behalf of an unverified account. This should be unreachable —
+  //    a follow-up only exists after a verified initial send, and verification
+  //    is permanent — but we re-check right before the send regardless. ──
+  const owner = await User.findById(application.userId).select('emailVerified');
+  if (!owner?.emailVerified) {
+    logger.warn(
+      { applicationId: data.applicationId, userId: String(application.userId) },
+      'send-followup: owner not email-verified — skipping outreach',
+    );
+    return 'skipped';
   }
 
   const initial = application.emails[0];

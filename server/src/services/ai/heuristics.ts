@@ -12,6 +12,32 @@ const HR_LOCAL_RE = /^(careers|jobs|hr|recruiting|recruitment|talent|hiring|peop
 const GENERIC_LOCAL_RE = /^(info|contact|hello|support|admin|mail)([._-]|@|$)/i;
 const APPLY_CONTEXT_RE = /(contact|email|apply|reach out|send (your )?(resume|cv)|cv to|applications? to)/i;
 
+/**
+ * LinkedIn / web UI chrome. A screenshot's OCR text drags in the nav, side ads,
+ * action bar and the footer link row ("About · Accessibility · Help Center ·
+ * Privacy & Terms · …") — the last of which the naive regex once read as the
+ * company ("Accessibility Help Center"). We drop these before extracting.
+ */
+// A whole trimmed line that IS one chrome token (anchored, so real content like
+// "Follow-up on incidents" is never dropped).
+const CHROME_LINE_RE =
+  /^(home|my network|jobs|messaging|notifications|try premium|premium|see who'?s hiring(?: on linkedin)?|people also viewed|promoted|linkedin news|about|accessibility|help center|privacy(?: & terms)?|terms(?: of service)?|advertising|business services|get the app|like|comment|repost|share|send|follow|connect|see more|show more|…?\s*more|\d[\d,]* (comments?|reposts?|likes?|reactions?|followers?|impressions?))$/i;
+// Footer link soup that OCR often flattens onto one line.
+const CHROME_INLINE_RE =
+  /\b(accessibility\s+help\s+center|help\s+center|privacy\s*&?\s*terms|business\s+services|see who'?s hiring on linkedin|linkedin\s+corporation[^\n]*|© ?\d{4}[^\n]*)/gi;
+// Words that can never be a real company/role — reject a match containing one.
+const CHROME_WORD_RE =
+  /\b(accessibility|help\s*center|privacy|terms|advertising|business services|linkedin|premium|messaging|notifications|newsletter)\b/i;
+
+/** Strip UI chrome so the field extractors only see the hiring post's content. */
+function stripChrome(text: string): string {
+  return text
+    .split('\n')
+    .filter((l) => !CHROME_LINE_RE.test(l.trim()))
+    .join('\n')
+    .replace(CHROME_INLINE_RE, ' ');
+}
+
 function extractEmails(text: string, hrName: string | null): HrEmail[] {
   const found = text.match(EMAIL_RE) ?? [];
   const seen = new Set<string>();
@@ -61,7 +87,8 @@ function extractCompany(text: string): string | null {
     const m = text.match(re);
     if (m) {
       const company = m[1].trim().replace(/[.,\s]+$/, '');
-      if (company.length >= 2) return company;
+      // Reject footer/nav words that slipped past chrome-stripping.
+      if (company.length >= 2 && !CHROME_WORD_RE.test(company)) return company;
     }
   }
   return null;
@@ -78,7 +105,7 @@ function extractRole(text: string): string | null {
     const m = text.match(re);
     if (m) {
       const role = m[1].trim().replace(/[.,\s]+$/, '');
-      if (role.length >= 3) return role;
+      if (role.length >= 3 && !CHROME_WORD_RE.test(role)) return role;
     }
   }
   return null;
@@ -103,12 +130,13 @@ function cleanText(text: string): string {
  * (never throws) — with nothing found it degrades to nulls + low confidence.
  */
 export function extractFromText(text: string): { extraction: JobExtraction; rawText: string } {
-  const rawText = cleanText(text);
-  const hrName = extractHrName(rawText);
-  const hrEmails = extractEmails(rawText, hrName);
-  const company = extractCompany(rawText);
-  const role = extractRole(rawText);
-  const location = extractLocation(rawText);
+  const rawText = cleanText(text); // original — kept for the "raw extracted text" panel
+  const content = stripChrome(rawText); // chrome-free — what the field extractors see
+  const hrName = extractHrName(content);
+  const hrEmails = extractEmails(content, hrName);
+  const company = extractCompany(content);
+  const role = extractRole(content);
+  const location = extractLocation(content);
 
   let confidence = 0.3;
   if (company) confidence += 0.05;
@@ -120,7 +148,7 @@ export function extractFromText(text: string): { extraction: JobExtraction; rawT
       company,
       role,
       location,
-      jdText: rawText.slice(0, 20000),
+      jdText: content.slice(0, 20000),
       hrName,
       hrEmails,
       confidence,

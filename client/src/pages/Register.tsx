@@ -31,7 +31,7 @@ export function Register() {
     mutationFn: register,
     onSuccess: ({ user }) => {
       setUser(user);
-      toast.success('Account created — let’s set you up.');
+      toast.success(`Account created — we sent a verification link to ${user.email}.`);
       navigate('/onboarding', { replace: true });
     },
     onError: (error) => {
@@ -116,6 +116,10 @@ export function Register() {
           {mutation.isPending && <Loader2 className="size-4 animate-spin" />}
           {mutation.isPending ? 'Creating account…' : 'Create account'}
         </Button>
+
+        <p className="text-center font-sans text-xs text-text-2-dark">
+          We’ll email you a link to verify your address before your first send.
+        </p>
       </form>
 
       <p className="mt-6 text-center font-sans text-sm text-text-2-dark">

@@ -12,6 +12,8 @@ export const ErrorCodes = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',
+  /** Account email not yet verified — the send pipeline is gated until it is. */
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
   NOT_FOUND: 'NOT_FOUND',
   CONFLICT: 'CONFLICT',
   RATE_LIMITED: 'RATE_LIMITED',

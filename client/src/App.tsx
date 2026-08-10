@@ -15,6 +15,7 @@ import { Pipeline } from '@/pages/Pipeline';
 import { Register } from '@/pages/Register';
 import { Settings } from '@/pages/Settings';
 import { Templates } from '@/pages/Templates';
+import { VerifyEmail } from '@/pages/VerifyEmail';
 
 export function App() {
   return (
@@ -22,6 +23,7 @@ export function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       <Route
         path="/onboarding"

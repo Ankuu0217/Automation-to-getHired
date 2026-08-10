@@ -539,6 +539,17 @@ jobsRouter.post('/:id/send', sendLimiter, validate(sendJobSchema), async (req, r
     const job = await findOwnJob(req.userId!, req.params.id);
     const input = req.body as SendJobInput;
 
+    // Sending gate (email verification): the app sends on the user's behalf, so
+    // an unverified address is a deliverability/abuse risk — fail closed here.
+    const owner = await User.findById(req.userId!).select('emailVerified');
+    if (!owner?.emailVerified) {
+      throw new AppError(
+        403,
+        ErrorCodes.EMAIL_NOT_VERIFIED,
+        'Verify your email to start sending',
+      );
+    }
+
     if (job.needsEmail || !job.hrEmail) {
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'Set an HR email before sending');
     }

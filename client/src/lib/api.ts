@@ -36,6 +36,7 @@ import type {
   UpdateProfileInput,
   UpdateSettingsInput,
   UploadJobResponse,
+  VerifyEmailInput,
 } from '@jobmail/shared';
 
 import { useAuthStore } from '@/stores/auth';
@@ -63,7 +64,14 @@ export class ApiRequestError extends Error {
 }
 
 /** Paths whose own 401 must NOT trigger a refresh attempt (would loop). */
-const REFRESH_EXEMPT_PATHS = new Set(['/auth/login', '/auth/register', '/auth/refresh']);
+const REFRESH_EXEMPT_PATHS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  // Public: the token is the proof, so a logged-out visitor opening the link
+  // must not bounce through a refresh → /login redirect.
+  '/auth/verify-email',
+]);
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   /** JSON-serializable payload, or FormData for multipart uploads. */
@@ -163,6 +171,16 @@ export function me() {
 
 export function updateSettings(input: UpdateSettingsInput) {
   return api<{ user: PublicUser }>('/auth/settings', { method: 'PATCH', body: input });
+}
+
+/** Confirm an email with the token from the verification link (public). */
+export function verifyEmail(input: VerifyEmailInput) {
+  return api<{ user: PublicUser }>('/auth/verify-email', { method: 'POST', body: input });
+}
+
+/** Re-send the verification email to the signed-in user (server enforces a 60s cooldown). */
+export function resendVerification() {
+  return api<{ ok: true }>('/auth/resend-verification', { method: 'POST' });
 }
 
 /** Danger zone — deletes the account and all data; the server clears cookies (204). */
@@ -338,4 +356,17 @@ export function getToneAnalytics() {
 /** sentAt → repliedAt latency histogram + median hours. */
 export function getResponseTimeAnalytics() {
   return api<ResponseTimeAnalyticsResponse>('/analytics/response-time');
+}
+
+export interface QueueHealthResponse {
+  ok: boolean;
+  mode: 'inline' | 'agenda';
+  healthy: boolean;
+}
+
+/** Queue runtime status — public so the compose screen can warn if Agenda is down. */
+export function getQueueHealth() {
+  return fetch(`${BASE_URL.replace(/\/api\/v1\/?$/, '')}/health/queue`).then((res) =>
+    res.json(),
+  ) as Promise<QueueHealthResponse>;
 }

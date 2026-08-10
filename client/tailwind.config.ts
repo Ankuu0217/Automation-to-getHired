@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
+import plugin from 'tailwindcss/plugin';
 
 /*
  * Class-level tokens for the "Bioluminescent laboratory" system.
@@ -75,6 +76,19 @@ export default {
         arrow: '14px',
         pill: '9999px',
       },
+      /*
+       * Optical tracking ramp — tighten as size grows. Layered as `tracking-*`
+       * utilities (they win over the per-fontSize letterSpacing baked into the
+       * `text-*` tokens) so the marketing hero can adopt the ramp WITHOUT
+       * rewriting the fontSize tokens the product UI depends on. Utility-only —
+       * no CSS-var counterpart in index.css (like the hover-hover plugin below).
+       */
+      letterSpacing: {
+        h1: '-0.03em' /* ~128px display */,
+        h2: '-0.025em' /* ~72px */,
+        h3: '-0.02em' /* ~40px */,
+        copy: '-0.005em' /* body measure */,
+      },
       keyframes: {
         'fade-in': {
           from: { opacity: '0' },
@@ -96,5 +110,14 @@ export default {
       },
     },
   },
-  plugins: [animate],
+  plugins: [
+    animate,
+    /*
+     * `hover-hover:` — apply a style only where the device can truly hover.
+     * Guards the CTA colour-inversion so it never sticks after a tap on touch.
+     */
+    plugin(({ addVariant }) => {
+      addVariant('hover-hover', '@media (hover: hover)');
+    }),
+  ],
 } satisfies Config;

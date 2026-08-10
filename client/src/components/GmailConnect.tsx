@@ -1,7 +1,7 @@
 import { ErrorCodes } from '@jobmail/shared';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2, Mail, Unplug } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { AlertDialog } from '@/components/ui/alert-dialog';
@@ -53,7 +53,24 @@ export function GmailConnectPanel() {
     },
   });
 
-  const connected = user?.gmailConnected ?? false;
+  const status = user?.gmailStatus ?? 'disconnected';
+  const connected = status === 'connected';
+  const needsReconnect = status === 'needs_reconnect';
+  const linked = connected || needsReconnect; // an address is on file in both cases
+
+  // A needs_reconnect grant can heal on its own (a later send/retry succeeds and
+  // clears the flag server-side). Refetch /auth/me on window focus while flagged
+  // so the amber state clears without a hard reload.
+  useEffect(() => {
+    if (status !== 'needs_reconnect') return;
+    const refresh = () => {
+      me()
+        .then(({ user: fresh }) => setUser(fresh))
+        .catch(() => undefined);
+    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [status, setUser]);
 
   const handleDisconnect = () => setDisconnectOpen(true);
 
@@ -62,33 +79,55 @@ export function GmailConnectPanel() {
       <div
         className={cn(
           'flex flex-col items-start justify-between gap-4 rounded-card border p-4 sm:flex-row sm:items-center',
-          connected ? 'border-graphite bg-ink-2' : 'border-graphite bg-ink',
+          needsReconnect
+            ? 'border-warn/40 bg-warn/5'
+            : linked
+              ? 'border-graphite bg-ink-2'
+              : 'border-graphite bg-ink',
         )}
       >
         <div className="flex items-center gap-3">
           <div
             className={cn(
               'flex size-10 shrink-0 items-center justify-center rounded-btn border',
-              connected ? 'border-ok/40 text-ok' : 'border-graphite bg-ink-2 text-text-3-dark',
+              needsReconnect
+                ? 'border-warn/40 text-warn'
+                : connected
+                  ? 'border-ok/40 text-ok'
+                  : 'border-graphite bg-ink-2 text-text-3-dark',
             )}
           >
             <Mail className="size-5" />
           </div>
           <div className="min-w-0">
             <p className="font-sans text-sm font-normal text-paper">
-              {connected ? user?.connectedEmail : 'Not connected'}
+              {linked ? user?.connectedEmail : 'Not connected'}
             </p>
             <p className="font-sans text-xs text-text-2-dark">
-              {connected
-                ? 'Your Gmail account is connected.'
-                : 'Tokens are encrypted at rest; you can revoke access anytime.'}
+              {needsReconnect
+                ? 'Connection expired — reconnect to resume sending.'
+                : connected
+                  ? 'You’ll send outreach as this address.'
+                  : 'Tokens are encrypted at rest; you can revoke access anytime.'}
             </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {connected ? (
+          {linked ? (
             <>
-              <Badge variant="success">Connected</Badge>
+              <Badge variant={needsReconnect ? 'warning' : 'success'}>
+                {needsReconnect ? 'Reconnect needed' : 'Connected'}
+              </Badge>
+              {needsReconnect && (
+                <Button
+                  size="sm"
+                  onClick={() => connectMutation.mutate()}
+                  disabled={connectMutation.isPending}
+                >
+                  {connectMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+                  {connectMutation.isPending ? 'Redirecting…' : 'Reconnect'}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -126,7 +165,7 @@ export function GmailConnectPanel() {
         }}
       />
 
-      {oauthMissing && !connected && (
+      {oauthMissing && !linked && (
         <div className="rounded-btn border border-warn/40 bg-transparent p-3">
           <Mono size="xs" color="warn" className="leading-relaxed">
             Gmail OAuth is not configured on this server. For local development, set the app-password

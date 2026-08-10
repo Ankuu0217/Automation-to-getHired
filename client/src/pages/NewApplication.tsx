@@ -44,6 +44,7 @@ import {
   generateJobEmail,
   getJob,
   getProfile,
+  getQueueHealth,
   importJob,
   jobScreenshotUrl,
   sendJob,
@@ -786,7 +787,15 @@ function MatchDial({ score }: { score: number }) {
   );
 }
 
-function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () => void }) {
+function ReviewStep({
+  job,
+  onContinue,
+  onReset,
+}: {
+  job: JobPostResponse;
+  onContinue: () => void;
+  onReset: () => void;
+}) {
   const queryClient = useQueryClient();
   const extraction = job.extraction;
   const confidence = extraction?.confidence;
@@ -805,6 +814,14 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
 
   const lowConfidence = needsLowConfidenceWarning(job);
   const isOcr = extraction?.source === 'ocr';
+  // Extraction came back completely empty (screenshot unreadable / paste had no
+  // structure): the review form is blank and the user must type it all in.
+  const extractionEmpty =
+    !extraction?.company &&
+    !extraction?.role &&
+    !extraction?.location &&
+    !extraction?.hrName &&
+    (extraction?.hrEmails?.length ?? 0) === 0;
 
   const hasChanges = useMemo(() => {
     return (
@@ -871,6 +888,26 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
     saveMutation.mutate(email);
   };
 
+  /**
+   * Continue → email step. Persist first when there are unsaved manual edits or
+   * the job isn't yet draftable (a degraded extraction), so what the user typed
+   * is saved AND the status recovers to a draftable state — otherwise the email
+   * step would 400 with "extraction has not completed yet". Only advances once
+   * the save actually succeeds (a duplicate/validation error blocks it).
+   */
+  const handleContinue = () => {
+    const mustPersist = hasChanges || job.status === 'failed';
+    if (!mustPersist) {
+      onContinue();
+      return;
+    }
+    setDuplicateId(null);
+    setEmailError(null);
+    const email = resolveEmail();
+    if (email === undefined) return;
+    saveMutation.mutate(email, { onSuccess: () => onContinue() });
+  };
+
   const field = (
     id: string,
     label: string,
@@ -908,9 +945,13 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
-              <Mono size="xs" color="warn">LOW CONFIDENCE EXTRACTION</Mono>
+              <Mono size="xs" color="warn">
+                {extractionEmpty ? 'COULDN’T READ IT — ENTER MANUALLY' : 'LOW CONFIDENCE EXTRACTION'}
+              </Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
-                Please verify the fields below — the screenshot may have been blurry or cropped.
+                {extractionEmpty
+                  ? 'We couldn’t read this screenshot automatically. Type the company, role and HR email below, then continue.'
+                  : 'Please verify the fields below — the screenshot may have been blurry or cropped.'}
               </p>
             </div>
           </div>
@@ -1043,16 +1084,29 @@ function ReviewStep({ job, onContinue }: { job: JobPostResponse; onContinue: () 
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <Button
-              variant="outline"
-              onClick={handleSave}
-              disabled={!hasChanges || saveMutation.isPending}
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              disabled={saveMutation.isPending}
             >
-              Save changes
+              <UploadCloud className="mr-2 size-4" />
+              Re-upload screenshot
             </Button>
-            <Button onClick={onContinue}>Continue</Button>
-            <ArrowSquare decorative onClick={onContinue} />
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={!hasChanges || saveMutation.isPending}
+              >
+                Save changes
+              </Button>
+              <Button onClick={handleContinue} disabled={saveMutation.isPending}>
+                Continue
+              </Button>
+              <ArrowSquare decorative onClick={handleContinue} />
+            </div>
           </div>
         </div>
       </div>
@@ -1109,13 +1163,18 @@ function SendFailurePanel({
   retrying,
   onFixEmail,
   onRetry,
+  onEditAndRetry,
+  onBackToReview,
 }: {
   job: JobPostResponse;
   retrying: boolean;
   onFixEmail: () => void;
   onRetry: () => void;
+  onEditAndRetry: () => void;
+  onBackToReview: () => void;
 }) {
   const code = job.failureCode;
+  const canEdit = code === 'SEND_FAILED' || code === null || code === undefined;
   return (
     <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
       <div className="flex items-start gap-3">
@@ -1144,14 +1203,24 @@ function SendFailurePanel({
                 Connect Gmail
               </Link>
             )}
+            {canEdit && (
+              <Button size="sm" onClick={onEditAndRetry}>
+                <Pencil className="size-4" />
+                Edit & retry
+              </Button>
+            )}
             <Button
               size="sm"
-              variant={code === 'SEND_FAILED' || code === null ? 'default' : 'outline'}
+              variant="outline"
               onClick={onRetry}
               disabled={retrying}
             >
               <RefreshCw className="size-4" />
-              Try again
+              Try again now
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onBackToReview}>
+              <ArrowLeft className="size-4" />
+              Back to review
             </Button>
           </div>
         </div>
@@ -1186,10 +1255,19 @@ function SendStatusCard({
   );
 }
 
-function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () => void }) {
+function EmailPreviewStep({
+  job,
+  onBack,
+  onReset,
+}: {
+  job: JobPostResponse;
+  onBack: () => void;
+  onReset: () => void;
+}) {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
+  const queueHealthQuery = useQuery({ queryKey: ['queue-health'], queryFn: getQueueHealth });
 
   const [pendingSend, setPendingSend] = useState<'now' | 'scheduled' | null>(null);
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
@@ -1197,13 +1275,19 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
   const [editSubject, setEditSubject] = useState('');
   const [editBody, setEditBody] = useState('');
   const [tone, setTone] = useState<Tone>(user?.settings.tone ?? 'formal');
+  /**
+   * After a send failure the failure panel takes over. If the user chooses
+   * "Edit & retry" we hide the panel, enter edit mode, and let them change the
+   * draft or recipient before sending again. Reset when a new send starts so a
+   * subsequent failure surfaces again.
+   */
+  const [dismissFailure, setDismissFailure] = useState(false);
 
-  /* Poll the job while a send-now is in flight (the parent only polls 'processing'). */
+  /* Poll the job while it is queued (the parent only polls 'processing'). */
   const liveQuery = useQuery({
     queryKey: ['job', job.id],
     queryFn: () => getJob(job.id),
-    refetchInterval: (query) =>
-      query.state.data?.job.status === 'queued' && pendingSend === 'now' ? 2000 : false,
+    refetchInterval: (query) => (query.state.data?.job.status === 'queued' ? 2000 : false),
   });
   const current = liveQuery.data?.job ?? job;
   const match = current.match;
@@ -1255,6 +1339,9 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
 
   const sendMutation = useMutation({
     mutationFn: (input: SendJobInput) => sendJob(job.id, input),
+    onMutate: () => {
+      setDismissFailure(false);
+    },
     onSuccess: (data, input) => {
       setScheduledAt(data.scheduledAt);
       setPendingSend(input.scheduledAt ? 'scheduled' : 'now');
@@ -1262,6 +1349,10 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       void queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
     onError: (error) => {
+      if (error instanceof ApiRequestError && error.code === 'EMAIL_NOT_VERIFIED') {
+        toast.error('Verify your email to start sending — check your inbox, or use Resend on the banner above.');
+        return;
+      }
       toast.error(error instanceof ApiRequestError ? error.message : 'Could not queue the email.');
     },
   });
@@ -1289,13 +1380,20 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
     );
   }
 
-  if (current.status === 'failed' && current.failureCode) {
+  if (current.status === 'failed' && current.failureCode && !dismissFailure) {
     return (
       <SendFailurePanel
         job={current}
         retrying={sendMutation.isPending}
         onFixEmail={onBack}
         onRetry={() => sendMutation.mutate({})}
+        onEditAndRetry={() => {
+          setEditSubject(current.draft.subject);
+          setEditBody(current.draft.bodyText);
+          setEditing(true);
+          setDismissFailure(true);
+        }}
+        onBackToReview={onBack}
       />
     );
   }
@@ -1316,8 +1414,24 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
         <StatusLabel status="queued" className="mx-auto" />
         <Mono size="sm" color="pure" className="mt-4 block">SENDING</Mono>
         <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2-dark">
-          Queued with human-like jitter — usually out within a few minutes.
+          Queued with human-like jitter — usually out within a few minutes. We poll the
+          status automatically; if it stays here longer, check your Gmail connection or
+          server logs.
         </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void liveQuery.refetch()}
+            disabled={liveQuery.isFetching}
+          >
+            <RefreshCw className={cn('size-4', liveQuery.isFetching && 'animate-spin')} />
+            Check status
+          </Button>
+          <Link to="/dashboard" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            Go to dashboard
+          </Link>
+        </div>
       </div>
     );
   }
@@ -1368,12 +1482,42 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
 
   /* ── Draft ready: preview, edit, tone, send ── */
   const busy = generateMutation.isPending || toneMutation.isPending;
-  const actionsDisabled = busy || sendMutation.isPending || editing;
   const profile = profileQuery.data?.profile;
   const resumeName = profile?.resumeFile ? resumeAttachmentName(profile.fullName) : null;
 
+  const emailVerified = user?.emailVerified ?? false;
+  const gmailConnected = user?.gmailConnected ?? false;
+  const hasEmailFallback = user?.hasEmailFallback ?? false;
+  const hasResume = Boolean(resumeName);
+  const senderReady = gmailConnected || hasEmailFallback;
+
+  /**
+   * Send is blocked for either transient UI states (busy/editing) or hard
+   * prerequisites that would make the backend reject the send anyway. The
+   * reason is surfaced next to the button so the user always knows why
+   * "Send now" is disabled. In development, a configured Gmail app-password
+   * fallback also satisfies the sender requirement so local testing does not
+   * require OAuth connection.
+   */
+  const sendBlockedReason = ((): string | null => {
+    if (busy) return 'Drafting the email…';
+    if (sendMutation.isPending) return 'Sending…';
+    if (editing) return 'Save your edits before sending.';
+    if (!emailVerified) return 'Verify your email to send.';
+    if (!senderReady) return 'Connect Gmail to send.';
+    if (!hasResume) return 'Upload your resume to send.';
+    return null;
+  })();
+  const canSend = !busy && !sendMutation.isPending && !editing && emailVerified && senderReady && hasResume;
+  const actionsDisabled = !canSend;
+
   const footerActions = (
     <div className="flex flex-wrap items-center justify-end gap-3">
+      {sendBlockedReason && !sendMutation.isPending && (
+        <Mono size="xs" color="warn" className="mr-auto">
+          {sendBlockedReason}
+        </Mono>
+      )}
       <Button
         variant="outline"
         onClick={() => sendMutation.mutate({ scheduledAt: tomorrowNineAmIso() })}
@@ -1385,7 +1529,7 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
       <Button onClick={() => sendMutation.mutate({})} disabled={actionsDisabled}>
         {sendMutation.isPending ? 'Sending…' : 'Send now'}
       </Button>
-      {!actionsDisabled && (
+      {canSend && (
         <ArrowSquare decorative onClick={() => sendMutation.mutate({})} />
       )}
     </div>
@@ -1413,9 +1557,13 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
             <div className="min-w-0 flex-1">
-              <Mono size="xs" color="warn">GMAIL NOT CONNECTED</Mono>
+              <Mono size="xs" color="warn">
+                {user?.hasEmailFallback ? 'GMAIL NOT CONNECTED — DEV FALLBACK ACTIVE' : 'GMAIL NOT CONNECTED'}
+              </Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
-                Connect it in Settings before this email can send.
+                {user?.hasEmailFallback
+                  ? 'A development Gmail fallback is configured, so you can still send. For production, connect your own account in Settings.'
+                  : 'Connect it in Settings before this email can send.'}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Link to="/settings" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
@@ -1445,6 +1593,33 @@ function EmailPreviewStep({ job, onBack }: { job: JobPostResponse; onBack: () =>
           </div>
         </div>
       )}
+
+      {queueHealthQuery.data && !queueHealthQuery.data.healthy && (
+        <div className="rounded-card border border-danger/40 bg-ink-2 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-danger" />
+            <div className="min-w-0 flex-1">
+              <Mono size="xs" color="danger">SEND QUEUE NOT RUNNING</Mono>
+              <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
+                The background queue that sends emails is not healthy ({queueHealthQuery.data.mode}
+                mode). Emails may stay queued. Ask the admin to restart the server or set
+                QUEUE_INLINE=true.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeft className="mr-2 size-4" />
+          Back to review
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onReset}>
+          <UploadCloud className="mr-2 size-4" />
+          Re-upload screenshot
+        </Button>
+      </div>
 
       <ProofSheet
         fromName={user?.name ?? ''}
@@ -1564,10 +1739,6 @@ export function NewApplication() {
   }, []);
 
   const stepContent = useMemo(() => {
-    if (manualEntry && jobId && jobQuery.isSuccess && job) {
-      return <ReviewStep key={job.id} job={job} onContinue={() => setStep(3)} />;
-    }
-
     if ((step === 2 || step === 3) && jobId) {
       if (jobQuery.isPending) {
         return (
@@ -1608,9 +1779,23 @@ export function NewApplication() {
         );
       }
       if (step === 3) {
-        return <EmailPreviewStep key={job.id} job={job} onBack={() => setStep(2)} />;
+        return (
+          <EmailPreviewStep
+            key={job.id}
+            job={job}
+            onBack={() => setStep(2)}
+            onReset={handleReset}
+          />
+        );
       }
-      return <ReviewStep key={job.id} job={job} onContinue={() => setStep(3)} />;
+      return (
+        <ReviewStep
+          key={job.id}
+          job={job}
+          onContinue={() => setStep(3)}
+          onReset={handleReset}
+        />
+      );
     }
 
     return (
@@ -1636,21 +1821,19 @@ export function NewApplication() {
     jobId,
     job,
     jobQuery.isPending,
-    jobQuery.isSuccess,
     jobQuery.isError,
     processing,
     localPreviewUrl,
     uploadMutation,
     importMutation,
     jobQuery.refetch,
-    manualEntry,
     handleReset,
     handleManualEntry,
   ]);
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <StepsHeader current={manualEntry ? 2 : step} />
+      <StepsHeader current={step} />
 
       <AnimatePresence mode="wait">
         <motion.div

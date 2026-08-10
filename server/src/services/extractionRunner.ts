@@ -52,11 +52,31 @@ async function persistExtractionResult(
   }
 }
 
-/** Shared failure tail: flag the job 'failed' and persist the reason. */
+/**
+ * Shared failure tail. Extraction should never dead-end the user: even when the
+ * whole pipeline throws (unreadable file, OCR engine down), we degrade to an
+ * empty, editable `needs_review` extraction so the flow lands on the manual
+ * review form. `needs_review` (unlike `failed`) is draftable downstream, so the
+ * user can type the details in by hand and continue to the email step.
+ */
 async function persistExtractionFailure(job: IJobPost, err: unknown, jobPostId: string): Promise<void> {
-  job.status = 'failed';
-  job.error = err instanceof Error ? err.message : 'Extraction failed';
-  logger.error({ err, jobPostId }, 'Extraction failed');
+  logger.error({ err, jobPostId }, 'Extraction failed — degrading to manual review');
+  job.extraction = {
+    company: null,
+    role: null,
+    location: null,
+    jdText: '',
+    hrName: null,
+    hrEmails: [],
+    confidence: 0,
+    source: 'ocr',
+  };
+  job.rawExtractedText = job.rawExtractedText ?? '';
+  job.hrEmail = null;
+  job.needsEmail = true;
+  job.status = 'needs_review';
+  job.error = null;
+  job.dedupeHash = null;
   await job.save().catch((saveErr) => {
     logger.error({ err: saveErr, jobPostId }, 'Failed to persist extraction failure state');
   });

@@ -43,13 +43,39 @@ export interface AIProvider {
   generateOutreachEmail(input: OutreachEmailInput): Promise<EmailDraft>;
 }
 
-/** OCR-only pipeline: tesseract.js → regex/heuristics. Always available. */
+/** A blank, editable extraction — the last-resort result when nothing could be read. */
+function emptyExtraction(): JobExtraction {
+  return {
+    company: null,
+    role: null,
+    location: null,
+    jdText: '',
+    hrName: null,
+    hrEmails: [],
+    confidence: 0,
+  };
+}
+
+/**
+ * OCR-only pipeline: tesseract.js → regex/heuristics. Always available and
+ * NEVER throws: if the OCR engine itself fails (worker/model download, corrupt
+ * image), we return an empty extraction so the caller degrades to a manual
+ * review step instead of dead-ending the user on "couldn't read this one".
+ */
 async function extractViaOcr(
   buffer: Buffer,
 ): Promise<{ extraction: JobExtraction; source: 'ocr'; rawText: string }> {
-  const text = await ocrImage(buffer);
-  const { extraction, rawText } = extractFromText(text);
-  return { extraction, source: 'ocr', rawText };
+  try {
+    const text = await ocrImage(buffer);
+    const { extraction, rawText } = extractFromText(text);
+    return { extraction, source: 'ocr', rawText };
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'OCR failed — returning empty extraction for manual review',
+    );
+    return { extraction: emptyExtraction(), source: 'ocr', rawText: '' };
+  }
 }
 
 /** Heuristics-only text pipeline (no OCR step — the text is already text). Always available. */
