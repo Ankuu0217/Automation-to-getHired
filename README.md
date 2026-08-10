@@ -249,5 +249,5 @@ You are responsible for complying with anti-spam laws (CAN-SPAM, GDPR) and platf
 ---
 
 <p align="center">
-  Built with ❤️ by <a href="https://github.com/your-username">Ankit Singh</a>
+  Built with ❤️ by <a href="https://github.com/Ankuu0217">Ankit Singh</a>
 </p>
