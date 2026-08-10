@@ -9,3 +9,10 @@ server/uploads/resumes/*
 !server/uploads/resumes/.gitkeep
 server/uploads/screenshots/*
 !server/uploads/screenshots/.gitkeep
+
+# Claude / AI prompt files
+.claude/
+CLAUDE_PROMPT*.md
+CLAUDE_CODE*.md
+SPEC.md
+docs/
