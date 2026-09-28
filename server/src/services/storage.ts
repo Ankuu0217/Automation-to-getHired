@@ -32,6 +32,34 @@ const LOCAL_ROOT = path.resolve(__dirname, '../../uploads');
 const FETCH_URL_TTL_S = 120;
 const FETCH_TIMEOUT_MS = 20_000;
 
+/** The remote store (ImageKit) refused or could not be reached — surfaced as 503, logged with the reason. */
+export class StorageUnavailableError extends Error {
+  constructor(
+    public readonly operation: 'upload' | 'download' | 'delete',
+    public readonly status: number | null,
+    reason: string,
+  ) {
+    super(`ImageKit ${operation} failed${status ? ` (HTTP ${status})` : ''}: ${reason}`);
+    this.name = 'StorageUnavailableError';
+  }
+}
+
+/** Human hint for the most common ImageKit misconfigurations. */
+export function imageKitHint(status: number | null): string {
+  if (status === 401) return 'IMAGEKIT_PRIVATE_KEY is wrong (use the PRIVATE key, starts with "private_").';
+  if (status === 403) return 'The key lacks permission or the plan blocks this action (check the ImageKit dashboard).';
+  if (status === 404) return 'IMAGEKIT_URL_ENDPOINT does not match your account (https://ik.imagekit.io/<your_id>).';
+  if (status === 429) return 'ImageKit rate limit / plan quota reached.';
+  if (status === null) return 'Network error reaching ImageKit (DNS/firewall/proxy?).';
+  return 'See the ImageKit dashboard / status page.';
+}
+
+function toUnavailable(operation: 'upload' | 'download' | 'delete', err: unknown): StorageUnavailableError {
+  const status = (err as { status?: number } | null)?.status ?? null;
+  const reason = (err as { message?: string } | null)?.message ?? String(err);
+  return new StorageUnavailableError(operation, typeof status === 'number' ? status : null, reason.slice(0, 300));
+}
+
 export class StorageNotFoundError extends Error {
   constructor(key: string) {
     super(`Stored file not found: ${key.startsWith(IK_PREFIX) ? 'imagekit' : 'local'}`);
@@ -89,13 +117,20 @@ export async function putFile(buffer: Buffer, opts: PutOptions): Promise<string>
   const safeName = sanitizeFileName(opts.fileName);
 
   if (isImageKitEnabled()) {
-    const res = await getIk().files.upload({
-      file: await toFile(buffer, safeName, { type: opts.mimeType }),
-      fileName: safeName,
-      folder: `${env.IMAGEKIT_FOLDER}/${opts.kind}/${opts.userId}`,
-      isPrivateFile: true,
-      useUniqueFileName: true,
-    });
+    let res;
+    try {
+      res = await getIk().files.upload({
+        file: await toFile(buffer, safeName, { type: opts.mimeType }),
+        fileName: safeName,
+        folder: `${env.IMAGEKIT_FOLDER}/${opts.kind}/${opts.userId}`,
+        isPrivateFile: true,
+        useUniqueFileName: true,
+      });
+    } catch (err) {
+      const e = toUnavailable('upload', err);
+      logger.error({ err: e, hint: imageKitHint(e.status) }, 'storage: ImageKit upload failed');
+      throw e;
+    }
     if (!res.fileId || !res.filePath) throw new Error('ImageKit upload returned no fileId/filePath');
     return `${IK_PREFIX}${res.fileId}${res.filePath}`;
   }
@@ -136,9 +171,18 @@ export async function getFile(key: string): Promise<Buffer> {
     const cached = cacheGet(key);
     if (cached) return cached;
     const url = signedUrl(key, FETCH_URL_TTL_S);
-    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    let res: Response;
+    try {
+      res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    } catch (err) {
+      throw toUnavailable('download', err);
+    }
     if (res.status === 404) throw new StorageNotFoundError(key);
-    if (!res.ok) throw new Error(`ImageKit fetch failed with HTTP ${res.status}`);
+    if (!res.ok) {
+      const e = new StorageUnavailableError('download', res.status, res.statusText || 'unexpected status');
+      logger.error({ err: e, hint: imageKitHint(res.status) }, 'storage: ImageKit download failed');
+      throw e;
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     cacheSet(key, buf);
     return buf;

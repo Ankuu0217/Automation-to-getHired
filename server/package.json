@@ -9,7 +9,8 @@
     "test": "vitest run",
     "lint": "tsc -p tsconfig.json --noEmit",
     "seed": "tsx src/scripts/seed.ts",
-    "backfill:email-verified": "tsx src/scripts/backfill-email-verified.ts"
+    "backfill:email-verified": "tsx src/scripts/backfill-email-verified.ts",
+    "imagekit:check": "tsx src/scripts/check-imagekit.ts"
   },
   "dependencies": {
     "@agendajs/mongo-backend": "^4.0.3",

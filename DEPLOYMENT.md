@@ -36,10 +36,12 @@ Why not the free tiers for real users:
 1. Sign up at imagekit.io → Dashboard → **Developer options**.
 2. Copy the **private key** → `IMAGEKIT_PRIVATE_KEY`, and the **URL endpoint**
    (`https://ik.imagekit.io/<your_id>`) → `IMAGEKIT_URL_ENDPOINT`.
-3. That's it. Files are uploaded as **private** under `/gethired/{resumes,screenshots}/<userId>/`
+3. Verify: `pnpm --filter @jobmail/server imagekit:check` uploads a private test file, reads
+   it back through a signed URL and deletes it, printing a fix hint if anything fails.
+4. Files are uploaded as **private** under `/gethired/{resumes,screenshots}/<userId>/`
    and are only reachable through signed URLs that expire (2 min for server fetches,
    1 h for screenshot previews). Replaced resumes and deleted accounts remove their files.
-4. Files uploaded before you set these keys stay on local disk and keep working locally;
+5. Files uploaded before you set these keys stay on local disk and keep working locally;
    new uploads go to ImageKit.
 
 ## 4. Google Cloud (Gmail OAuth) — **required for more than 100 users**

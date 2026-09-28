@@ -44,6 +44,14 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
       return;
     }
   }
+  // File storage (ImageKit) down or misconfigured: a clear, retryable 503 —
+  // the real reason + fix hint were already logged by the storage layer.
+  if (err && typeof err === 'object' && (err as Error).name === 'StorageUnavailableError') {
+    res
+      .status(503)
+      .json(errorBody(ErrorCodes.INTERNAL, 'File storage is temporarily unavailable. Please try again in a minute.'));
+    return;
+  }
   logger.error({ err, path: req.path }, 'Unhandled error');
   res.status(500).json(errorBody(ErrorCodes.INTERNAL, 'Internal server error'));
 };
