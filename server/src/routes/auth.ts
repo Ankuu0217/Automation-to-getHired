@@ -45,7 +45,7 @@ import {
   verifyRefreshToken,
 } from '../services/tokenService';
 
-const BCRYPT_COST = 12;
+const BCRYPT_COST = env.BCRYPT_COST;
 
 export const authRouter = Router();
 

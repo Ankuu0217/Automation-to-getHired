@@ -162,9 +162,10 @@ pnpm test   # server (Vitest + mongodb-memory-server) and client (Vitest + jsdom
 
 ### Deploy
 
-Production runs as **one Node service** that serves the API and the built client from
-the same origin (`pnpm build && pnpm start`). See **[DEPLOYMENT.md](DEPLOYMENT.md)**
-and the included `render.yaml`.
+Frontend on **Vercel**, API on **Render**: `vercel.json` proxies `/api/*` to the Render
+service so auth cookies stay first-party; `render.yaml` defines the API. Step-by-step:
+**[DEPLOYMENT.md](DEPLOYMENT.md)**. (Alternative: one Render service — with
+`NODE_ENV=production` the API also serves `client/dist` after `pnpm build`.)
 
 ---
 

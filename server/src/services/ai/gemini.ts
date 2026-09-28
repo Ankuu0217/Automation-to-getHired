@@ -97,7 +97,9 @@ function isTransientGeminiError(err: unknown): boolean {
  * vision extraction succeed consistently instead of falling back to OCR.
  */
 /** A hung Gemini call would leave a job stuck in 'processing' forever. */
-const GEMINI_TIMEOUT_MS = 45_000;
+// 30 s × 3 attempts + backoff stays under the 120 s limit of a proxied request
+// (Vercel → Render) for the synchronous generate-email call.
+const GEMINI_TIMEOUT_MS = 30_000;
 let genAIClient: GoogleGenAI | null = null;
 
 /** Test hook: drop the cached client (e.g. after changing env in a test). */

@@ -13,7 +13,9 @@ import { Mono } from '@/components/Mono';
  */
 
 const CONTACT = (import.meta.env.VITE_CONTACT_EMAIL as string | undefined) || 'the support address listed on this site';
-const UPDATED = '28 September 2026';
+const UPDATED = '29 September 2026';
+/** Set VITE_GEMINI_PAID=true once Gemini billing is on (paid-tier content isn't used to improve Google's models). */
+const GEMINI_PAID = import.meta.env.VITE_GEMINI_PAID === 'true';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -81,7 +83,17 @@ export function Privacy() {
           <ul className="list-disc space-y-2 pl-5">
             <li>MongoDB Atlas: database hosting.</li>
             <li>ImageKit: private storage for résumés and screenshots (accessible only via short-lived signed links).</li>
-            <li>Google Gemini API: reads job-post screenshots/text and drafts emails from your profile.</li>
+            <li>
+              Google Gemini API: reads job-post screenshots/text and drafts emails from your profile.
+              {!GEMINI_PAID && (
+                <>
+                  {' '}
+                  We currently use Gemini&apos;s free tier: under Google&apos;s terms, Google may use the content we
+                  send it (job posts, your profile and résumé text) to improve its products, and human reviewers may
+                  read it. Avoid including information you don&apos;t want processed this way.
+                </>
+              )}
+            </li>
             <li>Our hosting provider and email provider: to run the app and send account verification emails.</li>
           </ul>
         </Section>

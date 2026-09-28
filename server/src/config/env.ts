@@ -53,6 +53,10 @@ const envSchema = z.object({
   // NOT depend on any user's Gmail. All optional: without SMTP/app-password the
   // dev fallback (jsonTransport + logged link) keeps local/test from sending.
   MAIL_FROM: z.string().optional().or(z.literal('')),
+  // Brevo transactional email over HTTPS (free: 300/day). Preferred over SMTP —
+  // works on hosts that block SMTP ports (e.g. Render free). MAIL_FROM must be a
+  // sender verified in Brevo.
+  BREVO_API_KEY: z.string().optional().or(z.literal('')),
   SMTP_HOST: z.string().optional().or(z.literal('')),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional().or(z.literal('')),
@@ -79,6 +83,16 @@ const envSchema = z.object({
   QUEUE_SEND_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(5),
   // Delete stored job screenshots after N days (the extracted data is kept). 0 = keep forever.
   SCREENSHOT_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
+  // OCR fallback (tesseract) when Gemini can't read a screenshot. CPU-heavy:
+  // ~7 s per screenshot on 1 CPU, ~1 min on a 0.1-CPU free instance, and
+  // ~150 MB RAM. 'false' on tiny/free hosts → the user gets the manual-entry form.
+  OCR_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  // Password hashing cost. 12 ≈ 0.3 s per login on 1 CPU; on a 0.1-CPU free
+  // instance use 10 (≈0.7 s). Existing hashes keep working at any setting.
+  BCRYPT_COST: z.coerce.number().int().min(10).max(14).default(12),
   // Optional cheaper model for text-only calls (pasted JD, match analysis, email
   // writing). Vision (screenshots) always uses GEMINI_MODEL. Unset = GEMINI_MODEL.
   GEMINI_TEXT_MODEL: z.string().optional().or(z.literal('')),

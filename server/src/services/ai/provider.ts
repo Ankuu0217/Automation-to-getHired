@@ -65,6 +65,10 @@ function emptyExtraction(): JobExtraction {
 async function extractViaOcr(
   buffer: Buffer,
 ): Promise<{ extraction: JobExtraction; source: 'ocr'; rawText: string }> {
+  if (!env.OCR_ENABLED) {
+    // Small/free hosts: skip CPU-heavy OCR — the user fills the review form by hand.
+    return { extraction: emptyExtraction(), source: 'ocr', rawText: '' };
+  }
   try {
     const text = await ocrImage(buffer);
     const { extraction, rawText } = extractFromText(text);

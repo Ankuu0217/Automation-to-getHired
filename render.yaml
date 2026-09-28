@@ -1,18 +1,24 @@
-# Render Blueprint — one web service serves BOTH the API and the built React app
-# (same origin, so the SameSite=Strict auth cookies work). MongoDB lives on Atlas.
-# Deploy: Render dashboard → New → Blueprint → pick this repo, then fill the
-# `sync: false` values when prompted. See DEPLOYMENT.md for the full checklist.
+# Render Blueprint — the API only. The React app is deployed on Vercel, which
+# proxies /api/* to this service (see vercel.json), so the browser only ever
+# talks to the Vercel domain and the SameSite=Strict auth cookies stay
+# first-party. MongoDB lives on Atlas, files on ImageKit.
+# Deploy: Render → New → Blueprint → pick this repo, fill the `sync: false`
+# values. Full walkthrough: DEPLOYMENT.md.
 services:
   - type: web
-    name: gethired
+    # The service name becomes the URL: https://gethired-api.onrender.com —
+    # vercel.json's /api rewrite points there. If Render gives you a different
+    # URL (name taken), update vercel.json's destination to match.
+    name: gethired-api
     runtime: node
-    # Standard (1 CPU / 2 GB, ~$25/mo) is sized for ~1000 users: the OCR
-    # fallback alone peaks at ~550 MB RAM, which would OOM Starter (512 MB).
-    # Free instances sleep after 15 min idle (follow-ups would fire late).
-    # Uploads live in ImageKit, so no persistent disk is needed.
-    plan: standard
+    # FREE profile (0.1 CPU / 512 MB). Sleeps after 15 min idle — keep it awake
+    # with a free uptime ping to /health every 5 min (DEPLOYMENT.md §5e); one
+    # always-on service ≈ 744 h/month fits Render's 750 free hours.
+    # Outgrowing it: plan starter ($7) or standard ($25, ~1000 users) and remove
+    # the "free profile" overrides below.
+    plan: free
     region: singapore
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server build
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:
@@ -22,10 +28,34 @@ services:
         value: "20"
       - key: COOKIE_SECURE
         value: "true"
-      # Both = your public URL, e.g. https://gethired.onrender.com (no trailing slash)
-      - key: API_URL
-        sync: false
+      # Browser → Vercel → Render: two proxy hops, so the real client IP is 2 back
+      # in X-Forwarded-For (needed for the per-IP sign-up/login rate limits).
+      - key: TRUST_PROXY
+        value: "2"
+      # ── free profile overrides (0.1 CPU / 512 MB) ──
+      # OCR fallback takes ~1 min per screenshot on 0.1 CPU → off; Gemini reads
+      # screenshots, and if it can't the user types the details in.
+      - key: OCR_ENABLED
+        value: "false"
+      # ~0.7 s per login on 0.1 CPU (12 would be ~3 s). Existing hashes still work.
+      - key: BCRYPT_COST
+        value: "10"
+      - key: EXTRACTION_CONCURRENCY
+        value: "2"
+      - key: UPLOAD_CONCURRENCY
+        value: "3"
+      - key: QUEUE_SEND_CONCURRENCY
+        value: "2"
+      # ImageKit free = 3 GB: keep screenshots 14 days
+      - key: SCREENSHOT_RETENTION_DAYS
+        value: "14"
+      # The Vercel URL users open, e.g. https://gethired.vercel.app (no trailing slash).
+      # Used for CORS, email-verification links and redirects after Gmail connect.
       - key: CLIENT_URL
+        sync: false
+      # This service's own URL, e.g. https://gethired-api.onrender.com — used in the
+      # open-tracking pixel inside sent emails.
+      - key: API_URL
         sync: false
       - key: MONGODB_URI
         sync: false
@@ -44,9 +74,6 @@ services:
       # Optional cheaper model for text-only calls, e.g. a Flash-Lite ID
       - key: GEMINI_TEXT_MODEL
         sync: false
-      # Shown on /privacy (build-time, needed for Google OAuth verification)
-      - key: VITE_CONTACT_EMAIL
-        sync: false
       # ImageKit (resumes + screenshots, private files)
       - key: IMAGEKIT_PRIVATE_KEY
         sync: false
@@ -56,17 +83,14 @@ services:
         sync: false
       - key: GMAIL_CLIENT_SECRET
         sync: false
-      # https://<your-domain>/api/v1/gmail/callback
+      # MUST be on the Vercel domain (the OAuth nonce cookie lives there):
+      # https://gethired.vercel.app/api/v1/gmail/callback
       - key: GMAIL_REDIRECT_URI
         sync: false
-      # System sender for verification emails (any SMTP: Brevo, Resend, SES, Gmail…)
-      - key: SMTP_HOST
+      # Verification emails via Brevo's HTTPS API (free: 300/day). SMTP is BLOCKED
+      # on Render free, so don't use SMTP_* / GMAIL_APP_PASSWORD here.
+      - key: BREVO_API_KEY
         sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
+      # A sender verified in Brevo, e.g.  GetHired <yourname@gmail.com>
       - key: MAIL_FROM
         sync: false

@@ -57,10 +57,17 @@ function warnOnRiskyProductionConfig(): void {
   if (!env.COOKIE_SECURE) {
     logger.warn('COOKIE_SECURE=false in production — set it to true when serving over HTTPS.');
   }
-  if (!env.SMTP_HOST && !(env.GMAIL_USER && env.GMAIL_APP_PASSWORD)) {
+  if (!env.BREVO_API_KEY && !env.SMTP_HOST && !(env.GMAIL_USER && env.GMAIL_APP_PASSWORD)) {
     logger.warn(
-      'No system mail sender configured (SMTP_HOST or GMAIL_USER/GMAIL_APP_PASSWORD) — verification emails will NOT be delivered.',
+      'No system mail sender configured (BREVO_API_KEY, SMTP_HOST or GMAIL_USER/GMAIL_APP_PASSWORD) — verification emails will NOT be delivered.',
     );
+  } else if (!env.BREVO_API_KEY) {
+    logger.warn(
+      'Verification emails go over SMTP — hosts like Render free block SMTP ports. Set BREVO_API_KEY (HTTPS) if they fail to arrive.',
+    );
+  }
+  if (env.BREVO_API_KEY && !env.MAIL_FROM) {
+    logger.warn('BREVO_API_KEY is set but MAIL_FROM is empty — set it to a sender verified in Brevo, e.g. "GetHired <you@gmail.com>".');
   }
   if (!env.GMAIL_CLIENT_ID || !env.GMAIL_CLIENT_SECRET || !env.GMAIL_REDIRECT_URI) {
     logger.warn('Gmail OAuth is not configured — users cannot connect Gmail, so outreach emails cannot be sent.');
@@ -77,6 +84,16 @@ function warnOnRiskyProductionConfig(): void {
   }
   if (!env.GEMINI_API_KEY) {
     logger.warn('GEMINI_API_KEY is empty — extraction falls back to OCR/regex (lower quality).');
+  }
+  if (env.GMAIL_REDIRECT_URI) {
+    // Cookies are scoped by host (not port), so compare hostnames.
+    const cbHost = new URL(env.GMAIL_REDIRECT_URI).hostname;
+    const appHost = new URL(env.CLIENT_URL).hostname;
+    if (cbHost !== appHost) {
+      logger.warn(
+        `GMAIL_REDIRECT_URI host (${cbHost}) differs from CLIENT_URL host (${appHost}) — Gmail connect will fail with "expired": the OAuth nonce cookie lives on the domain users open. Use ${new URL(env.CLIENT_URL).origin}/api/v1/gmail/callback.`,
+      );
+    }
   }
   if (/localhost|127\.0\.0\.1/.test(env.API_URL)) {
     logger.warn('API_URL points at localhost — open-tracking pixels in sent emails will not work.');

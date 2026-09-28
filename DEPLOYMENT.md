@@ -1,16 +1,50 @@
 # Going live — GetHired
 
-One Node web service serves **both** the API and the built React app (same origin),
-backed by **MongoDB Atlas**. Same-origin matters: auth cookies are `SameSite=Strict`,
-so splitting the frontend (e.g. Vercel) and API (e.g. Render) onto different domains
-would break login.
+**Frontend on Vercel, API on Render**, database on MongoDB Atlas, files on ImageKit.
+
+```
+browser ──► https://gethired.vercel.app            (Vercel: React app)
+                 └─ /api/*  ──proxy──►  https://gethired-api.onrender.com   (Render: API)
+```
+
+The browser only ever talks to the Vercel domain: `vercel.json` rewrites `/api/*` to
+Render. That keeps the `SameSite=Strict` auth cookies first-party. Calling the Render URL
+directly from the frontend would break login (cross-site cookies are blocked, e.g. by Safari)
+and need CORS. So **don't set `VITE_API_URL`** on Vercel.
+
+## 0. ₹0 setup (up to 100 users)
+
+Everything below on free tiers. The repo's `render.yaml` is already the free profile.
+
+| Service | Free plan | What it gives you |
+|---|---|---|
+| Vercel Hobby | React app + `/api` proxy | non-commercial use only, 100 GB/month transfer |
+| Render Free | API (0.1 CPU / 512 MB) | sleeps after 15 min idle → keep awake with a free ping (§5d) |
+| MongoDB Atlas M0 | database | 512 MB ≈ 15–20k applications |
+| ImageKit Free | résumés + screenshots | 3 GB storage, 20 GB/month bandwidth (screenshots auto-deleted after 14 days) |
+| Gemini API free tier | AI reading + writing | ~15 requests/min, ~1,500/day for the whole app; Google may use the content (shown on `/privacy`) |
+| Brevo Free | verification emails over HTTPS | 300 emails/day |
+| Google OAuth (unverified) | users send from their own Gmail | **100 users total**, "unverified app" warning on consent |
+
+How the free profile avoids the free-plan traps:
+- **No SMTP anywhere.** Render Free blocks SMTP ports, so outreach goes through the
+  **Gmail API over HTTPS** and verification mail through **Brevo's HTTPS API**.
+- **OCR off** (`OCR_ENABLED=false`) — on 0.1 CPU it takes ~1 min per screenshot. Gemini
+  reads screenshots; if it can't (quota), the user types the details into the form.
+- **Light CPU/RAM settings**: `BCRYPT_COST=10`, 2 extractions / 3 uploads / 2 sends at once.
+- Restarts are safe: stuck extractions re-run, the queue lives in MongoDB.
+
+Limits you will hit: 100 Gmail-connecting users (needs a custom domain + Google
+verification to lift), and Gemini's shared free quota (~500 applications/day).
+Expect 20–50 comfortably active users.
 
 ## 1. Accounts you need
 
 | What | Why | Cost (≈1000 users) |
 |---|---|---|
 | Domain name | OAuth verification needs a homepage + privacy policy on **your own domain** | ~₹800/yr |
-| Render — **Standard** (1 CPU / 2 GB) | Hosts app + API; stays awake so follow-ups fire on time | $25/mo |
+| Render — **Standard** (1 CPU / 2 GB) | Hosts the API; stays awake so follow-ups fire on time | $25/mo |
+| Vercel | Hosts the React app + proxies `/api` | Hobby free (non-commercial) · Pro $20/mo |
 | MongoDB Atlas — **Flex** (5 GB) | Database + job queue | $8–30/mo |
 | ImageKit | Private storage for resumes + screenshots | Free (3 GB) → Lite $9/mo |
 | Google Cloud project | Gmail OAuth — users send from their own Gmail | Free |
@@ -60,28 +94,72 @@ Why not the free tiers for real users:
    account; the app cannot read the mailbox"). Review typically takes 3–5 business days.
    No paid security assessment (that's only for *restricted* scopes like gmail.readonly).
 
-## 5. Deploy on Render
-1. Push this repo to GitHub (it already includes `render.yaml`).
-2. Render → New → **Blueprint** → select the repo.
-3. Fill in the prompted values:
-   - `API_URL` and `CLIENT_URL` → both `https://gethired.onrender.com` (or your domain), no trailing slash
-   - `MONGODB_URI` → from step 2
-   - `ENCRYPTION_KEY` → `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-     (**store it safely** — lose it and every saved Gmail connection is unreadable)
-   - `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT` → from step 3
-   - `GEMINI_API_KEY` (billing-enabled project), `GEMINI_MODEL` (pin an ID from AI Studio),
-     optional `GEMINI_TEXT_MODEL` (a Flash-Lite ID to cut text-call cost ~3×)
-   - `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REDIRECT_URI`
-   - `VITE_CONTACT_EMAIL` → shown on /privacy
-   - `SMTP_HOST/PORT/USER/PASS`, `MAIL_FROM` (or leave SMTP empty and set
-     `GMAIL_USER` + `GMAIL_APP_PASSWORD` as the system sender)
-   - `JWT_SECRET` / `JWT_REFRESH_SECRET` are generated automatically.
-4. Build: `corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm build`
-   Start: `pnpm start` · Health check: `/health`
-   (`--prod=false` is required: with `NODE_ENV=production`, pnpm otherwise skips the
-   TypeScript/Vite dev dependencies the build needs.)
-5. Custom domain: Render → Settings → Custom Domains, then update `API_URL`,
-   `CLIENT_URL`, `GMAIL_REDIRECT_URI` and the Google redirect URI to match.
+## 5. Deploy — Render (API) first, then Vercel (frontend)
+
+### 5a. Render — API
+1. Push this repo to GitHub (it includes `render.yaml` and `vercel.json`).
+2. Render → New → **Blueprint** → select the repo. It creates the web service
+   **gethired-api** → URL `https://gethired-api.onrender.com`.
+   If Render assigns a different URL (name taken), put that URL in `vercel.json`
+   (`rewrites[0].destination`) and commit.
+3. Fill in the prompted values (you'll know the Vercel URL after 5b — use the name you
+   plan to pick, e.g. `https://gethired.vercel.app`, and fix it later if it differs):
+
+   | Key | Value |
+   |---|---|
+   | `CLIENT_URL` | `https://gethired.vercel.app` (Vercel URL, no trailing slash) |
+   | `API_URL` | `https://gethired-api.onrender.com` (this service; used by the email open-tracking pixel) |
+   | `GMAIL_REDIRECT_URI` | `https://gethired.vercel.app/api/v1/gmail/callback` (**Vercel** domain) |
+   | `MONGODB_URI` | from step 2 |
+   | `ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — **store it safely** |
+   | `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT` | from step 3 |
+   | `GEMINI_API_KEY`, `GEMINI_MODEL` (+ optional `GEMINI_TEXT_MODEL`) | AI Studio, billing on |
+   | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` | from step 4 |
+   | `BREVO_API_KEY`, `MAIL_FROM` | Brevo → SMTP & API → API keys; `MAIL_FROM` = a sender verified in Brevo (`GetHired <you@gmail.com>`) |
+
+   Pre-set by the blueprint: `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=2`
+   (browser → Vercel → Render = 2 hops), generated JWT secrets, and the free-profile knobs
+   (`OCR_ENABLED=false`, `BCRYPT_COST=10`, low concurrency, 14-day screenshot retention).
+4. Build: `corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server build`
+   · Start: `pnpm start` · Health check: `/health`.
+5. Check: `https://gethired-api.onrender.com/health` → `{"ok":true,"db":"up"}`.
+
+### 5b. Vercel — frontend
+1. Vercel → Add New → Project → import the same repo.
+2. **Root Directory: leave as the repo root** (`./`). `vercel.json` sets everything:
+   install `pnpm install --frozen-lockfile`, build `pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/client build`,
+   output `client/dist`, the `/api` proxy, SPA fallback, security headers, and no CDN caching for `/api`.
+3. Environment variables: `VITE_CONTACT_EMAIL` = your support email (shown on `/privacy`);
+   later `VITE_GEMINI_PAID=true` once Gemini billing is on.
+   Do **not** set `VITE_API_URL`.
+4. Deploy. If the URL isn't the one you used in 5a, update `CLIENT_URL` and
+   `GMAIL_REDIRECT_URI` on Render (Render redeploys automatically).
+5. Check: `https://gethired.vercel.app/api/v1/auth/me` → `401` JSON (proxy works).
+
+### 5c. Google Cloud
+Authorized redirect URI = exactly `GMAIL_REDIRECT_URI` (the **Vercel** URL). Homepage and
+privacy policy on the consent screen = the Vercel/custom domain (`/privacy`).
+
+### 5d. Keep the free Render API awake (free tier only)
+Render Free sleeps after 15 min without traffic (next request waits ~1 min, and scheduled
+follow-ups only run while it's awake). Free fix: [UptimeRobot](https://uptimerobot.com)
+(or cron-job.org) → HTTP monitor → `https://gethired-api.onrender.com/health` every
+**5 minutes**. One always-on service uses ~744 of Render's 750 free hours/month — don't run
+a second free service in the same Render workspace.
+
+### 5e. Google OAuth on the free setup (no custom domain)
+OAuth consent screen → **Publish app** (status "In production", unverified). Anyone can
+connect (up to **100 users total**); they see "Google hasn't verified this app" →
+*Advanced* → *Go to GetHired*. Better than "Testing" mode: no manual test-user list and
+no 7-day token expiry. To go past 100: custom domain + verification (§4).
+
+### 5f. Custom domain (recommended; needed for Google verification)
+Add it in **Vercel** (e.g. `gethired.in`) — Render keeps its onrender.com URL behind the
+proxy. Then update `CLIENT_URL`, `GMAIL_REDIRECT_URI` (Render) and the Google redirect URI.
+
+Limits of the proxy: Vercel allows 120 s per proxied request (the API's slowest call,
+email generation, is capped below that) — uploads (≤10 MB) are proxied fine but
+**test a large résumé upload once after deploying**.
 
 ## 6. After the first deploy — check the logs
 The server logs a warning at boot for each missing piece:
@@ -97,7 +175,7 @@ shorter than 32 chars, or identical to each other; and exits if MongoDB is unrea
 restarts it instead of serving a broken app).
 
 ## 7. Smoke test on the live URL
-1. `https://YOUR-DOMAIN/health` → `{"ok":true}`; `/health/queue` → `"ok":true`
+1. `https://gethired-api.onrender.com/health` → `{"ok":true,"db":"up"}`; `/health/queue` → `"ok":true`
 2. Register → verification email arrives → click link
 3. Settings → upload resume → Connect Gmail → consent → back to Settings, connected
 4. New application → paste a JD or upload a screenshot → generate email → send to
@@ -133,7 +211,7 @@ Render $25 + Atlas Flex ~$15 + ImageKit $0–9 + Gemini ~$150 (Flash-Lite for te
 ~$400 (Flash for everything; list prices double from Jan 2027) ≈ **$200–450/mo**.
 Gemini is the variable part: ~12k input + ~1.2k output tokens per application.
 
-Scaling further: Render → 2+ instances works as-is (Agenda locks jobs; sweeps claim
+Scaling further: Render → 2+ instances works as-is (Vercel just proxies) (Agenda locks jobs; sweeps claim
 atomically). Rate limits are per instance then (effectively ×N). ImageKit storage: at
 ~300 KB/screenshot, 3 GB free ≈ 10k screenshots — lower `SCREENSHOT_RETENTION_DAYS` or
 upgrade.

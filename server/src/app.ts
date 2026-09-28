@@ -79,6 +79,14 @@ export function createApp(): express.Express {
     res.json({ ok: status.healthy, ...status, extraction: extractionLoad() });
   });
 
+  // Every API response is per-user: forbid caching by browsers AND by any CDN
+  // or proxy in front (e.g. Vercel's /api rewrite honors upstream cache headers).
+  // Routes that can be cached privately (screenshots) override this.
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/profile', profileRouter);
   app.use('/api/v1/jobs', jobsRouter);

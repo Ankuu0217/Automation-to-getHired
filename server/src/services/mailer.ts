@@ -5,6 +5,7 @@ import { User, type IUser } from '../models/User';
 import { env } from '../config/env';
 import { decrypt, encrypt } from '../utils/crypto';
 import { createOAuthClient, isOAuthConfigured } from './gmail/oauth';
+import { gmailApiTransport, type MailTransport } from './gmail/apiTransport';
 import { logger } from '../utils/logger';
 
 /**
@@ -12,7 +13,8 @@ import { logger } from '../utils/logger';
  *
  * Transport priority per send:
  *  1. The user's connected Gmail (OAuth2, tokens decrypted from User.gmailAuth,
- *     auto-refreshed via googleapis and persisted back).
+ *     auto-refreshed via googleapis and persisted back), sent through the Gmail
+ *     REST API over HTTPS — not SMTP, which many hosts (e.g. Render free) block.
  *  2. Dev fallback: Gmail App Password from env (GMAIL_USER/GMAIL_APP_PASSWORD).
  *  3. Neither → GmailNotConnectedError (the queue treats it as retryable and
  *     surfaces it via User.lastSendError).
@@ -104,7 +106,7 @@ export function clearAccessTokenCache(userId: string): void {
  * access token via googleapis (which refreshes from the stored refresh token)
  * and persists refreshed credentials back, encrypted.
  */
-async function oauthTransport(user: IUser): Promise<Transporter> {
+async function oauthTransport(user: IUser): Promise<MailTransport> {
   const gmailAuth = user.gmailAuth;
   if (!gmailAuth?.refreshTokenEnc || !gmailAuth.connectedEmail) {
     throw new GmailNotConnectedError();
@@ -184,17 +186,13 @@ async function oauthTransport(user: IUser): Promise<Transporter> {
     }
   }
 
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: gmailAuth.connectedEmail,
-      clientId: env.GMAIL_CLIENT_ID,
-      clientSecret: env.GMAIL_CLIENT_SECRET,
-      refreshToken,
-      accessToken,
-    },
+  const sendClient = createOAuthClient();
+  sendClient.setCredentials({
+    refresh_token: refreshToken,
+    access_token: accessToken,
+    expiry_date: accessTokenCache.get(userId)?.expiresAt,
   });
+  return gmailApiTransport(sendClient);
 }
 
 const CAPTURE_DIR = path.resolve(__dirname, '../../uploads/captured-emails');
@@ -232,7 +230,7 @@ function appPasswordTransport(): Transporter | null {
 /** Exported for tests and future admin tooling. */
 export async function transportForUser(
   user: IUser,
-): Promise<{ transporter: Transporter; fromEmail: string; capture?: boolean; usesOAuth?: boolean }> {
+): Promise<{ transporter: MailTransport; fromEmail: string; capture?: boolean; usesOAuth?: boolean }> {
   if (user.gmailAuth?.refreshTokenEnc && user.gmailAuth.connectedEmail) {
     return {
       transporter: await oauthTransport(user),
@@ -295,8 +293,8 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
       command?: string;
     };
 
-    // OAuth access token rejected at SMTP layer (e.g. revoked or expired between
-    // refresh and send). Flag the grant so the UI prompts reconnect and we stop
+    // OAuth access token rejected by Gmail (revoked/expired between refresh and
+    // send, or the gmail.send permission removed) — GmailApiSendError code EAUTH. Flag the grant so the UI prompts reconnect and we stop
     // retrying a dead token; fall back to app-password in dev, or fail cleanly.
     if (
       usesOAuth &&
@@ -333,11 +331,12 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
  *
  * A no-reply sender INDEPENDENT of any user's connected Gmail — a brand-new
  * signup has no Gmail. Transport priority:
- *   1. Dedicated SMTP (env.SMTP_*) — the prod path (Resend/Postmark/SES/etc.
- *      all speak SMTP).
- *   2. The existing app-password Gmail account (env.GMAIL_USER/…_APP_PASSWORD)
- *      as the system sender.
- *   3. Dev/test: never send or hang — nodemailer's jsonTransport, and the full
+ *   1. Brevo HTTP API (env.BREVO_API_KEY) — HTTPS, so it works even where
+ *      outbound SMTP is blocked (Render free). Free tier: 300 emails/day.
+ *   2. Dedicated SMTP (env.SMTP_*) — Resend/Postmark/SES/etc.
+ *   3. The existing app-password Gmail account (env.GMAIL_USER/…_APP_PASSWORD)
+ *      as the system sender (SMTP).
+ *   4. Dev/test: never send or hang — nodemailer's jsonTransport, and the full
  *      message (verification link included) is logged in dev only.
  * `from` = env.MAIL_FROM, falling back to the transport user.
  * ──────────────────────────────────────────────────────────────────────── */
@@ -349,11 +348,51 @@ export interface SystemMailInput {
   html: string;
 }
 
-type SystemTransport = { transporter: Transporter; from: string; usesJson: boolean };
+type SystemTransport = { transporter: MailTransport; from: string; usesJson: boolean };
+
+/** Parse `"Name <email>"` / `Name <email>` / `email` into Brevo's sender shape. */
+export function parseSender(from: string): { email: string; name?: string } {
+  const m = from.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if (m) return m[1].trim() ? { name: m[1].trim(), email: m[2].trim() } : { email: m[2].trim() };
+  return { email: from.trim() };
+}
+
+const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
+
+/** Brevo transactional API as a MailTransport (HTTPS, JSON body). */
+function brevoTransport(apiKey: string, from: string): MailTransport {
+  return {
+    async sendMail(options) {
+      const res = await fetch(BREVO_URL, {
+        method: 'POST',
+        headers: { 'api-key': apiKey, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          sender: parseSender(from),
+          to: [{ email: String(options.to) }],
+          subject: options.subject,
+          htmlContent: options.html,
+          textContent: options.text,
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const body = (await res.json().catch(() => ({}))) as { messageId?: string; message?: string; code?: string };
+      if (!res.ok) {
+        throw new Error(`Brevo send failed (HTTP ${res.status}${body.code ? ` ${body.code}` : ''}): ${body.message ?? 'unknown error'}`);
+      }
+      return { messageId: body.messageId ?? '' };
+    },
+  };
+}
 let systemTransport: SystemTransport | null = null;
 
 function getSystemTransport(): SystemTransport {
   if (systemTransport) return systemTransport;
+
+  if (env.BREVO_API_KEY) {
+    const from = env.MAIL_FROM || env.GMAIL_USER || '';
+    systemTransport = { transporter: brevoTransport(env.BREVO_API_KEY, from), from, usesJson: false };
+    return systemTransport;
+  }
 
   if (env.SMTP_HOST) {
     const port = env.SMTP_PORT ?? 587;
@@ -389,6 +428,11 @@ function getSystemTransport(): SystemTransport {
     usesJson: true,
   };
   return systemTransport;
+}
+
+/** Test hook: forget the memoized system transport (after changing env in a test). */
+export function resetSystemTransport(): void {
+  systemTransport = null;
 }
 
 /** Whether the system sender is currently the dev/test jsonTransport (no real send). */
