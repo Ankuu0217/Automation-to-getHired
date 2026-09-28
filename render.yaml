@@ -6,7 +6,7 @@
 # values. Full walkthrough: DEPLOYMENT.md.
 services:
   - type: web
-    # The service name becomes the URL: https://gethired-api.onrender.com —
+    # The service name becomes the URL: https://gethired-api-6vk4.onrender.com —
     # vercel.json's /api rewrite points there. If Render gives you a different
     # URL (name taken), update vercel.json's destination to match.
     name: gethired-api
@@ -53,7 +53,7 @@ services:
       # Used for CORS, email-verification links and redirects after Gmail connect.
       - key: CLIENT_URL
         sync: false
-      # This service's own URL, e.g. https://gethired-api.onrender.com — used in the
+      # This service's own URL, e.g. https://gethired-api-6vk4.onrender.com — used in the
       # open-tracking pixel inside sent emails.
       - key: API_URL
         sync: false

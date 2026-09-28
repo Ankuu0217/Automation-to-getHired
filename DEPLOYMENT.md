@@ -4,7 +4,7 @@
 
 ```
 browser ──► https://gethired.vercel.app            (Vercel: React app)
-                 └─ /api/*  ──proxy──►  https://gethired-api.onrender.com   (Render: API)
+                 └─ /api/*  ──proxy──►  https://gethired-api-6vk4.onrender.com   (Render: API)
 ```
 
 The browser only ever talks to the Vercel domain: `vercel.json` rewrites `/api/*` to
@@ -99,7 +99,7 @@ Why not the free tiers for real users:
 ### 5a. Render — API
 1. Push this repo to GitHub (it includes `render.yaml` and `vercel.json`).
 2. Render → New → **Blueprint** → select the repo. It creates the web service
-   **gethired-api** → URL `https://gethired-api.onrender.com`.
+   **gethired-api** → URL `https://gethired-api-6vk4.onrender.com`.
    If Render assigns a different URL (name taken), put that URL in `vercel.json`
    (`rewrites[0].destination`) and commit.
 3. Fill in the prompted values (you'll know the Vercel URL after 5b — use the name you
@@ -108,7 +108,7 @@ Why not the free tiers for real users:
    | Key | Value |
    |---|---|
    | `CLIENT_URL` | `https://gethired.vercel.app` (Vercel URL, no trailing slash) |
-   | `API_URL` | `https://gethired-api.onrender.com` (this service; used by the email open-tracking pixel) |
+   | `API_URL` | `https://gethired-api-6vk4.onrender.com` (this service; used by the email open-tracking pixel) |
    | `GMAIL_REDIRECT_URI` | `https://gethired.vercel.app/api/v1/gmail/callback` (**Vercel** domain) |
    | `MONGODB_URI` | from step 2 |
    | `ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — **store it safely** |
@@ -122,7 +122,7 @@ Why not the free tiers for real users:
    (`OCR_ENABLED=false`, `BCRYPT_COST=10`, low concurrency, 14-day screenshot retention).
 4. Build: `corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @jobmail/shared build && pnpm --filter @jobmail/server build`
    · Start: `pnpm start` · Health check: `/health`.
-5. Check: `https://gethired-api.onrender.com/health` → `{"ok":true,"db":"up"}`.
+5. Check: `https://gethired-api-6vk4.onrender.com/health` → `{"ok":true,"db":"up"}`.
 
 ### 5b. Vercel — frontend
 1. Vercel → Add New → Project → import the same repo.
@@ -143,7 +143,7 @@ privacy policy on the consent screen = the Vercel/custom domain (`/privacy`).
 ### 5d. Keep the free Render API awake (free tier only)
 Render Free sleeps after 15 min without traffic (next request waits ~1 min, and scheduled
 follow-ups only run while it's awake). Free fix: [UptimeRobot](https://uptimerobot.com)
-(or cron-job.org) → HTTP monitor → `https://gethired-api.onrender.com/health` every
+(or cron-job.org) → HTTP monitor → `https://gethired-api-6vk4.onrender.com/health` every
 **5 minutes**. One always-on service uses ~744 of Render's 750 free hours/month — don't run
 a second free service in the same Render workspace.
 
@@ -175,7 +175,7 @@ shorter than 32 chars, or identical to each other; and exits if MongoDB is unrea
 restarts it instead of serving a broken app).
 
 ## 7. Smoke test on the live URL
-1. `https://gethired-api.onrender.com/health` → `{"ok":true,"db":"up"}`; `/health/queue` → `"ok":true`
+1. `https://gethired-api-6vk4.onrender.com/health` → `{"ok":true,"db":"up"}`; `/health/queue` → `"ok":true`
 2. Register → verification email arrives → click link
 3. Settings → upload resume → Connect Gmail → consent → back to Settings, connected
 4. New application → paste a JD or upload a screenshot → generate email → send to
