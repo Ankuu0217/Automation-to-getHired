@@ -1,6 +1,5 @@
 import { Router, type Request } from 'express';
-import fs from 'node:fs';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import {
   ErrorCodes,
   loginSchema,
@@ -19,9 +18,15 @@ import { EmailEvent } from '../models/EmailEvent';
 import { AppError, errorBody } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
-import { authLimiter } from '../middleware/rateLimit';
+import {
+  accountActionLimiter,
+  authIpLimiter,
+  loginLimiter,
+  registerLimiter,
+} from '../middleware/rateLimit';
 import { decrypt } from '../utils/crypto';
 import { logger } from '../utils/logger';
+import { removeFile } from '../services/storage';
 import { isOAuthConfigured, revokeToken } from '../services/gmail/oauth';
 import { cancelUserJobs } from '../services/queue';
 import { env } from '../config/env';
@@ -83,7 +88,7 @@ async function issueSession(res: Parameters<typeof setAuthCookies>[0], user: IUs
   setAuthCookies(res, accessToken, refreshToken);
 }
 
-authRouter.post('/register', authLimiter, validate(registerSchema), async (req, res, next) => {
+authRouter.post('/register', authIpLimiter, registerLimiter, validate(registerSchema), async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     const existing = await User.findOne({ email });
@@ -108,13 +113,24 @@ authRouter.post('/register', authLimiter, validate(registerSchema), async (req, 
   }
 });
 
-authRouter.post('/login', authLimiter, validate(loginSchema), async (req, res, next) => {
+let dummyHashPromise: Promise<string> | null = null;
+function dummyHash(): Promise<string> {
+  dummyHashPromise ??= bcrypt.hash('timing-equalizer-not-a-password', BCRYPT_COST);
+  return dummyHashPromise;
+}
+
+authRouter.post('/login', authIpLimiter, loginLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email }).select('+refreshTokenHashes');
     // Uniform error — don't reveal which part failed.
     const invalid = new AppError(401, ErrorCodes.UNAUTHORIZED, 'Invalid email or password');
-    if (!user) throw invalid;
+    if (!user) {
+      // Same bcrypt cost as a real check, so response time doesn't reveal
+      // whether an account exists for this email.
+      await bcrypt.compare(password, await dummyHash());
+      throw invalid;
+    }
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw invalid;
     await issueSession(res, user);
@@ -217,7 +233,7 @@ async function sessionUserIfVerified(req: Request): Promise<IUser | null> {
  * invalid from an expired link. A repeat click from the same authenticated,
  * already-verified device is treated as idempotent success.
  */
-authRouter.post('/verify-email', authLimiter, validate(verifyEmailSchema), async (req, res, next) => {
+authRouter.post('/verify-email', authIpLimiter, validate(verifyEmailSchema), async (req, res, next) => {
   try {
     const { token } = req.body as { token: string };
     const result = await verifyEmailToken(token);
@@ -248,7 +264,7 @@ authRouter.post('/verify-email', authLimiter, validate(verifyEmailSchema), async
  * No-op success when already verified; otherwise re-issues (respecting the 60s
  * cooldown inside issueEmailVerification).
  */
-authRouter.post('/resend-verification', authLimiter, requireAuth, async (req, res, next) => {
+authRouter.post('/resend-verification', requireAuth, accountActionLimiter, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select('+emailVerification');
     if (!user) throw new AppError(401, ErrorCodes.UNAUTHORIZED, 'Account not found');
@@ -282,7 +298,7 @@ authRouter.patch('/settings', requireAuth, validate(settingsUpdateSchema), async
  * posts, applications, templates, tracking events), queued send/follow-up
  * jobs, and the upload files (screenshots + resume). Ends the session.
  */
-authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) => {
+authRouter.delete('/account', requireAuth, accountActionLimiter, async (req, res, next) => {
   try {
     const userId = req.userId!;
     const user = await User.findById(userId).select(
@@ -326,7 +342,7 @@ authRouter.delete('/account', authLimiter, requireAuth, async (req, res, next) =
       ...jobPosts.map((j) => j.screenshotPath),
       ...(profile?.resumeFile ? [profile.resumeFile.path] : []),
     ];
-    await Promise.all(filePaths.map((p) => fs.promises.unlink(p).catch(() => undefined)));
+    await Promise.all(filePaths.map((p) => removeFile(p)));
 
     clearAuthCookies(res);
     logger.info({ userId }, 'Account deleted — all user data wiped');

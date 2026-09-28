@@ -1,6 +1,3 @@
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
 import { Router } from 'express';
 import multer from 'multer';
 import {
@@ -15,29 +12,21 @@ import { AppError } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { uploadLimiter } from '../middleware/rateLimit';
+import { uploadGate } from '../middleware/uploadGate';
 import { parseResumePdf } from '../services/resumeParser';
+import { getFile, putFile, removeFile, StorageNotFoundError } from '../services/storage';
 
 export const profileRouter = Router();
 
 profileRouter.use(requireAuth);
 
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/resumes');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
 // PDF magic bytes: %PDF-
 const PDF_MAGIC = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d]);
 
+// Memory storage: the PDF is sniffed + parsed from RAM and then written once
+// to the storage layer (ImageKit or local disk) — never to a temp file.
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (_req, file, cb) => {
-      const safeBase = path
-        .basename(file.originalname, path.extname(file.originalname))
-        .replace(/[^a-zA-Z0-9_-]/g, '_')
-        .slice(0, 60);
-      cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeBase}.pdf`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     // First gate: declared MIME type. Real sniffing happens on the saved file.
@@ -127,11 +116,14 @@ profileRouter.get('/resume/download', async (req, res, next) => {
     if (!resumeFile) {
       throw new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'No resume uploaded');
     }
+    let file: Buffer;
     try {
-      const stat = await fs.promises.stat(resumeFile.path);
-      if (!stat.isFile()) throw new Error('not a file');
-    } catch {
-      throw new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'Resume file not found');
+      file = await getFile(resumeFile.path);
+    } catch (err) {
+      if (err instanceof StorageNotFoundError) {
+        throw new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'Resume file not found');
+      }
+      throw err;
     }
     // Header-safe filename: printable ASCII only, no quotes/backslashes/CRLF.
     const safeName =
@@ -142,14 +134,8 @@ profileRouter.get('/resume/download', async (req, res, next) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     res.setHeader('Cache-Control', 'private, no-store');
-    const stream = fs.createReadStream(resumeFile.path);
-    stream.on('error', () => {
-      // File vanished between stat and read, or a mid-stream read error:
-      // never let an unhandled stream 'error' crash the process.
-      if (res.headersSent) res.destroy();
-      else next(new AppError(404, ErrorCodes.RESUME_NOT_FOUND, 'Resume file not found'));
-    });
-    stream.pipe(res);
+    res.setHeader('Content-Length', String(file.length));
+    res.end(file);
   } catch (err) {
     next(err);
   }
@@ -160,44 +146,49 @@ profileRouter.get('/resume/download', async (req, res, next) => {
  * stores text on the profile, and returns naive prefill suggestions
  * (skills / summary / name / email / phone) so the UI can preview them.
  */
-profileRouter.post('/resume', uploadLimiter, upload.single('resume'), async (req, res, next) => {
-  const cleanup = () => {
-    if (req.file) fs.promises.unlink(req.file.path).catch(() => undefined);
-  };
+profileRouter.post('/resume', uploadLimiter, uploadGate, upload.single('resume'), async (req, res, next) => {
   try {
     if (!req.file) throw new AppError(400, ErrorCodes.BAD_REQUEST, 'No file uploaded (field: resume)');
+    const buffer = req.file.buffer;
 
     // MIME sniff: verify PDF magic bytes, not just the declared type (spec §8).
-    const fd = await fs.promises.open(req.file.path, 'r');
-    const head = Buffer.alloc(5);
-    await fd.read(head, 0, 5, 0);
-    await fd.close();
-    if (!head.equals(PDF_MAGIC)) {
-      cleanup();
+    if (buffer.length < 5 || !buffer.subarray(0, 5).equals(PDF_MAGIC)) {
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'File is not a valid PDF');
     }
 
-    const buffer = await fs.promises.readFile(req.file.path);
     let parsed;
     try {
       parsed = await parseResumePdf(buffer);
     } catch {
-      cleanup();
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'Could not extract text from this PDF');
     }
 
+    // Only persist the file once it has proven to be a parseable PDF.
+    const storageKey = await putFile(buffer, {
+      kind: 'resumes',
+      userId: req.userId!,
+      fileName: req.file.originalname.toLowerCase().endsWith('.pdf')
+        ? req.file.originalname
+        : `${req.file.originalname}.pdf`,
+      mimeType: 'application/pdf',
+    });
+
     const profile = await getOrCreateProfile(req.userId!);
-    // Remove the previous resume file from disk.
-    if (profile.resumeFile?.path && profile.resumeFile.path !== req.file.path) {
-      fs.promises.unlink(profile.resumeFile.path).catch(() => undefined);
-    }
+    const previousKey = profile.resumeFile?.path ?? null;
     profile.resumeFile = {
-      path: req.file.path,
+      path: storageKey,
       originalName: req.file.originalname,
       parsedText: parsed.text,
       uploadedAt: new Date(),
     };
-    await profile.save();
+    try {
+      await profile.save();
+    } catch (err) {
+      await removeFile(storageKey); // don't orphan the upload
+      throw err;
+    }
+    // Remove the replaced resume only after the new one is safely referenced.
+    if (previousKey && previousKey !== storageKey) void removeFile(previousKey);
 
     const result: ResumeParseResponse = {
       profile: toDto(profile),

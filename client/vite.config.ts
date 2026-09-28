@@ -13,17 +13,32 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // React core + routing — always needed
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+        // Function form on purpose: the object form also drags each package's
+        // shared deps (clsx, react-is, …) into that chunk, which made the main
+        // bundle import — and preload — the 385 kB charts chunk on every page.
+        manualChunks(id) {
+          const pkg = id.match(/.*[\\/]node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/)?.[1];
+          if (!pkg) return undefined;
+          // React core + routing + tiny utils shared with recharts (rollup would
+          // otherwise pull them INTO the charts chunk) — always needed
+          if (/^(react|react-dom|scheduler|react-router|react-router-dom|@remix-run[\\/]router|clsx|react-is|tiny-invariant)$/.test(pkg)) {
+            return 'vendor';
+          }
           // Server-state layer
-          query: ['@tanstack/react-query'],
-          // Charting — only loaded on Analytics page
-          charts: ['recharts'],
+          if (pkg.startsWith('@tanstack')) return 'query';
+          // Charting — only loaded on Dashboard/Analytics
+          if (
+            /^(recharts|victory-vendor|d3-.+|internmap|decimal\.js-light|es-toolkit|@reduxjs[\\/]toolkit|react-redux|redux|redux-thunk|reselect|immer|eventemitter3|use-sync-external-store)$/.test(
+              pkg,
+            )
+          ) {
+            return 'charts';
+          }
           // Drag-and-drop — only loaded on Pipeline
-          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          if (pkg.startsWith('@dnd-kit')) return 'dnd';
           // Animation — progressively enhanced
-          motion: ['framer-motion'],
+          if (/^(framer-motion|motion-dom|motion-utils)$/.test(pkg)) return 'motion';
+          return undefined;
         },
       },
     },

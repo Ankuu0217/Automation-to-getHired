@@ -57,6 +57,31 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional().or(z.literal('')),
   SMTP_PASS: z.string().optional().or(z.literal('')),
+  // File storage (resumes + screenshots). When both are set, uploads go to
+  // ImageKit as PRIVATE files (served only via short-lived signed URLs) and
+  // the server keeps nothing on disk. Unset → local disk under server/uploads.
+  IMAGEKIT_PRIVATE_KEY: z.string().optional().or(z.literal('')),
+  IMAGEKIT_URL_ENDPOINT: z.string().url().optional().or(z.literal('')),
+  IMAGEKIT_FOLDER: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .transform((v) => '/' + (v && v.length > 0 ? v : 'gethired').replace(/^\/+|\/+$/g, '')),
+  // ── Scale knobs (defaults sized for one 1 CPU / 2 GB instance) ──
+  // Express `trust proxy`: hops of reverse proxies in front of the app (Render,
+  // Railway, Fly, Nginx = 1). Wrong value ⇒ every user shares one rate-limit IP.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(1),
+  // Max multipart uploads buffered in RAM at once (each ≤10 MB); extra requests queue.
+  UPLOAD_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(8),
+  // Max screenshot/text extractions (Gemini vision + OCR fallback) running at once.
+  EXTRACTION_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
+  // Parallel send-email / follow-up jobs per instance (each user's Gmail is separate).
+  QUEUE_SEND_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(5),
+  // Delete stored job screenshots after N days (the extracted data is kept). 0 = keep forever.
+  SCREENSHOT_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
+  // Optional cheaper model for text-only calls (pasted JD, match analysis, email
+  // writing). Vision (screenshots) always uses GEMINI_MODEL. Unset = GEMINI_MODEL.
+  GEMINI_TEXT_MODEL: z.string().optional().or(z.literal('')),
   // M3+ (queue) — 'true' runs Agenda jobs inline/synchronously. Default is true
   // in development so local testing sends immediately without depending on the
   // Agenda worker loop; production uses the persisted queue by default.
@@ -66,7 +91,36 @@ const envSchema = z.object({
     .transform((v) => v === 'true'),
 });
 
-const parsed = envSchema.safeParse(process.env);
+const parsed = envSchema
+  .superRefine((cfg, ctx) => {
+    if (Boolean(cfg.IMAGEKIT_PRIVATE_KEY) !== Boolean(cfg.IMAGEKIT_URL_ENDPOINT)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['IMAGEKIT_URL_ENDPOINT'],
+        message: 'Set BOTH IMAGEKIT_PRIVATE_KEY and IMAGEKIT_URL_ENDPOINT (or neither for local disk storage)',
+      });
+    }
+    if (cfg.NODE_ENV !== 'production') return;
+    // Refuse to boot production with the placeholder secrets from .env.example —
+    // anyone who has read the repo could forge sessions.
+    for (const key of ['JWT_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+      if (cfg[key].startsWith('change-me') || cfg[key].length < 32) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} must be a unique random string of 32+ characters in production`,
+        });
+      }
+    }
+    if (cfg.JWT_SECRET === cfg.JWT_REFRESH_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_REFRESH_SECRET'],
+        message: 'JWT_REFRESH_SECRET must differ from JWT_SECRET',
+      });
+    }
+  })
+  .safeParse(process.env);
 
 if (!parsed.success) {
   const issues = parsed.error.issues

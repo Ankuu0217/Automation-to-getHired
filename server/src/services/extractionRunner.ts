@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import type { JobExtraction } from '@jobmail/shared';
 import { JobPost, type IJobPost } from '../models/JobPost';
 import { getAIProvider } from './ai/provider';
@@ -6,6 +5,36 @@ import { validateAndRankEmails } from '../utils/emailValidation';
 import { computeDedupeHash } from '../utils/dedupe';
 import { sniffImageMime } from '../utils/imageMime';
 import { logger } from '../utils/logger';
+import { getFile } from './storage';
+import { env } from '../config/env';
+import { createSemaphore } from '../utils/semaphore';
+
+/**
+ * Process-wide cap on concurrent extractions (Gemini vision + OCR fallback).
+ * A burst of batch uploads from many users would otherwise fire hundreds of
+ * parallel Gemini calls (instant 429s → OCR fallback → CPU pile-up). Excess
+ * jobs wait here in 'processing'; the client keeps polling as usual.
+ */
+const extractionSlots = createSemaphore(env.EXTRACTION_CONCURRENCY);
+/** JobPost ids queued or running in THIS process (the stale-job sweep skips them). */
+const inFlight = new Set<string>();
+
+export function extractionsInFlight(): string[] {
+  return [...inFlight];
+}
+
+export function extractionLoad(): { active: number; pending: number } {
+  return { active: extractionSlots.active, pending: extractionSlots.pending };
+}
+
+async function tracked(jobPostId: string, task: () => Promise<void>): Promise<void> {
+  inFlight.add(jobPostId);
+  try {
+    await extractionSlots.run(task);
+  } finally {
+    inFlight.delete(jobPostId);
+  }
+}
 
 function isDuplicateKeyError(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000;
@@ -59,7 +88,7 @@ async function persistExtractionResult(
  * review form. `needs_review` (unlike `failed`) is draftable downstream, so the
  * user can type the details in by hand and continue to the email step.
  */
-async function persistExtractionFailure(job: IJobPost, err: unknown, jobPostId: string): Promise<void> {
+export async function persistExtractionFailure(job: IJobPost, err: unknown, jobPostId: string): Promise<void> {
   logger.error({ err, jobPostId }, 'Extraction failed — degrading to manual review');
   job.extraction = {
     company: null,
@@ -90,7 +119,11 @@ async function persistExtractionFailure(job: IJobPost, err: unknown, jobPostId: 
  * Transport-agnostic on purpose: routes call it fire-and-forget today, and
  * M3 registers this exact function as an Agenda job without changes.
  */
-export async function runExtraction(jobPostId: string): Promise<void> {
+export async function runExtraction(jobPostId: string, preloaded?: Buffer): Promise<void> {
+  await tracked(jobPostId, () => doRunExtraction(jobPostId, preloaded));
+}
+
+async function doRunExtraction(jobPostId: string, preloaded?: Buffer): Promise<void> {
   const job = await JobPost.findById(jobPostId);
   if (!job) {
     logger.warn({ jobPostId }, 'runExtraction: JobPost not found');
@@ -98,7 +131,9 @@ export async function runExtraction(jobPostId: string): Promise<void> {
   }
 
   try {
-    const buffer = await fs.promises.readFile(job.screenshotPath);
+    // The upload route hands over the bytes it already holds in memory; only
+    // re-runs (or other callers) read back from storage.
+    const buffer = preloaded ?? (await getFile(job.screenshotPath));
     const mimeType = sniffImageMime(buffer.subarray(0, 12)) ?? 'image/png';
 
     const provider = getAIProvider();
@@ -118,6 +153,10 @@ export async function runExtraction(jobPostId: string): Promise<void> {
  * duplicate handling — so the client's existing GET /jobs/:id polling works.
  */
 export async function runTextExtraction(jobPostId: string): Promise<void> {
+  await tracked(jobPostId, () => doRunTextExtraction(jobPostId));
+}
+
+async function doRunTextExtraction(jobPostId: string): Promise<void> {
   const job = await JobPost.findById(jobPostId);
   if (!job) {
     logger.warn({ jobPostId }, 'runTextExtraction: JobPost not found');

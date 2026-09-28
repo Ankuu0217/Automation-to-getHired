@@ -118,7 +118,12 @@ export function Register() {
         </Button>
 
         <p className="text-center font-sans text-xs text-text-2-dark">
-          We’ll email you a link to verify your address before your first send.
+          We’ll email you a link to verify your address before your first send. By creating an account you agree
+          to our{' '}
+          <Link to="/privacy" className="text-paper underline-offset-4 hover:underline">
+            privacy policy
+          </Link>
+          .
         </p>
       </form>
 

@@ -49,7 +49,9 @@ export function isPermanentSendError(err: unknown): boolean {
 
 export interface MailAttachment {
   filename: string;
-  path: string;
+  /** In-memory bytes (fetched from the storage layer — local disk or ImageKit). */
+  content: Buffer;
+  contentType?: string;
 }
 
 export interface SendMailInput {

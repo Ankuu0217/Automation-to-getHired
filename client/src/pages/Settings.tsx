@@ -31,6 +31,7 @@ import {
   updateSettings,
   uploadResume,
 } from '@/lib/api';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 
@@ -350,7 +351,7 @@ function ProfileDetailsCard() {
 
 function ProfileSection() {
   return (
-    <section id="profile" className="scroll-mt-28">
+    <StaggerItem as="section" id="profile" className="scroll-mt-28">
       <div className="mb-4">
         <Mono size="xs" color="fog">
           Candidate
@@ -367,7 +368,7 @@ function ProfileSection() {
         <ResumeCard />
         <ProfileDetailsCard />
       </div>
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -375,7 +376,7 @@ function ProfileSection() {
 
 function GmailSection() {
   return (
-    <section id="gmail" className="scroll-mt-28">
+    <StaggerItem as="section" id="gmail" className="scroll-mt-28">
       <div className="mb-4">
         <Mono size="xs" color="fog">
           Connection
@@ -388,7 +389,7 @@ function GmailSection() {
         </p>
       </div>
       <GmailConnectPanel />
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -423,7 +424,7 @@ function SendingSection() {
   });
 
   return (
-    <section id="sending" className="scroll-mt-28">
+    <StaggerItem as="section" id="sending" className="scroll-mt-28">
       <div className="mb-4">
         <Mono size="xs" color="fog">
           Guardrails
@@ -550,7 +551,7 @@ function SendingSection() {
           </Button>
         </div>
       </div>
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -575,7 +576,7 @@ function SignatureSection() {
   });
 
   return (
-    <section id="signature" className="scroll-mt-28">
+    <StaggerItem as="section" id="signature" className="scroll-mt-28">
       <div className="mb-4">
         <Mono size="xs" color="fog">
           Identity
@@ -613,7 +614,7 @@ function SignatureSection() {
           </div>
         )}
       </div>
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -637,7 +638,7 @@ function DangerSection() {
   const handleDelete = () => setDeleteOpen(true);
 
   return (
-    <section id="danger" className="scroll-mt-28">
+    <StaggerItem as="section" id="danger" className="scroll-mt-28">
       <div className="mb-4">
         <Mono size="xs" color="danger">
           Irreversible
@@ -683,7 +684,7 @@ function DangerSection() {
           deleteMutation.mutate();
         }}
       />
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -691,14 +692,16 @@ function DangerSection() {
 
 function Colophon() {
   return (
-    <footer className="border-t border-graphite pt-8">
-      <Mono size="xs" color="fog">
-        GETHIRED · COLD OUTREACH AUTOPILOT · BUILT QUIETLY
-      </Mono>
-      <p className="mt-1 font-sans text-xs text-text-3-dark">
-        Your data stays yours. Tokens are encrypted at rest; you can disconnect Gmail anytime.
-      </p>
-    </footer>
+    <StaggerItem>
+      <footer className="border-t border-graphite pt-8">
+        <Mono size="xs" color="fog">
+          GETHIRED · COLD OUTREACH AUTOPILOT · BUILT QUIETLY
+        </Mono>
+        <p className="mt-1 font-sans text-xs text-text-3-dark">
+          Your data stays yours. Tokens are encrypted at rest; you can disconnect Gmail anytime.
+        </p>
+      </footer>
+    </StaggerItem>
   );
 }
 
@@ -730,14 +733,16 @@ export function Settings() {
   return (
     <div className="flex gap-12">
       <SubNav />
-      <div className="min-w-0 max-w-2xl flex-1 space-y-16">
+      <Stagger className="min-w-0 max-w-2xl flex-1 space-y-16">
         <div>
           <Mono size="xs" color="fog">
             Account
           </Mono>
-          <h1 className="mt-1 font-sans text-heading text-paper">
-            Your settings.
-          </h1>
+          <RevealHeading
+            as="h1"
+            text="Your settings."
+            className="mt-1 font-sans text-heading text-paper"
+          />
         </div>
 
         <ProfileSection />
@@ -746,7 +751,7 @@ export function Settings() {
         <SignatureSection />
         <DangerSection />
         <Colophon />
-      </div>
+      </Stagger>
     </div>
   );
 }

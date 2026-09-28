@@ -29,6 +29,14 @@ import {
   setDefaultTemplate,
   updateTemplate,
 } from '@/lib/api';
+import {
+  CountUp,
+  RevealHeading,
+  Stagger,
+  StaggerItem,
+  fmtInt,
+  fmtPct,
+} from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 const TONES: { value: Tone; label: string }[] = [
@@ -42,10 +50,6 @@ const PLACEHOLDERS =
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof ApiRequestError ? error.message : fallback;
-}
-
-function replyRate(sent: number, replied: number): string {
-  return sent === 0 ? '—' : `${Math.round((replied / sent) * 100)}%`;
 }
 
 interface TemplateFormValues {
@@ -204,10 +208,8 @@ function TemplateCard({
 
   const handleDelete = () => setDeleteOpen(true);
 
-  const rr = replyRate(template.stats.sent, template.stats.replied);
-
   return (
-    <div
+    <StaggerItem
       className={cn(
         'rounded-card border bg-ink-2 p-4 transition-quick',
         template.isDefault ? 'border-lime' : 'border-graphite hover:border-text-3-dark',
@@ -269,7 +271,15 @@ function TemplateCard({
         <Stat label="Opened" value={template.stats.opened} icon={MailOpen} />
         <Stat label="Replied" value={template.stats.replied} icon={Reply} />
         <div className="flex flex-col items-center justify-center gap-1 border-l border-graphite pl-2">
-          <span className="font-sans text-lg font-normal text-paper">{rr}</span>
+          {template.stats.sent === 0 ? (
+            <span className="font-sans text-lg font-normal text-paper">—</span>
+          ) : (
+            <CountUp
+              value={Math.round((template.stats.replied / template.stats.sent) * 100)}
+              format={fmtPct(0)}
+              className="font-sans text-lg font-normal text-paper"
+            />
+          )}
           <Mono size="xs" color="fog">
             Reply rate
           </Mono>
@@ -288,7 +298,7 @@ function TemplateCard({
           deleteMutation.mutate(template.id);
         }}
       />
-    </div>
+    </StaggerItem>
   );
 }
 
@@ -296,7 +306,7 @@ function Stat({ label, value, icon: Icon }: { label: string; value: number; icon
   return (
     <div className="flex flex-col items-center justify-center gap-1">
       <Icon className="size-3.5 text-text-3-dark" />
-      <span className="font-sans text-lg font-normal text-paper">{value}</span>
+      <CountUp value={value} format={fmtInt} className="font-sans text-lg font-normal text-paper" />
       <Mono size="xs" color="fog">
         {label}
       </Mono>
@@ -318,10 +328,10 @@ export function Templates() {
   };
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       {/* Orchid module marker */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <div>
+        <StaggerItem>
           <div className="flex flex-col justify-between rounded-card border border-graphite bg-ink-2 p-6">
             <div className="flex size-9 items-center justify-center rounded-btn border border-graphite bg-ink-3 text-text-2-dark">
               <Send className="size-4" strokeWidth={1.5} />
@@ -339,7 +349,7 @@ export function Templates() {
               Default: <span className="text-paper">{defaultTemplate.name}</span>
             </p>
           )}
-        </div>
+        </StaggerItem>
 
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -347,9 +357,11 @@ export function Templates() {
               <Mono size="xs" color="fog">
                 Templates
               </Mono>
-              <h1 className="mt-1 font-sans text-heading text-paper">
-                Saved prompts.
-              </h1>
+              <RevealHeading
+                as="h1"
+                text="Saved prompts."
+                className="mt-1 font-sans text-heading text-paper"
+              />
             </div>
             <Button onClick={() => setCreating(true)}>
               <Plus className="size-4" />
@@ -389,6 +401,6 @@ export function Templates() {
       {(creating || editing) && (
         <TemplateSheet template={editing} open={creating || Boolean(editing)} onClose={closeSheet} />
       )}
-    </div>
+    </Stagger>
   );
 }

@@ -250,6 +250,9 @@ export async function initQueue(): Promise<void> {
     // only — the runtime Db API is identical.
     backend: new MongoBackend({ mongo: db as unknown as Db }),
     processEvery: '30 seconds',
+    // Completed one-off jobs (sends, follow-ups, reminders) are deleted instead
+    // of piling up forever in agendaJobs; failed ones stay for debugging.
+    removeOnComplete: true,
   });
 
   agenda.define(
@@ -257,14 +260,14 @@ export async function initQueue(): Promise<void> {
     async (job: Job<SendEmailJobData>) => {
       await handleJob(job.attrs.data);
     },
-    { concurrency: 2, lockLifetime: 5 * 60 * 1000 },
+    { concurrency: env.QUEUE_SEND_CONCURRENCY, lockLifetime: 5 * 60 * 1000 },
   );
   agenda.define(
     SEND_FOLLOWUP_JOB,
     async (job: Job<SendFollowUpJobData>) => {
       await handleFollowUpJob(job.attrs.data);
     },
-    { concurrency: 2, lockLifetime: 5 * 60 * 1000 },
+    { concurrency: env.QUEUE_SEND_CONCURRENCY, lockLifetime: 5 * 60 * 1000 },
   );
   agenda.define(
     INTERVIEW_REMINDER_JOB,

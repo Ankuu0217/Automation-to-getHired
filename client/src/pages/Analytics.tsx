@@ -35,6 +35,15 @@ import {
   listTemplates,
 } from '@/lib/api';
 import { chartTheme } from '@/lib/chartTheme';
+import {
+  CountUp,
+  ProgressFill,
+  RevealHeading,
+  Stagger,
+  StaggerItem,
+  fmtInt,
+  fmtPct,
+} from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 const FUNNEL_STEPS: { key: keyof FunnelTotals; label: string }[] = [
@@ -70,7 +79,7 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
   const max = Math.max(totals.sent, 1);
 
   return (
-    <section className="rounded-card border border-graphite bg-ink-2 p-4">
+    <StaggerItem as="section" className="rounded-card border border-graphite bg-ink-2 p-4">
       <div className="mb-6 flex items-end justify-between">
         <div>
           <Mono size="xs" color="fog">
@@ -105,16 +114,13 @@ function FunnelBars({ totals }: { totals: FunnelTotals }) {
                 </div>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-transparent">
-                <div
-                  className="h-full rounded-pill bg-lime transition-[width] duration-500 ease-out"
-                  style={{ width: value === 0 ? '0%' : `${Math.max(pct, 2)}%` }}
-                />
+                <ProgressFill pct={value === 0 ? 0 : Math.max(pct, 2)} />
               </div>
             </div>
           );
         })}
       </div>
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -128,7 +134,7 @@ function TemplateLedger({
   templates: { id: string; tone: string }[];
 }) {
   return (
-    <section className="overflow-hidden rounded-card border border-graphite bg-ink-2">
+    <StaggerItem as="section" className="overflow-hidden rounded-card border border-graphite bg-ink-2">
       <div className="border-b border-graphite px-4 py-4">
         <div className="flex items-end justify-between">
           <div>
@@ -219,7 +225,7 @@ function TemplateLedger({
           </tbody>
         </table>
       </div>
-    </section>
+    </StaggerItem>
   );
 }
 
@@ -650,10 +656,10 @@ export function Analytics() {
   const hasData = funnel && funnel.totals.sent > 0;
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       {/* Header */}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col justify-between rounded-card border border-graphite bg-ink-2 p-6">
+        <StaggerItem className="flex flex-col justify-between rounded-card border border-graphite bg-ink-2 p-6">
           <div className="flex size-9 items-center justify-center rounded-btn border border-graphite bg-ink-3 text-text-2-dark">
             <BarChart3 className="size-4" strokeWidth={1.5} />
           </div>
@@ -663,16 +669,18 @@ export function Analytics() {
               Funnel, template A/B performance, and 30-day trend.
             </p>
           </div>
-        </div>
+        </StaggerItem>
 
         <div className="flex flex-col justify-between">
           <div>
             <Mono size="xs" color="fog">
               Performance
             </Mono>
-            <h1 className="mt-1 font-sans text-heading text-paper">
-              Your outreach, measured.
-            </h1>
+            <RevealHeading
+              as="h1"
+              text={`Your outreach, measured.`}
+              className="mt-1 font-sans text-heading text-paper"
+            />
           </div>
           <div className="mt-4 flex items-center gap-3">
             <Link to="/pipeline" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
@@ -689,7 +697,7 @@ export function Analytics() {
       </div>
 
       {funnelQuery.isPending || templatesQuery.isPending ? (
-        <div className="space-y-6">
+        <StaggerItem className="space-y-6">
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex flex-col justify-center gap-2 bg-ink-2 p-4">
@@ -700,26 +708,32 @@ export function Analytics() {
           </div>
           <Skeleton className="h-80 w-full rounded-card" />
           <Skeleton className="h-80 w-full rounded-card" />
-        </div>
+        </StaggerItem>
       ) : !hasData ? (
-        <EmptyState
-          headline={
-            <>
-              No dispatches yet. Send the first.
-            </>
-          }
-          description="Once outreach is in flight, opens, replies, interviews, and offers appear here."
-          action={{ to: '/apps/new', label: 'New dispatch' }}
-        />
+        <StaggerItem>
+          <EmptyState
+            headline={
+              <>
+                No dispatches yet. Send the first.
+              </>
+            }
+            description="Once outreach is in flight, opens, replies, interviews, and offers appear here."
+            action={{ to: '/apps/new', label: 'New dispatch' }}
+          />
+        </StaggerItem>
       ) : (
         <>
           {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
+          <StaggerItem className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
             <Stat label="Sent" value={funnel.totals.sent} />
             <Stat label="Opened" value={funnel.totals.opened} />
             <Stat label="Replied" value={funnel.totals.replied} />
-            <Stat label="Response rate" value={`${Math.round(funnel.rates.responseRate * 100)}%`} />
-          </div>
+            <Stat
+              label="Response rate"
+              value={Math.round(funnel.rates.responseRate * 100)}
+              format={fmtPct(0)}
+            />
+          </StaggerItem>
 
           {/* Funnel + template ledger */}
           <div className="grid gap-6 lg:grid-cols-2">
@@ -728,7 +742,7 @@ export function Analytics() {
           </div>
 
           {/* Trend */}
-          <section className="rounded-card border border-graphite bg-ink-2 p-4">
+          <StaggerItem as="section" className="rounded-card border border-graphite bg-ink-2 p-4">
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <Mono size="xs" color="fog">
@@ -741,28 +755,36 @@ export function Analytics() {
               </Mono>
             </div>
             <ActivityChart data={funnel.trend} />
-          </section>
+          </StaggerItem>
 
           {/* Phase 5: timing, template, tone, response-time panels */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <StaggerItem className="grid gap-6 lg:grid-cols-2">
             <TimingPanel />
             <TemplatePanel />
             <TonePanel />
             <ResponseTimePanel />
-          </div>
+          </StaggerItem>
         </>
       )}
-    </div>
+    </Stagger>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({
+  label,
+  value,
+  format = fmtInt,
+}: {
+  label: string;
+  value: number;
+  format?: (n: number) => string;
+}) {
   return (
     <div className="flex flex-col justify-center bg-ink-2 p-4">
       <Mono size="xs" color="fog">
         {label}
       </Mono>
-      <span className="mt-1 font-sans text-subheading text-paper">{value}</span>
+      <CountUp value={value} format={format} className="mt-1 font-sans text-subheading text-paper" />
     </div>
   );
 }

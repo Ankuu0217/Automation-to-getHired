@@ -16,6 +16,15 @@ import { Mono } from '@/components/Mono';
 import { buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getFunnelAnalytics, getProfile, listApplications, updateApplication } from '@/lib/api';
+import {
+  CountUp,
+  ProgressFill,
+  RevealHeading,
+  Stagger,
+  StaggerItem,
+  fmtInt,
+  fmtPct,
+} from '@/lib/motion';
 import { computeStreak, startOfWeek } from '@/lib/streak';
 import { cn } from '@/lib/utils';
 import { formatInterviewBadge } from '@/pages/pipelineUtils';
@@ -82,25 +91,30 @@ export function Dashboard() {
 
   const stats = funnel
     ? [
-        { label: 'Sent', value: funnel.totals.sent },
-        { label: 'Opened', value: funnel.totals.opened },
-        { label: 'Replied', value: funnel.totals.replied },
-        { label: 'Response rate', value: `${Math.round(funnel.rates.responseRate * 100)}%` },
+        { label: 'Sent', value: funnel.totals.sent, format: fmtInt },
+        { label: 'Opened', value: funnel.totals.opened, format: fmtInt },
+        { label: 'Replied', value: funnel.totals.replied, format: fmtInt },
+        {
+          label: 'Response rate',
+          value: Math.round(funnel.rates.responseRate * 100),
+          format: fmtPct(0),
+        },
       ]
     : null;
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Mono size="xs" color="fog">
             Dispatches · {applications.length}
           </Mono>
-          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
-            {greeting(user?.name?.split(' ')[0])}
-            .
-          </h1>
+          <RevealHeading
+            as="h1"
+            text={`${greeting(user?.name?.split(' ')[0])}.`}
+            className="mt-1 font-sans text-heading font-normal text-paper"
+          />
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
           New dispatch
@@ -110,86 +124,90 @@ export function Dashboard() {
 
       {/* Stats */}
       {funnelQuery.isPending ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
+        <StaggerItem className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex h-[88px] min-w-0 flex-col justify-center gap-2 bg-ink-2 px-4">
               <Skeleton className="h-3 w-16 bg-ink-3" />
               <Skeleton className="h-8 w-12 bg-ink-3" />
             </div>
           ))}
-        </div>
+        </StaggerItem>
       ) : stats ? (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
+        <StaggerItem className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-graphite bg-graphite sm:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="flex min-w-0 flex-col justify-center bg-ink-2 px-4 py-4">
               <Mono size="xs" color="fog">
                 {stat.label}
               </Mono>
-              <span className="mt-1 font-sans text-subheading font-normal text-paper">
-                {stat.value}
-              </span>
+              <CountUp
+                value={stat.value}
+                format={stat.format}
+                className="mt-1 font-sans text-subheading font-normal text-paper"
+              />
             </div>
           ))}
-        </div>
+        </StaggerItem>
       ) : null}
 
       {/* Weekly goal + streak (Phase 9) — rendered only when a goal is set. */}
       {weeklyGoal !== null && (
-        <section className="rounded-card border border-graphite bg-ink-2 p-4">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <div className="min-w-[220px] flex-1">
-              <div className="flex items-center justify-between">
-                <Mono size="xs" color="fog">
-                  This week
-                </Mono>
-                <Mono size="xs" color="pure">
-                  {sentThisWeek} / {weeklyGoal}
-                </Mono>
-              </div>
-              {/* Thin lime fill on a hairline pill track — mirrors the Analytics funnel bars. */}
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-transparent">
-                <div
-                  className="h-full rounded-pill bg-lime transition-[width] duration-500 ease-out"
-                  style={{
-                    width:
+        <StaggerItem>
+          <section className="rounded-card border border-graphite bg-ink-2 p-4">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="min-w-[220px] flex-1">
+                <div className="flex items-center justify-between">
+                  <Mono size="xs" color="fog">
+                    This week
+                  </Mono>
+                  <Mono size="xs" color="pure">
+                    {sentThisWeek} / {weeklyGoal}
+                  </Mono>
+                </div>
+                {/* Thin lime fill on a hairline pill track — mirrors the Analytics funnel bars. */}
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill border border-graphite bg-transparent">
+                  <ProgressFill
+                    pct={
                       sentThisWeek === 0
-                        ? '0%'
-                        : `${Math.max(Math.min((sentThisWeek / weeklyGoal) * 100, 100), 2)}%`,
-                  }}
-                />
+                        ? 0
+                        : Math.max(Math.min((sentThisWeek / weeklyGoal) * 100, 100), 2)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {streak >= 1 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
+                <Mono size="xs" color="ash">
+                  Streak · {streak}D
+                </Mono>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {streak >= 1 && <span aria-hidden className="size-1.5 rounded-full bg-lime" />}
-              <Mono size="xs" color="ash">
-                Streak · {streak}D
-              </Mono>
-            </div>
-          </div>
-        </section>
+          </section>
+        </StaggerItem>
       )}
 
       {/* Chart */}
       {funnelQuery.isPending ? (
-        <div className="rounded-card border border-graphite bg-ink-2 p-4">
+        <StaggerItem className="rounded-card border border-graphite bg-ink-2 p-4">
           <Skeleton className="h-5 w-40 bg-ink-3" />
           <Skeleton className="mt-4 h-64 w-full bg-ink-3" />
-        </div>
+        </StaggerItem>
       ) : funnel && funnel.totals.sent > 0 ? (
-        <section className="rounded-card border border-graphite bg-ink-2 p-4">
-          <div className="mb-4">
-            <Mono size="xs" color="fog">
-              Last 30 days
-            </Mono>
-            <p className="mt-1 font-sans text-base font-normal text-paper">Sent per day</p>
-          </div>
-          <ActivityChart data={funnel.trend} />
-        </section>
+        <StaggerItem>
+          <section className="rounded-card border border-graphite bg-ink-2 p-4">
+            <div className="mb-4">
+              <Mono size="xs" color="fog">
+                Last 30 days
+              </Mono>
+              <p className="mt-1 font-sans text-base font-normal text-paper">Sent per day</p>
+            </div>
+            <ActivityChart data={funnel.trend} />
+          </section>
+        </StaggerItem>
       ) : null}
 
       {/* Upcoming interviews (Phase 3) — omitted entirely when none. */}
       {upcomingInterviews.length > 0 && (
-        <section>
+        <StaggerItem as="section">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <Mono size="xs" color="fog">
@@ -226,11 +244,11 @@ export function Dashboard() {
               </li>
             ))}
           </ul>
-        </section>
+        </StaggerItem>
       )}
 
       {/* Module tiles */}
-      <section>
+      <StaggerItem as="section">
         <div className="mb-3 flex items-center justify-between">
           <Mono size="xs" color="fog">
             Modules
@@ -252,10 +270,10 @@ export function Dashboard() {
             </div>
           ))}
         </div>
-      </section>
+      </StaggerItem>
 
       {/* Recent dispatches */}
-      <section>
+      <StaggerItem as="section">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <Mono size="xs" color="fog">
@@ -291,10 +309,10 @@ export function Dashboard() {
         ) : (
           <Ledger applications={recent} onStageChange={(id, stage) => stageMutation.mutate({ id, stage })} />
         )}
-      </section>
+      </StaggerItem>
 
       {/* Setup checklist */}
-      <section className="rounded-card border border-graphite bg-ink-2">
+      <StaggerItem as="section" className="rounded-card border border-graphite bg-ink-2">
         <div className="border-b border-graphite px-4 py-3">
           <Mono size="xs" color="fog">
             Setup
@@ -350,8 +368,8 @@ export function Dashboard() {
             </ol>
           )}
         </div>
-      </section>
-    </div>
+      </StaggerItem>
+    </Stagger>
   );
 }
 

@@ -154,6 +154,18 @@ pnpm dev
 
 The app will be available at **http://localhost:5173** with the API at **http://localhost:4000**.
 
+### Tests
+
+```bash
+pnpm test   # server (Vitest + mongodb-memory-server) and client (Vitest + jsdom)
+```
+
+### Deploy
+
+Production runs as **one Node service** that serves the API and the built client from
+the same origin (`pnpm build && pnpm start`). See **[DEPLOYMENT.md](DEPLOYMENT.md)**
+and the included `render.yaml`.
+
 ---
 
 ## ⚙️ Environment Variables
@@ -167,11 +179,18 @@ The app will be available at **http://localhost:5173** with the API at **http://
 | `JWT_REFRESH_SECRET` | ✅ | Refresh token signing secret |
 | `ENCRYPTION_KEY` | ✅ | 32-byte AES-256-GCM key (64 hex chars) |
 | `GEMINI_API_KEY` | ✅ | Google AI API key for vision extraction |
+| `IMAGEKIT_PRIVATE_KEY` | Prod | ImageKit private key — resumes & screenshots stored as private files |
+| `IMAGEKIT_URL_ENDPOINT` | Prod | ImageKit URL endpoint, e.g. `https://ik.imagekit.io/your_id` |
 | `GMAIL_CLIENT_ID` | For OAuth | Google OAuth2 client ID |
 | `GMAIL_CLIENT_SECRET` | For OAuth | Google OAuth2 client secret |
 | `GMAIL_REDIRECT_URI` | For OAuth | OAuth callback URL |
 | `GMAIL_USER` | Dev fallback | Gmail address for App Password mode |
 | `GMAIL_APP_PASSWORD` | Dev fallback | Gmail app password |
+
+Scale/ops knobs (`TRUST_PROXY`, `UPLOAD_CONCURRENCY`, `EXTRACTION_CONCURRENCY`,
+`QUEUE_SEND_CONCURRENCY`, `SCREENSHOT_RETENTION_DAYS`, `GEMINI_TEXT_MODEL`) are documented in
+`server/.env.example`; defaults are sized for ~1000 users on one 1 CPU / 2 GB instance — see
+[DEPLOYMENT.md](DEPLOYMENT.md#8-capacity--whats-built-in-for-1000-users).
 
 Generate a secure encryption key:
 ```bash

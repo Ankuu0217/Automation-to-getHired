@@ -39,6 +39,7 @@ import type {
   VerifyEmailInput,
 } from '@jobmail/shared';
 
+import { compressScreenshot } from '@/lib/imageCompress';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -209,9 +210,10 @@ export function downloadResumeUrl(): string {
 
 /* ── Jobs (M2: screenshot upload → extraction review) ───────────── */
 
-export function uploadJobScreenshot(file: File) {
+export async function uploadJobScreenshot(file: File) {
   const formData = new FormData();
-  formData.append('screenshot', file);
+  // Shrinks big retina/phone screenshots (WebP, ≤2000 px) — see lib/imageCompress.
+  formData.append('screenshot', await compressScreenshot(file));
   return api<UploadJobResponse>('/jobs/upload', { method: 'POST', body: formData });
 }
 

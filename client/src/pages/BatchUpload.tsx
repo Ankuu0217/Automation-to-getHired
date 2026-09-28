@@ -9,6 +9,7 @@ import { Mono } from '@/components/Mono';
 import { recentContactMessage } from '@/components/ProofSheet';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ApiRequestError, generateJobEmail, getJob, uploadJobScreenshot } from '@/lib/api';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import {
   CARD_STATUS_LABEL,
@@ -379,29 +380,32 @@ export function BatchUpload() {
   const summary = summarizeCards(cards.map(snapshotOf));
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <Stagger className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Mono size="xs" color="fog">
             Batch upload
           </Mono>
-          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
-            Ten screenshots. One pass.
-          </h1>
+          <RevealHeading
+            as="h1"
+            text={`Ten screenshots. One pass.`}
+            className="mt-1 font-sans text-heading font-normal text-paper"
+          />
         </div>
         <Link to="/apps/new" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
           Single upload
         </Link>
       </div>
 
-      <div
-        {...getRootProps()}
-        className={cn(
-          'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-btn border border-dashed border-graphite bg-ink px-6 py-12 text-center transition-quick hover:border-lime',
-          isDragActive && 'border-lime',
-        )}
-      >
-        <input {...getInputProps()} aria-label="Job post screenshots" />
+      <StaggerItem>
+        <div
+          {...getRootProps()}
+          className={cn(
+            'focus-ring relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-btn border border-dashed border-graphite bg-ink px-6 py-12 text-center transition-quick hover:border-lime',
+            isDragActive && 'border-lime',
+          )}
+        >
+          <input {...getInputProps()} aria-label="Job post screenshots" />
         <div
           className={cn(
             'flex size-12 items-center justify-center rounded-btn border border-graphite bg-ink-2 text-text-2-dark transition-quick',
@@ -423,18 +427,19 @@ export function BatchUpload() {
             </Mono>
           </>
         )}
-      </div>
+        </div>
+      </StaggerItem>
 
       {cards.length > 0 && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StaggerItem className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((card) => (
               <BatchCardView key={card.localId} card={card} />
             ))}
-          </div>
+          </StaggerItem>
 
           {/* Sticky summary bar — counts + bulk GENERATE (never bulk send). */}
-          <div className="sticky bottom-4 rounded-card border border-graphite bg-ink-2 p-4">
+          <StaggerItem className="sticky bottom-4 rounded-card border border-graphite bg-ink-2 p-4">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <Mono size="sm" color="pure">
                 {summary.uploaded} uploaded · {summary.ready} ready · {summary.attention} need
@@ -453,9 +458,9 @@ export function BatchUpload() {
                 </Button>
               </div>
             </div>
-          </div>
+          </StaggerItem>
         </>
       )}
-    </div>
+    </Stagger>
   );
 }

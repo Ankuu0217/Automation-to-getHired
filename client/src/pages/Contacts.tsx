@@ -8,6 +8,7 @@ import { Mono } from '@/components/Mono';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getContact, getContacts } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 const GRID_TEMPLATE = 'grid-cols-[1.6fr_1.6fr_90px_140px_110px]';
@@ -195,33 +196,37 @@ export function Contacts() {
   const contacts = contactsQuery.data?.contacts ?? [];
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       <div>
         <Mono size="xs" color="fog">
           Contacts
         </Mono>
-        <h1 className="mt-1 font-sans text-heading font-normal text-paper">
-          Every recruiter.
-        </h1>
+        <RevealHeading
+          as="h1"
+          text={`Every recruiter.`}
+          className="mt-1 font-sans text-heading font-normal text-paper"
+        />
       </div>
 
       {contactsQuery.isPending ? (
-        <div className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
+        <StaggerItem className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4">
               <Skeleton className="h-4 w-1/3 bg-ink-3" />
               <Skeleton className="ml-auto h-4 w-20 bg-ink-3" />
             </div>
           ))}
-        </div>
+        </StaggerItem>
       ) : contacts.length === 0 ? (
-        <EmptyState
-          headline="No recruiters contacted yet."
-          description="Send your first outreach and every recruiter you email collects here."
-          action={{ to: '/apps/new', label: 'New dispatch' }}
-        />
+        <StaggerItem>
+          <EmptyState
+            headline="No recruiters contacted yet."
+            description="Send your first outreach and every recruiter you email collects here."
+            action={{ to: '/apps/new', label: 'New dispatch' }}
+          />
+        </StaggerItem>
       ) : (
-        <div className="overflow-x-auto rounded-card border border-graphite bg-ink-2">
+        <StaggerItem className="overflow-x-auto rounded-card border border-graphite bg-ink-2">
           <div className="min-w-[720px]">
             {/* Header */}
             <div
@@ -258,8 +263,8 @@ export function Contacts() {
               />
             ))}
           </div>
-        </div>
+        </StaggerItem>
       )}
-    </div>
+    </Stagger>
   );
 }

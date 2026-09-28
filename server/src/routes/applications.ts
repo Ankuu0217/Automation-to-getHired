@@ -151,7 +151,12 @@ async function detailEnvelope(app: IApplication): Promise<{ application: Applica
 /** GET /applications — Kanban list, newest first. */
 applicationsRouter.get('/', async (req, res, next) => {
   try {
-    const applications = await Application.find({ userId: req.userId! }).sort({ createdAt: -1 });
+    // Kanban cards never show email bodies — skip them (the bulk of each doc)
+    // and skip Mongoose hydration for this read-only list.
+    const applications = await Application.find({ userId: req.userId! })
+      .select('-emails.bodyText -emails.bodyHtml -notes')
+      .sort({ createdAt: -1 })
+      .lean<IApplication[]>();
     const body: ApplicationListResponse = { applications: applications.map(toSummary) };
     res.json(body);
   } catch (err) {

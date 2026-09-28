@@ -1,11 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { AlertTriangle, MailWarning, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Nav } from '@/components/Nav';
 import { ApiRequestError, listApplications, resendVerification } from '@/lib/api';
+import { pageEnter } from '@/lib/motion';
 import { useAuthStore } from '@/stores/auth';
 
 function GmailDisconnectedBanner() {
@@ -119,6 +121,7 @@ function VerifyEmailBanner() {
 
 export function AppLayout() {
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
   const applicationsQuery = useQuery({ queryKey: ['applications'], queryFn: listApplications });
 
   const sentToday = useMemo(() => {
@@ -145,7 +148,15 @@ export function AppLayout() {
 
       <main className="flex-1 pt-8">
         <div className="mx-auto w-full max-w-[1200px] px-6 pb-16">
-          <Outlet />
+          {/* Route transition: the shell (Nav/banners) stays put while the
+              content area slides + fades in on every navigation. Keyed on
+              pathname only, so in-page query changes (?job=…) don't remount. */}
+          <motion.div key={location.pathname} variants={pageEnter} initial="initial" animate="animate">
+            {/* Page chunks are lazy-loaded (App.tsx); keep the shell visible meanwhile. */}
+            <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" />}>
+              <Outlet />
+            </Suspense>
+          </motion.div>
         </div>
       </main>
     </div>

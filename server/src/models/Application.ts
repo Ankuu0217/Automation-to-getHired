@@ -97,6 +97,9 @@ const applicationSchema = new Schema<IApplication>(
 
 // Kanban + send-cap counting both query by (userId, stage / emails.sentAt).
 applicationSchema.index({ userId: 1, stage: 1 });
+// Kanban list (newest first) and per-recruiter lookups (contacts, double-outreach guard).
+applicationSchema.index({ userId: 1, createdAt: -1 });
+applicationSchema.index({ userId: 1, hrEmail: 1 });
 applicationSchema.index({ userId: 1, 'emails.sentAt': 1 });
 
 export const Application =

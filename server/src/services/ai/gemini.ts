@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI, type ContentListUnion } from '@google/genai';
 import {
   matchAnalysisSchema,
   type JobExtraction,
@@ -96,6 +96,48 @@ function isTransientGeminiError(err: unknown): boolean {
  * reads the screenshot, sometimes it doesn't" — a couple of spaced retries make
  * vision extraction succeed consistently instead of falling back to OCR.
  */
+/** A hung Gemini call would leave a job stuck in 'processing' forever. */
+const GEMINI_TIMEOUT_MS = 45_000;
+let genAIClient: GoogleGenAI | null = null;
+
+/** Test hook: drop the cached client (e.g. after changing env in a test). */
+export function resetGeminiClient(): void {
+  genAIClient = null;
+}
+
+/**
+ * Shared client (official @google/genai SDK) + JSON-mode generation.
+ * `responseMimeType: application/json` makes Gemini emit bare JSON (no
+ * ```fences/prose), so far fewer responses fail to parse and silently degrade
+ * to the regex/template fallbacks. Returns the response text.
+ */
+function jsonModel(temperature?: number, kind: 'vision' | 'text' = 'text') {
+  genAIClient ??= new GoogleGenAI({
+    apiKey: env.GEMINI_API_KEY!,
+    httpOptions: { timeout: GEMINI_TIMEOUT_MS },
+  });
+  const client = genAIClient;
+  return {
+    async generate(contents: ContentListUnion): Promise<string> {
+      const response = await client.models.generateContent({
+        // Text-only calls may use a cheaper model (GEMINI_TEXT_MODEL, e.g. a Flash-Lite).
+        model: kind === 'text' && env.GEMINI_TEXT_MODEL ? env.GEMINI_TEXT_MODEL : env.GEMINI_MODEL,
+        contents,
+        config: {
+          responseMimeType: 'application/json',
+          ...(temperature !== undefined ? { temperature } : {}),
+        },
+      });
+      const text = response.text;
+      if (!text) {
+        const reason = response.candidates?.[0]?.finishReason ?? response.promptFeedback?.blockReason;
+        throw new Error(`Gemini returned an empty response${reason ? ` (${reason})` : ''}`);
+      }
+      return text;
+    },
+  };
+}
+
 async function withGeminiRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -120,16 +162,14 @@ export async function extractWithGemini(
   buffer: Buffer,
   mimeType: string,
 ): Promise<GeminiExtractionResult> {
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+  const model = jsonModel(0.1, 'vision');
 
-  const result = await withGeminiRetry(() =>
-    model.generateContent([
+  const text = await withGeminiRetry(() =>
+    model.generate([
       EXTRACTION_PROMPT,
       { inlineData: { data: buffer.toString('base64'), mimeType } },
     ]),
   );
-  const text = result.response.text();
 
   return { extraction: parseExtractionJson(text), rawText: text };
 }
@@ -140,16 +180,14 @@ export async function extractWithGemini(
  * and falls back to the regex heuristics.
  */
 export async function extractTextWithGemini(rawText: string): Promise<GeminiExtractionResult> {
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+  const model = jsonModel(0.1);
 
-  const result = await withGeminiRetry(() =>
-    model.generateContent([
+  const text = await withGeminiRetry(() =>
+    model.generate([
       TEXT_EXTRACTION_PROMPT,
       `JOB POSTING TEXT:\n${rawText.slice(0, 20000)}`,
     ]),
   );
-  const text = result.response.text();
 
   return { extraction: parseExtractionJson(text), rawText: text };
 }
@@ -188,11 +226,9 @@ ${profile.resumeText.slice(0, 8000) || 'n/a'}`;
 
 /** Strict JSON-output match analysis. Throws on API errors or bad output — the provider falls back to heuristics. */
 export async function analyzeMatchWithGemini(input: MatchAnalysisInput): Promise<JobMatch> {
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+  const model = jsonModel(0.2);
 
-  const result = await withGeminiRetry(() => model.generateContent(buildMatchPrompt(input)));
-  const raw = result.response.text();
+  const raw = await withGeminiRetry(() => model.generate(buildMatchPrompt(input)));
   const candidate = findFirstJsonObject(raw.replace(/```(?:json)?/gi, ' '));
   if (!candidate) throw new Error('No JSON object found in match analysis response');
 
@@ -274,11 +310,9 @@ ${profile.signature || 'n/a'}${templateSection}`;
 export async function generateEmailWithGemini(
   input: OutreachEmailInput,
 ): Promise<{ subject: string; bodyText: string }> {
-  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+  const model = jsonModel();
 
-  const result = await withGeminiRetry(() => model.generateContent(buildEmailPrompt(input)));
-  const raw = result.response.text();
+  const raw = await withGeminiRetry(() => model.generate(buildEmailPrompt(input)));
   const candidate = findFirstJsonObject(raw.replace(/```(?:json)?/gi, ' '));
   if (!candidate) throw new Error('No JSON object found in email generation response');
 

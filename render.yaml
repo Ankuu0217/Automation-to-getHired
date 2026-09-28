@@ -1,0 +1,72 @@
+# Render Blueprint — one web service serves BOTH the API and the built React app
+# (same origin, so the SameSite=Strict auth cookies work). MongoDB lives on Atlas.
+# Deploy: Render dashboard → New → Blueprint → pick this repo, then fill the
+# `sync: false` values when prompted. See DEPLOYMENT.md for the full checklist.
+services:
+  - type: web
+    name: gethired
+    runtime: node
+    # Standard (1 CPU / 2 GB, ~$25/mo) is sized for ~1000 users: the OCR
+    # fallback alone peaks at ~550 MB RAM, which would OOM Starter (512 MB).
+    # Free instances sleep after 15 min idle (follow-ups would fire late).
+    # Uploads live in ImageKit, so no persistent disk is needed.
+    plan: standard
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: COOKIE_SECURE
+        value: "true"
+      # Both = your public URL, e.g. https://gethired.onrender.com (no trailing slash)
+      - key: API_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # 64 hex chars: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # Pin a model ID from AI Studio (aliases can silently change behaviour/price)
+      - key: GEMINI_MODEL
+        sync: false
+      # Optional cheaper model for text-only calls, e.g. a Flash-Lite ID
+      - key: GEMINI_TEXT_MODEL
+        sync: false
+      # Shown on /privacy (build-time, needed for Google OAuth verification)
+      - key: VITE_CONTACT_EMAIL
+        sync: false
+      # ImageKit (resumes + screenshots, private files)
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      # https://<your-domain>/api/v1/gmail/callback
+      - key: GMAIL_REDIRECT_URI
+        sync: false
+      # System sender for verification emails (any SMTP: Brevo, Resend, SES, Gmail…)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

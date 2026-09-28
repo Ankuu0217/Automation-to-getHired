@@ -134,17 +134,31 @@ export function SiteFooter({ reduce, onNavClick, onScrollTop }: SiteFooterProps)
 
             <motion.nav {...item} aria-label="Footer connect" className="border-l border-graphite pl-6">
               <span className={cn(MONO, 'text-text-2-dark')}>CONNECT</span>
-              {/* TODO(social): wire real profiles when they exist */}
               <ul className="mt-4 space-y-3">
                 <li>
-                  <a href="#" className={cn('font-sans text-body-lg', footLink)}>
+                  <a
+                    href="https://www.linkedin.com/in/ankit-singh-0216072a6"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn('font-sans text-body-lg', footLink)}
+                  >
                     LinkedIn
                   </a>
                 </li>
                 <li>
-                  <a href="#" className={cn('font-sans text-body-lg', footLink)}>
-                    X
+                  <a
+                    href="https://github.com/Ankuu0217"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn('font-sans text-body-lg', footLink)}
+                  >
+                    GitHub
                   </a>
+                </li>
+                <li>
+                  <Link to="/privacy" className={cn('font-sans text-body-lg', footLink)}>
+                    Privacy
+                  </Link>
                 </li>
               </ul>
             </motion.nav>

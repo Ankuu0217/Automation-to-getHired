@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import mongoose from 'mongoose';
 import type { SendFailureCode } from '@jobmail/shared';
 import { JobPost, type IJobPost } from '../../models/JobPost';
@@ -12,6 +11,7 @@ import { createNotification } from '../notifications';
 import { injectTrackingPixel } from '../tracking';
 import { hasMxRecord } from '../../utils/emailValidation';
 import { logger } from '../../utils/logger';
+import { getFile, StorageNotFoundError } from '../storage';
 
 /**
  * The `send-email` job payload and processor (SPEC §5).
@@ -199,7 +199,17 @@ export async function processSendEmail(data: SendEmailJobData): Promise<SendEmai
   // ── Terminal guard 3: resume must be attached (SPEC §9 edge case 9) ──
   const profile = await Profile.findOne({ userId: data.userId });
   const resume = profile?.resumeFile ?? null;
-  if (!resume?.path || !fs.existsSync(resume.path)) {
+  let resumeBuffer: Buffer | null = null;
+  if (resume?.path) {
+    try {
+      resumeBuffer = await getFile(resume.path);
+    } catch (err) {
+      // Missing file = terminal (user must re-upload). Anything else (storage
+      // outage, timeout) is transient: rethrow so the queue retries later.
+      if (!(err instanceof StorageNotFoundError)) throw err;
+    }
+  }
+  if (!resume?.path || !resumeBuffer) {
     await failJob(
       data.jobPostId,
       'RESUME_MISSING',
@@ -227,7 +237,11 @@ export async function processSendEmail(data: SendEmailJobData): Promise<SendEmai
       text: job.draft.bodyText,
       html: finalHtml,
       attachments: [
-        { filename: resumeAttachmentName(profile!.fullName), path: resume.path },
+        {
+          filename: resumeAttachmentName(profile!.fullName),
+          content: resumeBuffer,
+          contentType: 'application/pdf',
+        },
       ],
     }));
   } catch (err) {

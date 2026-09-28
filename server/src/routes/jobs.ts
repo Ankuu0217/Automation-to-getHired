@@ -1,6 +1,3 @@
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
 import { Router } from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
@@ -35,6 +32,7 @@ import { AppError } from '../middleware/error';
 import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { generateLimiter, sendLimiter, uploadLimiter } from '../middleware/rateLimit';
+import { uploadGate } from '../middleware/uploadGate';
 import { runExtraction, runTextExtraction } from '../services/extractionRunner';
 import { scheduleSendEmail } from '../services/queue';
 import { getAIProvider } from '../services/ai/provider';
@@ -42,23 +40,17 @@ import { emailBodyToHtml } from '../services/emailRules';
 import { sniffImageMime } from '../utils/imageMime';
 import { hasMxRecord, isValidEmail } from '../utils/emailValidation';
 import { computeDedupeHash } from '../utils/dedupe';
+import { getFile, isRemoteKey, putFile, signedUrl, StorageNotFoundError } from '../services/storage';
 
 export const jobsRouter = Router();
 
 jobsRouter.use(requireAuth);
 
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/screenshots');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
+// Memory storage: sniffed from RAM, then written once to the storage layer
+// (ImageKit or local disk) and handed straight to extraction — no temp file,
+// no re-read.
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    // No extension on purpose: the real type is sniffed from magic bytes at
-    // serve time, so a misleading original extension can never confuse us.
-    filename: (_req, _file, cb) => {
-      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     // First gate: declared MIME. Real sniffing happens on the saved file.
@@ -121,32 +113,33 @@ async function findOwnJob(userId: string, id: string): Promise<IJobPost> {
  * flips. runExtraction is fire-and-forget today; M3 moves it onto Agenda
  * without changing the route contract.
  */
-jobsRouter.post('/upload', uploadLimiter, upload.single('screenshot'), async (req, res, next) => {
-  const cleanup = () => {
-    if (req.file) fs.promises.unlink(req.file.path).catch(() => undefined);
-  };
+jobsRouter.post('/upload', uploadLimiter, uploadGate, upload.single('screenshot'), async (req, res, next) => {
   try {
     if (!req.file) {
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'No file uploaded (field: screenshot)');
     }
-
-    const head = Buffer.alloc(12);
-    const fd = await fs.promises.open(req.file.path, 'r');
-    await fd.read(head, 0, 12, 0);
-    await fd.close();
-    if (!sniffImageMime(head)) {
-      cleanup();
+    const buffer = req.file.buffer;
+    const mime = sniffImageMime(buffer.subarray(0, 12));
+    if (!mime) {
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'File is not a valid image (png/jpeg/webp)');
     }
 
+    const screenshotKey = await putFile(buffer, {
+      kind: 'screenshots',
+      userId: req.userId!,
+      fileName: `screenshot.${mime.split('/')[1]}`,
+      mimeType: mime,
+    });
+
     const job = await JobPost.create({
       userId: req.userId!,
-      screenshotPath: req.file.path,
+      screenshotPath: screenshotKey,
       status: 'processing',
     });
 
     // Fire-and-forget: runExtraction handles and persists its own errors.
-    void runExtraction(String(job._id));
+    // The in-memory buffer is passed along so extraction never re-downloads it.
+    void runExtraction(String(job._id), buffer);
 
     const body: UploadJobResponse = { jobPostId: String(job._id) };
     res.status(202).json(body);
@@ -253,15 +246,27 @@ jobsRouter.get('/:id/screenshot', async (req, res, next) => {
     if (!job.screenshotPath) {
       throw new AppError(404, ErrorCodes.NOT_FOUND, 'Screenshot not found');
     }
-    const head = Buffer.alloc(12);
-    const fd = await fs.promises.open(job.screenshotPath, 'r');
-    await fd.read(head, 0, 12, 0);
-    await fd.close();
-    const mime = sniffImageMime(head);
+    // ImageKit: redirect to a short-lived signed CDN URL, auto-converted to
+    // WebP/AVIF by ImageKit — the bytes never pass through this server.
+    if (isRemoteKey(job.screenshotPath)) {
+      res.setHeader('Cache-Control', 'private, max-age=600');
+      res.redirect(302, signedUrl(job.screenshotPath, 3600, [{ format: 'auto', quality: 80 }]));
+      return;
+    }
+    let file: Buffer;
+    try {
+      file = await getFile(job.screenshotPath);
+    } catch (err) {
+      if (err instanceof StorageNotFoundError) {
+        throw new AppError(404, ErrorCodes.NOT_FOUND, 'Screenshot not found');
+      }
+      throw err;
+    }
+    const mime = sniffImageMime(file.subarray(0, 12));
     if (!mime) throw new AppError(404, ErrorCodes.NOT_FOUND, 'Screenshot not found');
     res.setHeader('Content-Type', mime);
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    fs.createReadStream(job.screenshotPath).pipe(res);
+    res.end(file);
   } catch (err) {
     next(err);
   }

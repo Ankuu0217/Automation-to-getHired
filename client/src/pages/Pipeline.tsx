@@ -26,6 +26,7 @@ import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { applicationsCsvFilename, buildApplicationsCsv, downloadCsv } from '@/lib/csv';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import {
   columnMeta,
@@ -411,15 +412,17 @@ export function Pipeline() {
   };
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Mono size="xs" color="fog">
             Applications
           </Mono>
-          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
-            The pipeline.
-          </h1>
+          <RevealHeading
+            as="h1"
+            text="The pipeline."
+            className="mt-1 font-sans text-heading font-normal text-paper"
+          />
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
           <Plus className="size-4" />
@@ -463,7 +466,7 @@ export function Pipeline() {
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3">
+          <StaggerItem className="flex flex-wrap items-center gap-3">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -517,7 +520,7 @@ export function Pipeline() {
                 Export CSV
               </Button>
             </div>
-          </div>
+          </StaggerItem>
 
           {filtered.length === 0 && (
             <div className="flex flex-wrap items-center gap-3">
@@ -531,7 +534,7 @@ export function Pipeline() {
           )}
 
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-            <div className="flex gap-4 overflow-x-auto pb-4">
+            <StaggerItem className="flex gap-4 overflow-x-auto pb-4">
               {columns.map((stage, index) => (
                 <StageColumn
                   key={stage.id}
@@ -543,7 +546,7 @@ export function Pipeline() {
                   onOpen={setSelectedId}
                 />
               ))}
-            </div>
+            </StaggerItem>
             <DragOverlay>
               {activeApplication && (
                 <div className="w-[300px] rotate-2 rounded-card border border-lime bg-ink-3 p-4">
@@ -559,6 +562,6 @@ export function Pipeline() {
       )}
 
       <ApplicationDrawer applicationId={selectedId} onClose={() => setSelectedId(null)} />
-    </div>
+    </Stagger>
   );
 }

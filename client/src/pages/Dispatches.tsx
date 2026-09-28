@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, listApplications, updateApplication } from '@/lib/api';
 import { applicationsCsvFilename, buildApplicationsCsv, downloadCsv } from '@/lib/csv';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import {
   categorizeRole,
   groupApplicationsByCategory,
@@ -98,15 +99,17 @@ export function Dispatches() {
   };
 
   return (
-    <div className="space-y-6">
+    <Stagger className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Mono size="xs" color="fog">
             Dispatches
           </Mono>
-          <h1 className="mt-1 font-sans text-heading font-normal text-paper">
-            Every dispatch.
-          </h1>
+          <RevealHeading
+            as="h1"
+            text={`Every dispatch.`}
+            className="mt-1 font-sans text-heading font-normal text-paper"
+          />
         </div>
         <Link to="/apps/new" className={buttonVariants()}>
           New dispatch
@@ -115,7 +118,7 @@ export function Dispatches() {
       </div>
 
       {/* Search */}
-      <div className="flex flex-wrap items-center gap-3">
+      <StaggerItem className="flex flex-wrap items-center gap-3">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -132,11 +135,11 @@ export function Dispatches() {
         >
           Export CSV
         </Button>
-      </div>
+      </StaggerItem>
 
       {/* Category tabs (dynamic) */}
       {applications.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <StaggerItem className="flex flex-wrap items-center gap-2">
           <FilterChip pressed={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')}>
             All · {applications.length}
           </FilterChip>
@@ -149,12 +152,12 @@ export function Dispatches() {
               {c.label} · {c.count}
             </FilterChip>
           ))}
-        </div>
+        </StaggerItem>
       )}
 
       {/* Stage filters */}
       {applications.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <StaggerItem className="flex flex-wrap items-center gap-2">
           {STAGE_FILTERS.map((f) => (
             <FilterChip
               key={f.value}
@@ -164,39 +167,45 @@ export function Dispatches() {
               {f.label}
             </FilterChip>
           ))}
-        </div>
+        </StaggerItem>
       )}
 
       {applicationsQuery.isPending ? (
-        <div className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
+        <StaggerItem className="space-y-4 rounded-card border border-graphite bg-ink-2 p-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4">
               <Skeleton className="h-4 w-1/3 bg-ink-3" />
               <Skeleton className="ml-auto h-4 w-20 bg-ink-3" />
             </div>
           ))}
-        </div>
+        </StaggerItem>
       ) : applications.length === 0 ? (
-        <EmptyState
-          headline={<>No dispatches yet. Send the first.</>}
-          description="Upload a job posting and the first dispatch drafts itself."
-          action={{ to: '/apps/new', label: 'New dispatch' }}
-        />
+        <StaggerItem>
+          <EmptyState
+            headline={<>No dispatches yet. Send the first.</>}
+            description="Upload a job posting and the first dispatch drafts itself."
+            action={{ to: '/apps/new', label: 'New dispatch' }}
+          />
+        </StaggerItem>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          headline={<>Nothing matches.</>}
-          description="Try a different search, category, or stage filter."
-        >
-          <Button variant="outline" size="sm" className="mt-6" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        </EmptyState>
+        <StaggerItem>
+          <EmptyState
+            headline={<>Nothing matches.</>}
+            description="Try a different search, category, or stage filter."
+          >
+            <Button variant="outline" size="sm" className="mt-6" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          </EmptyState>
+        </StaggerItem>
       ) : (
-        <Ledger
-          applications={filtered}
-          onStageChange={(id, stage) => stageMutation.mutate({ id, stage })}
-        />
+        <StaggerItem>
+          <Ledger
+            applications={filtered}
+            onStageChange={(id, stage) => stageMutation.mutate({ id, stage })}
+          />
+        </StaggerItem>
       )}
-    </div>
+    </Stagger>
   );
 }

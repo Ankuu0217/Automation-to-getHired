@@ -16,3 +16,11 @@ CLAUDE_PROMPT*.md
 CLAUDE_CODE*.md
 SPEC.md
 docs/
+
+# Tests (kept locally, not committed)
+*.test.ts
+*.test.tsx
+server/test/
+client/src/test/
+server/uploads/test-resumes/
+**/vitest.config.ts

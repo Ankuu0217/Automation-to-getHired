@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ResumeFileMeta, Tone } from '@jobmail/shared';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, FileText, Mail, SlidersHorizontal, UploadCloud, User } from 'lucide-react';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
@@ -19,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiRequestError, getProfile, updateProfile, updateSettings, uploadResume } from '@/lib/api';
+import { RevealHeading, Stagger, StaggerItem } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 
@@ -251,11 +253,13 @@ function ProfileStep({
   };
 
   return (
-    <div className="space-y-6">
-      <ResumeUpload onUploaded={onUploaded} />
+    <Stagger className="space-y-6">
+      <StaggerItem>
+        <ResumeUpload onUploaded={onUploaded} />
+      </StaggerItem>
 
       {uploaded && (
-        <div className="animate-fade-in-up space-y-5">
+        <StaggerItem className="animate-fade-in-up space-y-5">
           {fileName && (
             <div className="flex items-center gap-2">
               <FileText className="size-4 text-text-2-dark" />
@@ -283,10 +287,11 @@ function ProfileStep({
               placeholder="A short paragraph on who you are and what you do best."
             />
           </div>
-        </div>
+        </StaggerItem>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <StaggerItem>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" error={errors.fullName?.message}>
             <Input
@@ -355,8 +360,9 @@ function ProfileStep({
             onClick={() => void handleSubmit(onSubmit)()}
           />
         </div>
-      </form>
-    </div>
+        </form>
+      </StaggerItem>
+    </Stagger>
   );
 }
 
@@ -404,8 +410,8 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
   });
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
+    <Stagger className="space-y-6">
+      <StaggerItem className="space-y-2">
         <Label className="font-sans text-sm font-normal text-paper">Email tone</Label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {TONE_OPTIONS.map((option) => (
@@ -429,9 +435,9 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
             </button>
           ))}
         </div>
-      </div>
+      </StaggerItem>
 
-      <div className="space-y-3 rounded-btn border border-graphite bg-ink-2 p-4">
+      <StaggerItem className="space-y-3 rounded-btn border border-graphite bg-ink-2 p-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="daily-cap" className="font-sans text-sm font-normal text-paper">
             Daily send cap
@@ -453,9 +459,9 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
         <p className="font-sans text-xs text-text-2-dark">
           We never exceed this, and we pace sends with human-like jitter. Lower caps keep deliverability high.
         </p>
-      </div>
+      </StaggerItem>
 
-      <div className="flex items-center justify-between rounded-btn border border-graphite bg-ink-2 p-4">
+      <StaggerItem className="flex items-center justify-between rounded-btn border border-graphite bg-ink-2 p-4">
         <div>
           <p className="font-sans text-sm font-normal text-paper">Automatic follow-ups</p>
           <p className="mt-0.5 font-sans text-xs text-text-2-dark">
@@ -463,9 +469,9 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
           </p>
         </div>
         <Switch checked={followUpEnabled} onCheckedChange={setFollowUpEnabled} aria-label="Automatic follow-ups" />
-      </div>
+      </StaggerItem>
 
-      <div className="flex items-center justify-between">
+      <StaggerItem className="flex items-center justify-between">
         <Button type="button" variant="ghost" onClick={onBack}>
           <span aria-hidden>←</span>
           Back
@@ -483,8 +489,8 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
             onClick={() => saveMutation.mutate({ tone, dailySendCap, followUpEnabled })}
           />
         </div>
-      </div>
-    </div>
+      </StaggerItem>
+    </Stagger>
   );
 }
 
@@ -493,8 +499,8 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
 function GmailStep({ onFinish, onBack }: { onFinish: () => void; onBack: () => void }) {
   const user = useAuthStore((s) => s.user);
   return (
-    <div className="space-y-6">
-      <div className="rounded-card border border-graphite bg-ink-2 p-8 text-center">
+    <Stagger className="space-y-6">
+      <StaggerItem className="rounded-card border border-graphite bg-ink-2 p-8 text-center">
         <div className="mx-auto flex size-14 items-center justify-center rounded-pill border border-graphite bg-ink">
           <Mail className="size-6 text-text-2-dark" />
         </div>
@@ -507,9 +513,9 @@ function GmailStep({ onFinish, onBack }: { onFinish: () => void; onBack: () => v
         <div className="mx-auto mt-6 w-full max-w-md text-left">
           <GmailConnectPanel />
         </div>
-      </div>
+      </StaggerItem>
 
-      <div className="flex items-center justify-between pt-2">
+      <StaggerItem className="flex items-center justify-between pt-2">
         <Button type="button" variant="ghost" onClick={onBack}>
           <span aria-hidden>←</span>
           Back
@@ -523,8 +529,8 @@ function GmailStep({ onFinish, onBack }: { onFinish: () => void; onBack: () => v
             Finish setup
           </Button>
         </div>
-      </div>
-    </div>
+      </StaggerItem>
+    </Stagger>
   );
 }
 
@@ -566,9 +572,12 @@ export function Onboarding() {
               <current.icon className="size-5 text-text-2-dark" />
             </div>
             <div>
-              <h2 className="font-sans text-subheading font-normal text-paper">
-                {current.title}.
-              </h2>
+              <RevealHeading
+                key={step}
+                as="h2"
+                text={`${current.title}.`}
+                className="font-sans text-subheading font-normal text-paper"
+              />
               <p className="font-sans text-sm text-text-2-dark">
                 {step === 0 && 'Upload your resume and confirm your profile.'}
                 {step === 1 && 'How should your emails sound, and how many per day?'}
@@ -577,25 +586,35 @@ export function Onboarding() {
             </div>
           </div>
 
-          {step === 0 && (
-            <ProfileStep
-              uploaded={resumeUploaded}
-              skills={skills}
-              summary={summary}
-              fileName={fileName}
-              onSkillsChange={setSkills}
-              onSummaryChange={setSummary}
-              onUploaded={(parsedSkills, parsedSummary, meta) => {
-                setResumeUploaded(true);
-                setSkills(parsedSkills);
-                setSummary(parsedSummary);
-                setFileName(meta.originalName);
-              }}
-              onContinue={next}
-            />
-          )}
-          {step === 1 && <ToneStep onContinue={next} onBack={back} />}
-          {step === 2 && <GmailStep onFinish={finish} onBack={back} />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {step === 0 && (
+                <ProfileStep
+                  uploaded={resumeUploaded}
+                  skills={skills}
+                  summary={summary}
+                  fileName={fileName}
+                  onSkillsChange={setSkills}
+                  onSummaryChange={setSummary}
+                  onUploaded={(parsedSkills, parsedSummary, meta) => {
+                    setResumeUploaded(true);
+                    setSkills(parsedSkills);
+                    setSummary(parsedSummary);
+                    setFileName(meta.originalName);
+                  }}
+                  onContinue={next}
+                />
+              )}
+              {step === 1 && <ToneStep onContinue={next} onBack={back} />}
+              {step === 2 && <GmailStep onFinish={finish} onBack={back} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

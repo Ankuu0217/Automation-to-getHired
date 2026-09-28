@@ -26,6 +26,8 @@ export interface IJobPost extends Document {
   /** Primary HR email: highest-confidence extracted, or user-picked/edited. */
   hrEmail: string | null;
   dedupeHash: string | null;
+  /** Times the stale-job sweep re-ran extraction after a crash/redeploy. */
+  extractionAttempts: number;
   /** Last failure reason (extraction error, duplicate at save time). */
   error: string | null;
   /** Machine-readable failure code when the send pipeline failed the job (M3). */
@@ -106,6 +108,7 @@ const jobPostSchema = new Schema<IJobPost>(
     needsEmail: { type: Boolean, default: false },
     hrEmail: { type: String, default: null },
     dedupeHash: { type: String, default: null },
+    extractionAttempts: { type: Number, default: 0 },
     error: { type: String, default: null },
     failureCode: {
       type: String,
@@ -118,6 +121,12 @@ const jobPostSchema = new Schema<IJobPost>(
   },
   { timestamps: true },
 );
+
+// GET /jobs lists a user's jobs newest-first.
+jobPostSchema.index({ userId: 1, createdAt: -1 });
+// Maintenance sweeps: stale 'processing' jobs, and screenshots past retention.
+jobPostSchema.index({ status: 1, updatedAt: 1 });
+jobPostSchema.index({ createdAt: 1 }, { partialFilterExpression: { screenshotPath: { $gt: '' } } });
 
 // Block double-applying at the DB level: one (hrEmail, company, role) combo
 // per user. Sparse partial — only rows where dedupeHash is a real string.

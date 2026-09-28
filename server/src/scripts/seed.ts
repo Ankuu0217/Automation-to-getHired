@@ -16,7 +16,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import type { ApplicationStage } from '@jobmail/shared';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';

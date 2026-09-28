@@ -85,6 +85,8 @@ export function ActivityChart({ data, height = 260, showTooltip = true }: Activi
             strokeWidth={1.5}
             dot={false}
             activeDot={{ r: 3.5, strokeWidth: 0, fill: chartTheme.accent }}
+            animationDuration={1000}
+            animationEasing="ease-out"
           />
         </LineChart>
       </ResponsiveContainer>
