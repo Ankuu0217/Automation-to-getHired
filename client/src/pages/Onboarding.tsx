@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ResumeFileMeta, Tone } from '@jobmail/shared';
+import type { ResumeFileMeta, ResumePrefill, Tone } from '@jobmail/shared';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, FileText, Mail, SlidersHorizontal, UploadCloud, User } from 'lucide-react';
@@ -86,7 +86,7 @@ function StepIndicator({ current }: { current: number }) {
 /* ── Step 1: Resume + profile ───────────────────────────────────── */
 
 interface ResumeUploadProps {
-  onUploaded: (skills: string[], summary: string, meta: ResumeFileMeta) => void;
+  onUploaded: (prefill: ResumePrefill, meta: ResumeFileMeta) => void;
 }
 
 function ResumeUpload({ onUploaded }: ResumeUploadProps) {
@@ -96,8 +96,12 @@ function ResumeUpload({ onUploaded }: ResumeUploadProps) {
   const uploadMutation = useMutation({
     mutationFn: uploadResume,
     onSuccess: (data) => {
-      onUploaded(data.prefill.skills, data.prefill.summary, data.resumeFile);
-      toast.success('Resume parsed — review the prefill below.');
+      onUploaded(data.prefill, data.resumeFile);
+      toast.success(
+        data.prefill.source === 'ai'
+          ? 'Resume read — check the details below and edit anything.'
+          : 'Resume read — we filled what we could. Please review the details below.',
+      );
     },
     onError: (error) => {
       toast.error(error instanceof ApiRequestError ? error.message : 'Could not parse that PDF.');
@@ -178,6 +182,7 @@ function ProfileStep({
   uploaded,
   skills,
   summary,
+  preferredRoles,
   fileName,
   onSkillsChange,
   onSummaryChange,
@@ -187,17 +192,21 @@ function ProfileStep({
   uploaded: boolean;
   skills: string[];
   summary: string;
+  preferredRoles: string[];
   fileName: string | null;
   onSkillsChange: (skills: string[]) => void;
   onSummaryChange: (summary: string) => void;
-  onUploaded: (skills: string[], summary: string, meta: ResumeFileMeta) => void;
+  onUploaded: (prefill: ResumePrefill, meta: ResumeFileMeta) => void;
   onContinue: () => void;
 }) {
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
+  const accountName = useAuthStore((s) => s.user?.name ?? '');
   const {
     register,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -228,6 +237,29 @@ function ProfileStep({
     });
   }, [profileQuery.data, reset]);
 
+  // What the last résumé filled in per field. A later upload (e.g. a different
+  // résumé) may overwrite a field only while the user hasn't edited it since.
+  const autoFilled = useRef<Partial<Record<keyof ProfileFormValues, string>>>({});
+  const autofill = (field: keyof ProfileFormValues, value: string | number | null | undefined) => {
+    if (value === null || value === undefined || value === '') return;
+    const current = String(getValues(field) ?? '');
+    const untouched = current === '' || current === '0' || current === autoFilled.current[field];
+    if (untouched) setValue(field, value as never, { shouldDirty: true });
+    autoFilled.current[field] = String(value);
+  };
+
+  const handleUploaded = (prefill: ResumePrefill, meta: ResumeFileMeta) => {
+    autofill('fullName', prefill.fullName ?? (getValues('fullName') ? null : accountName));
+    autofill('headline', prefill.headline);
+    autofill('phone', prefill.phone);
+    autofill('location', prefill.location);
+    autofill('yearsExp', prefill.yearsExp);
+    autofill('linkedin', prefill.links.linkedin);
+    autofill('github', prefill.links.github);
+    autofill('portfolio', prefill.links.portfolio);
+    onUploaded(prefill, meta);
+  };
+
   const saveMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: () => {
@@ -249,13 +281,14 @@ function ProfileStep({
       links: { linkedin: values.linkedin, github: values.github, portfolio: values.portfolio },
       skills,
       summary,
+      ...(preferredRoles.length > 0 ? { preferredRoles } : {}),
     });
   };
 
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
-        <ResumeUpload onUploaded={onUploaded} />
+        <ResumeUpload onUploaded={handleUploaded} />
       </StaggerItem>
 
       {uploaded && (
@@ -286,6 +319,9 @@ function ProfileStep({
               onChange={(e) => onSummaryChange(e.target.value)}
               placeholder="A short paragraph on who you are and what you do best."
             />
+            <p className="font-sans text-xs text-text-2-dark">
+              Written from your résumé — edit it so it sounds like you.
+            </p>
           </div>
         </StaggerItem>
       )}
@@ -316,6 +352,7 @@ function ProfileStep({
               type="number"
               min={0}
               max={50}
+              step="any"
               {...register('yearsExp')}
             />
           </Field>
@@ -543,6 +580,9 @@ export function Onboarding() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [summary, setSummary] = useState('');
+  const [preferredRoles, setPreferredRoles] = useState<string[]>([]);
+  // Last résumé-provided values, so a re-upload replaces them unless the user edited.
+  const auto = useRef<{ summary: string; skills: string[] }>({ summary: '', skills: [] });
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -599,14 +639,27 @@ export function Onboarding() {
                   uploaded={resumeUploaded}
                   skills={skills}
                   summary={summary}
+                  preferredRoles={preferredRoles}
                   fileName={fileName}
                   onSkillsChange={setSkills}
                   onSummaryChange={setSummary}
-                  onUploaded={(parsedSkills, parsedSummary, meta) => {
+                  onUploaded={(prefill, meta) => {
+                    const prev = auto.current;
                     setResumeUploaded(true);
-                    setSkills(parsedSkills);
-                    setSummary(parsedSummary);
                     setFileName(meta.originalName);
+                    setSummary((cur) =>
+                      !cur.trim() || cur === prev.summary ? prefill.summary || cur : cur,
+                    );
+                    setSkills((cur) => {
+                      const untouched =
+                        cur.length === 0 ||
+                        (cur.length === prev.skills.length && cur.every((s, i) => s === prev.skills[i]));
+                      if (untouched) return prefill.skills;
+                      const seen = new Set(cur.map((s) => s.toLowerCase()));
+                      return [...cur, ...prefill.skills.filter((s) => !seen.has(s.toLowerCase()))].slice(0, 50);
+                    });
+                    setPreferredRoles(prefill.preferredRoles);
+                    auto.current = { summary: prefill.summary, skills: prefill.skills };
                   }}
                   onContinue={next}
                 />

@@ -6,6 +6,7 @@ import type { IUser } from '../models/User';
 import { User } from '../models/User';
 import { sha256 } from '../utils/crypto';
 import { logger } from '../utils/logger';
+import { verificationEmail } from './emailTemplates';
 import { sendSystemMail } from './mailer';
 
 /**
@@ -27,36 +28,6 @@ const RESEND_COOLDOWN_MS = 60 * 1000; // 60s
 function verificationLink(token: string): string {
   // env.CLIENT_URL is the public web origin (reused per the "APP_URL" spec note).
   return `${env.CLIENT_URL.replace(/\/+$/, '')}/verify-email?token=${token}`;
-}
-
-function buildEmail(link: string): { subject: string; text: string; html: string } {
-  const subject = 'Verify your email to start sending';
-  const text = [
-    'Welcome to GetHired.',
-    '',
-    'Confirm this is your email so you can start sending outreach. Open the link below:',
-    link,
-    '',
-    'This link expires in 24 hours.',
-    '',
-    "If you didn't create a GetHired account, ignore this email.",
-  ].join('\n');
-
-  const html = `<!doctype html><html><body style="margin:0;background:#f7f7f5;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#222f30">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-    <table role="presentation" width="100%" style="max-width:440px" cellpadding="0" cellspacing="0">
-      <tr><td style="background:#ffffff;border:1px solid #c9cbbe;border-radius:16px;padding:32px">
-        <p style="margin:0 0 8px;font-size:13px;letter-spacing:-0.02em;text-transform:uppercase;color:#4d5757">GetHired</p>
-        <h1 style="margin:0 0 12px;font-size:22px;font-weight:400;line-height:1.3">Verify your email to start sending.</h1>
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#4d5757">Confirm this is your email so GetHired can send outreach on your behalf.</p>
-        <a href="${link}" style="display:inline-block;background:#222f30;color:#ffffff;text-decoration:none;font-size:14px;padding:12px 20px;border-radius:8px">Verify email</a>
-        <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#4d5757">This link expires in 24 hours. If you didn't create a GetHired account, ignore this email.</p>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`;
-
-  return { subject, text, html };
 }
 
 /**
@@ -87,7 +58,7 @@ export async function issueEmailVerification(user: IUser): Promise<void> {
   await user.save();
 
   const link = verificationLink(token);
-  const { subject, text, html } = buildEmail(link);
+  const { subject, text, html } = verificationEmail(link);
   await sendSystemMail({ to: user.email, subject, text, html });
   logger.info({ userId: String(user._id) }, 'Email verification issued');
 }

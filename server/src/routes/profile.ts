@@ -13,7 +13,7 @@ import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { uploadLimiter } from '../middleware/rateLimit';
 import { uploadGate } from '../middleware/uploadGate';
-import { parseResumePdf } from '../services/resumeParser';
+import { parseResumePdf, ResumeUnreadableError } from '../services/resumeParser';
 import { getFile, putFile, removeFile, StorageNotFoundError } from '../services/storage';
 
 export const profileRouter = Router();
@@ -143,8 +143,9 @@ profileRouter.get('/resume/download', async (req, res, next) => {
 
 /**
  * Resume upload: PDF only, 10 MB cap, magic-byte sniffed. Parses the PDF,
- * stores text on the profile, and returns naive prefill suggestions
- * (skills / summary / name / email / phone) so the UI can preview them.
+ * stores the text on the profile, and returns prefill suggestions for the
+ * whole profile form (name, headline, location, experience, skills, links and
+ * a professionally written summary) so the UI can fill it in.
  */
 profileRouter.post('/resume', uploadLimiter, uploadGate, upload.single('resume'), async (req, res, next) => {
   try {
@@ -159,7 +160,8 @@ profileRouter.post('/resume', uploadLimiter, uploadGate, upload.single('resume')
     let parsed;
     try {
       parsed = await parseResumePdf(buffer);
-    } catch {
+    } catch (err) {
+      if (err instanceof ResumeUnreadableError) throw new AppError(400, ErrorCodes.BAD_REQUEST, err.message);
       throw new AppError(400, ErrorCodes.BAD_REQUEST, 'Could not extract text from this PDF');
     }
 

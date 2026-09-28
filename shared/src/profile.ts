@@ -56,15 +56,32 @@ export interface ProfileResponse {
   expectedCTC: string;
 }
 
-/** Response of POST /api/v1/profile/resume — full profile + naive prefill suggestions. */
+/**
+ * Everything we could read off a résumé, shaped like the profile form. Null /
+ * empty means "not found" — the client only fills fields it has a value for.
+ */
+export interface ResumePrefill {
+  fullName: string | null;
+  headline: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  /** Years of professional experience (1 decimal), null when it can't be worked out. */
+  yearsExp: number | null;
+  skills: string[];
+  /** Full https:// URLs; '' when the résumé has none. */
+  links: { linkedin: string; github: string; portfolio: string };
+  /** A short, professionally written summary (not the résumé's raw text). */
+  summary: string;
+  /** Roles the candidate is best placed to apply for. */
+  preferredRoles: string[];
+  /** 'ai' = read by Gemini; 'basic' = rule-based fallback (fewer/blunter fields). */
+  source: 'ai' | 'basic';
+}
+
+/** Response of POST /api/v1/profile/resume — full profile + prefill suggestions. */
 export interface ResumeParseResponse {
   profile: ProfileResponse;
   resumeFile: ResumeFileMeta;
-  prefill: {
-    skills: string[];
-    summary: string;
-    fullName: string | null;
-    email: string | null;
-    phone: string | null;
-  };
+  prefill: ResumePrefill;
 }

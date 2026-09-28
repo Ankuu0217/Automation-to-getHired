@@ -1,41 +1,50 @@
-import { SKILL_KEYWORDS } from '@jobmail/shared';
-// pdf-parse v1's package entry has a debug-mode guard that breaks under ESM
-// loaders (module.parent is undefined) — import the lib file directly.
-// Types come from src/types/pdf-parse.d.ts.
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import type { ResumePrefill } from '@jobmail/shared';
+import { env } from '../config/env';
+import { logger } from '../utils/logger';
+import { extractResumeWithGemini, type ResumeAiResult } from './ai/gemini';
+import { extractPdfContent, looksGarbled } from './pdfContent';
+import {
+  extractEmail,
+  extractLinks,
+  extractPhone,
+  matchSkills,
+  parseResumeHeuristic,
+  titleCaseName,
+  guessFullName,
+} from './resumeHeuristics';
 
-const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-const PHONE_RE = /(\+?\d{1,3}[-.\s]?)?(\(?\d{3,5}\)?[-.\s]?)\d{3,4}[-.\s]?\d{4}/;
+/**
+ * Résumé → profile prefill.
+ *
+ *   PDF ──► text + hyperlinks (pdfContent)
+ *        ├─► Gemini (text, or the PDF itself when it is scanned/garbled) → structured fields
+ *        └─► rule-based reader (resumeHeuristics) → same shape
+ *
+ * Gemini does the reading and writes the professional summary; the rules
+ * verify the parts a model can get wrong (email, phone, URLs must literally
+ * appear in the résumé; years of experience is cross-checked against the dated
+ * Experience entries). Without Gemini — or when it fails — the rules alone
+ * answer, so an upload never dead-ends.
+ */
 
 export interface ParsedResume {
+  /** Plain text stored on the profile (used later for job matching and emails). */
   text: string;
-  prefill: {
-    skills: string[];
-    summary: string;
-    fullName: string | null;
-    email: string | null;
-    phone: string | null;
-  };
+  prefill: ResumePrefill;
 }
+
+// Re-exported for tests / callers that only need the pure helpers.
+export { matchSkills, guessFullName, extractEmail, extractPhone, extractLinks };
+
+/** Below this many characters the PDF has no usable text layer (scanned image). */
+const MIN_TEXT_CHARS = 20;
+/** Text shorter than this isn't enough to trust on its own — Gemini also gets the PDF. */
+const TRUSTED_TEXT_CHARS = 120;
+
+const MAX = { name: 100, headline: 100, location: 100, phone: 30, summary: 700, skill: 50, role: 80 } as const;
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdf.js reads the raw ArrayBuffer and ignores byteOffset — Buffers returned
-  // by fs.readFile are pool-backed with a non-zero offset, so hand pdf-parse
-  // a dense copy with a zero offset or parsing fails with "bad XRef entry".
-  const dense = new Uint8Array(buffer.byteLength);
-  dense.set(buffer);
-  const result = await pdfParse(dense as unknown as Buffer);
-  return result.text.replace(/\s+\n/g, '\n').trim();
-}
-
-/** Case-insensitive, word-boundary-ish keyword match against resume text. */
-export function matchSkills(text: string): string[] {
-  const haystack = text.toLowerCase();
-  return SKILL_KEYWORDS.filter((skill) => {
-    const escaped = skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // C++ / C# etc. have no word boundary at the end — use lookaround instead.
-    return new RegExp(`(?<![a-z0-9])${escaped}(?![a-z0-9])`, 'i').test(haystack);
-  });
+  return (await extractPdfContent(buffer)).text;
 }
 
 /** First ~500 chars of cleaned text, cut at a sentence/word boundary. */
@@ -49,37 +58,151 @@ export function buildSummary(text: string, maxLength = 500): string {
   return `${cut.slice(0, lastSpace)}…`;
 }
 
-/** Naive name guess: first non-empty line that looks like a person's name. */
-export function guessFullName(text: string): string | null {
-  const lines = text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-  for (const line of lines) {
-    if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /https?:\/\//i.test(line)) continue;
-    const words = line.split(/\s+/);
-    const looksLikeName =
-      words.length >= 2 &&
-      words.length <= 4 &&
-      words.every((w) => /^[A-Za-z][A-Za-z'’.-]*$/.test(w)) &&
-      line.length <= 40;
-    if (looksLikeName) return line;
-  }
-  return null;
+/** Rule-based prefill from already-extracted text (no network, never throws). */
+export function parseResumeText(text: string, urls: string[] = []): ResumePrefill {
+  return parseResumeHeuristic(text, urls);
 }
 
-export function parseResumeText(text: string): ParsedResume['prefill'] {
+/* ── Merging Gemini's reading with the rule-based cross-checks ──── */
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** A model-supplied URL is only trusted if it (or its host/path) is really in the résumé. */
+function verifiedUrl(candidate: string | null, evidence: string): string {
+  if (!candidate) return '';
+  const trimmed = candidate.trim().replace(/[),.;]+$/, '');
+  try {
+    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = url.hostname.replace(/^www\./, '');
+    const path = url.pathname.replace(/\/$/, '');
+    if (!squash(evidence).includes(squash(host + path))) return '';
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return '';
+  }
+}
+
+function clampText(v: string | null | undefined, max: number): string | null {
+  const t = v?.replace(/\s+/g, ' ').trim();
+  return t ? t.slice(0, max) : null;
+}
+
+function cleanSummary(summary: string): string {
+  let s = summary.replace(/\s+/g, ' ').trim();
+  if (s.length > MAX.summary) {
+    const cut = s.slice(0, MAX.summary);
+    const last = cut.lastIndexOf('. ');
+    s = last > MAX.summary * 0.5 ? cut.slice(0, last + 1) : `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+  }
+  return s;
+}
+
+function uniqueList(items: string[], max: number, maxLen: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of items) {
+    const v = raw.replace(/\s+/g, ' ').trim().slice(0, maxLen);
+    const k = v.toLowerCase();
+    if (v.length < 2 || seen.has(k)) continue;
+    seen.add(k);
+    out.push(v);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+export function mergeAiPrefill(ai: ResumeAiResult, basic: ResumePrefill, text: string, urls: string[]): ResumePrefill {
+  const evidence = `${text}\n${urls.join('\n')}`;
+
+  // Years: trust dates when the rules could read them; otherwise the model.
+  let yearsExp = ai.yearsExp ?? null;
+  if (basic.yearsExp !== null && (yearsExp === null || Math.abs(yearsExp - basic.yearsExp) > 1)) {
+    yearsExp = basic.yearsExp;
+  }
+  if (yearsExp !== null) yearsExp = Math.min(50, Math.max(0, Math.round(yearsExp * 10) / 10));
+
+  const aiSkills = ai.skills.length ? ai.skills : [];
+  // Keep AI skills that literally occur in the text (drops hallucinated ones) plus known-list hits.
+  const haystack = squash(text);
+  const groundedSkills = aiSkills.filter((s) => haystack.includes(squash(s)));
+  const skills = uniqueList([...groundedSkills, ...basic.skills], 30, MAX.skill);
+
+  const links = {
+    linkedin: verifiedUrl(ai.links.linkedin, evidence) || basic.links.linkedin,
+    github: verifiedUrl(ai.links.github, evidence) || basic.links.github,
+    portfolio: verifiedUrl(ai.links.portfolio, evidence) || basic.links.portfolio,
+  };
+
+  const aiName = clampText(ai.fullName, MAX.name);
+  const summary = cleanSummary(ai.summary) || basic.summary;
+
   return {
-    skills: matchSkills(text),
-    summary: buildSummary(text),
-    fullName: guessFullName(text),
-    email: text.match(EMAIL_RE)?.[0] ?? null,
-    phone: text.match(PHONE_RE)?.[0] ?? null,
+    fullName: aiName ? titleCaseName(aiName) : basic.fullName,
+    headline: clampText(ai.headline, MAX.headline) ?? basic.headline,
+    // Contact details come from the text itself, never from the model.
+    email: basic.email,
+    phone: basic.phone,
+    location: clampText(ai.location, MAX.location) ?? basic.location,
+    yearsExp,
+    skills,
+    links,
+    summary,
+    preferredRoles: uniqueList(ai.preferredRoles, 4, MAX.role),
+    source: 'ai',
   };
 }
 
+/** Final safety net so nothing we hand to the profile form can exceed the profile schema. */
+function clampPrefill(p: ResumePrefill): ResumePrefill {
+  return {
+    ...p,
+    fullName: clampText(p.fullName, MAX.name),
+    headline: clampText(p.headline, MAX.headline),
+    phone: clampText(p.phone, MAX.phone),
+    location: clampText(p.location, MAX.location),
+    summary: cleanSummary(p.summary),
+    skills: uniqueList(p.skills, 30, MAX.skill),
+    preferredRoles: uniqueList(p.preferredRoles, 4, MAX.role),
+  };
+}
+
+export class ResumeUnreadableError extends Error {
+  constructor() {
+    super(
+      'We couldn’t read any text in this PDF — it looks like a scanned image. Export your résumé as a text PDF (from Word/Google Docs/Canva) and upload it again.',
+    );
+    this.name = 'ResumeUnreadableError';
+  }
+}
+
 export async function parseResumePdf(buffer: Buffer): Promise<ParsedResume> {
-  const text = await extractTextFromPdf(buffer);
-  return { text, prefill: parseResumeText(text) };
+  const { text: extracted, urls, geometricText } = await extractPdfContent(buffer);
+  const hasText = extracted.length >= TRUSTED_TEXT_CHARS;
+  const trustworthy = hasText && !looksGarbled(extracted);
+  const aiEnabled = Boolean(env.GEMINI_API_KEY);
+
+  let text = extracted;
+  let ai: ResumeAiResult | null = null;
+
+  if (aiEnabled) {
+    try {
+      // Gemini gets the PDF itself (so columns/graphics read correctly) plus the
+      // extracted text when it is trustworthy (exact strings for names/links/dates).
+      ai = await extractResumeWithGemini({ pdf: buffer, ...(trustworthy ? { text: extracted } : {}) });
+      if (!trustworthy && ai.resumeText && ai.resumeText.trim().length >= TRUSTED_TEXT_CHARS) {
+        text = ai.resumeText.trim();
+      }
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        'Gemini résumé parse failed — using rule-based reader',
+      );
+    }
+  }
+
+  if (text.length < MIN_TEXT_CHARS) throw new ResumeUnreadableError();
+
+  const basic = parseResumeHeuristic(text, urls, new Date(), geometricText);
+  const prefill = ai ? mergeAiPrefill(ai, basic, text, urls) : basic;
+  return { text, prefill: clampPrefill(prefill) };
 }

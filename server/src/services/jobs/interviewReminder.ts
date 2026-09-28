@@ -1,7 +1,7 @@
 import { Application } from '../../models/Application';
 import { User } from '../../models/User';
 import { GmailNotConnectedError, sendMail } from '../mailer';
-import { emailBodyToHtml } from '../emailRules';
+import { interviewReminderEmail } from '../emailTemplates';
 import { createNotification } from '../notifications';
 import { logger } from '../../utils/logger';
 
@@ -67,13 +67,12 @@ export async function processInterviewReminder(
   if (!user) return 'skipped';
 
   const company = application.company ?? 'the company';
-  const subject = `Interview with ${company} tomorrow`;
-  const lines: string[] = [`Your interview with ${company} is coming up.`];
-  if (application.role) lines.push(`Role: ${application.role}`);
-  lines.push(`Time: ${formatInterviewTime(interviewAt)}`);
-  if (application.interviewNote) lines.push(`Note: ${application.interviewNote}`);
-  lines.push('Good luck!');
-  const text = lines.join('\n\n');
+  const { subject, text, html } = interviewReminderEmail({
+    company,
+    role: application.role,
+    when: formatInterviewTime(interviewAt),
+    note: application.interviewNote,
+  });
 
   try {
     await sendMail({
@@ -81,7 +80,7 @@ export async function processInterviewReminder(
       to: user.email,
       subject,
       text,
-      html: emailBodyToHtml(text),
+      html,
     });
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {

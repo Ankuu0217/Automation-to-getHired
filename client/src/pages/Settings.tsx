@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { profileUpdateSchema, type UpdateProfileInput } from '@jobmail/shared';
+import { profileUpdateSchema, type ResumePrefill, type UpdateProfileInput } from '@jobmail/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, Loader2, ShieldAlert, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -89,11 +89,39 @@ function ResumeCard() {
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
   const resumeFile = profileQuery.data?.profile.resumeFile ?? null;
 
-  const uploadMutation = useMutation({
-    mutationFn: uploadResume,
+  const applyMutation = useMutation({
+    mutationFn: (prefill: ResumePrefill) => {
+      const links = Object.fromEntries(Object.entries(prefill.links).filter(([, v]) => v));
+      return updateProfile({
+        ...(prefill.fullName ? { fullName: prefill.fullName } : {}),
+        ...(prefill.headline ? { headline: prefill.headline } : {}),
+        ...(prefill.phone ? { phone: prefill.phone } : {}),
+        ...(prefill.location ? { location: prefill.location } : {}),
+        ...(prefill.yearsExp !== null ? { yearsExp: prefill.yearsExp } : {}),
+        ...(prefill.skills.length ? { skills: prefill.skills } : {}),
+        ...(prefill.summary ? { summary: prefill.summary } : {}),
+        ...(prefill.preferredRoles.length ? { preferredRoles: prefill.preferredRoles } : {}),
+        ...(Object.keys(links).length ? { links } : {}),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      toast.success('Résumé updated.');
+      toast.success('Profile updated from your résumé.');
+    },
+    onError: (error) => toast.error(errorMessage(error, 'Could not update your profile.')),
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: uploadResume,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // A different résumé usually means different skills/experience: offer to
+      // refresh the profile from it (one click) instead of silently overwriting edits.
+      toast.success('Résumé updated.', {
+        description: 'Update your profile details (skills, headline, summary, links) from this résumé?',
+        duration: 20000,
+        action: { label: 'Update profile', onClick: () => applyMutation.mutate(data.prefill) },
+      });
     },
     onError: (error) => toast.error(errorMessage(error, 'Could not parse that PDF.')),
   });

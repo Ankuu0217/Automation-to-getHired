@@ -324,3 +324,81 @@ export async function generateEmailWithGemini(
   }
   return parsed.data;
 }
+
+/* ── Résumé → structured profile ────────────────────────────────── */
+
+const RESUME_PROMPT = (today: string, mode: 'text' | 'pdf' | 'both') => `You are an expert résumé parser and a senior technical recruiter who writes sharp candidate profiles. Read the résumé ${mode === 'pdf' ? '(the attached PDF; it may be scanned or multi-column)' : mode === 'both' ? '(the attached PDF, plus its extracted text; trust the PDF for layout/columns and the text for exact spellings)' : '(extracted text below; line breaks and column order can be imperfect)'} and return ONLY a JSON object matching this schema (no markdown, no prose):
+{
+  "fullName": "string|null",
+  "headline": "string|null",
+  "location": "string|null",
+  "yearsExp": "number|null",
+  "skills": ["string"],
+  "links": { "linkedin": "string|null", "github": "string|null", "portfolio": "string|null" },
+  "summary": "string",
+  "preferredRoles": ["string"]${mode === 'pdf' ? ',\n  "resumeText": "string (complete plain-text transcription of the résumé)"' : ''}
+}
+
+TODAY is ${today} (use it for "Present"/"Current" end dates).
+
+FIELD RULES
+- fullName: the candidate's name as it appears at the top, in normal Title Case (never ALL CAPS). No titles or honorifics.
+- headline: max 70 characters, the way a strong LinkedIn headline reads: the candidate's current or most recent job title plus 1-2 defining technologies, e.g. "Full Stack Developer (MERN)" or "Backend Engineer · Node.js · PostgreSQL". No company name. For a fresher/student with no jobs, use the role they are targeting or their strongest discipline, e.g. "Frontend Developer · React · TypeScript".
+- location: "City, State" or "City, Country" for where the candidate is based (header/contact line, else current job). Not the college town unless nothing else exists. null if not stated.
+- yearsExp: total years of professional work (jobs AND paid internships) computed from the employment date ranges. Overlapping periods count once. Do NOT count education, academic projects or gaps. Round to one decimal. 0 for a fresher with no work history. If there are no dates, use an explicit claim like "5+ years" only if the résumé states it, else null.
+- skills: up to 30 real technical skills/tools/technologies/frameworks/methodologies actually present in the résumé, in canonical spelling ("Node.js", "PostgreSQL", "Tailwind CSS", "CI/CD"). Most important first. No soft skills, no duplicates, no generic words like "Programming".
+- links: full URLs starting with https://. linkedin = LinkedIn profile, github = GitHub profile (username level, not a repo), portfolio = the candidate's personal website/portfolio. Use only URLs actually present in the résumé; null otherwise. Never invent or guess a URL.
+- summary: THE MOST IMPORTANT FIELD. Write a polished professional summary of 2-4 sentences, max 430 characters, as a senior engineer would present a colleague: implied first person with NO "I", "my" or pronouns, present tense, concrete and specific. Sentence 1: role/seniority + years of experience + core stack. Sentence 2-3: what they have actually built or delivered (real projects, employers, domains, scale or metrics ONLY if written in the résumé). Freshers: lead with degree + strongest projects/internships. Absolutely no clichés or filler ("passionate", "hard-working", "results-driven", "team player", "seeking an opportunity", "highly motivated"). Never invent facts, employers, numbers or technologies. If the résumé already contains a summary/objective, rewrite it to this standard using only its facts. Do not copy contact details or raw résumé text.
+- preferredRoles: 2-4 job titles this candidate should apply for, based on their evidence (e.g. "Full Stack Developer", "MERN Stack Developer", "Backend Developer").
+
+If a field truly is not in the résumé use null (or [] / ""). Accuracy over completeness.`;
+
+const nullableString = z
+  .string()
+  .nullish()
+  .transform((v) => (typeof v === 'string' && v.trim() ? v.trim() : null));
+
+const resumeAiSchema = z.object({
+  fullName: nullableString,
+  headline: nullableString,
+  location: nullableString,
+  yearsExp: z.preprocess((v) => (typeof v === 'string' ? Number.parseFloat(v) : v), z.number().nullish().catch(null)),
+  skills: z.array(z.string()).catch([]),
+  links: z
+    .object({ linkedin: nullableString, github: nullableString, portfolio: nullableString })
+    .catch({ linkedin: null, github: null, portfolio: null }),
+  summary: z.string().catch(''),
+  preferredRoles: z.array(z.string()).catch([]),
+  resumeText: z.string().optional().catch(undefined),
+});
+export type ResumeAiResult = z.infer<typeof resumeAiSchema>;
+
+/**
+ * Read a résumé with Gemini and return structured profile fields. Pass the
+ * extracted text when it is trustworthy, or the PDF itself for scanned /
+ * garbled files (Gemini reads the pages directly and transcribes them).
+ * Throws on API errors or unparseable output — the caller falls back to rules.
+ */
+export async function extractResumeWithGemini(
+  input: { pdf?: Buffer; text?: string },
+  today: Date = new Date(),
+): Promise<ResumeAiResult> {
+  if (!input.pdf && !input.text) throw new Error('extractResumeWithGemini needs a PDF or text');
+  const hasPdf = Boolean(input.pdf);
+  // Vision model when the PDF goes along, cheaper text model for text-only.
+  const model = jsonModel(0.2, hasPdf ? 'vision' : 'text');
+  const prompt = RESUME_PROMPT(today.toISOString().slice(0, 10), hasPdf ? (input.text ? 'both' : 'pdf') : 'text');
+
+  const parts: ContentListUnion = [prompt];
+  if (input.pdf) parts.push({ inlineData: { data: input.pdf.toString('base64'), mimeType: 'application/pdf' } });
+  if (input.text) parts.push(`EXTRACTED TEXT (exact strings; reading order may be imperfect):\n${input.text.slice(0, 30000)}`);
+
+  const raw = await withGeminiRetry(() => model.generate(parts), 2);
+  const candidate = findFirstJsonObject(raw.replace(/```(?:json)?/gi, ' '));
+  if (!candidate) throw new Error('No JSON object found in résumé parse response');
+  const parsed = resumeAiSchema.safeParse(JSON.parse(candidate));
+  if (!parsed.success) {
+    throw new Error(`Résumé parse failed schema validation: ${parsed.error.issues[0]?.message ?? 'unknown'}`);
+  }
+  return parsed.data;
+}
