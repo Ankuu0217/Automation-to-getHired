@@ -1,11 +1,12 @@
-import { Agenda, type Job } from 'agenda';
+import { Agenda, InMemoryNotificationChannel, type Job } from 'agenda';
 import { MongoBackend, type Db } from '@agendajs/mongo-backend';
 import mongoose from 'mongoose';
 import { Application } from '../models/Application';
+import { JobPost } from '../models/JobPost';
 import { User } from '../models/User';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
-import { computeSendTime, HOURLY_SEND_CAP } from './jobs/schedule';
+import { BURST_WINDOW_MS, computeSendTime, HOURLY_SEND_CAP } from './jobs/schedule';
 import {
   MAX_SEND_ATTEMPTS,
   processSendEmail,
@@ -76,6 +77,11 @@ async function handleJob(data: SendEmailJobData): Promise<void> {
     if (agenda && attempts < MAX_SEND_ATTEMPTS) {
       const retryAt = new Date(Date.now() + retryDelayMs(attempts));
       await agenda.schedule(retryAt, SEND_EMAIL_JOB, { ...data, attempts });
+      // The UI shows the real next attempt time; the claim is released so the retry can take it.
+      await JobPost.updateOne(
+        { _id: data.jobPostId, status: 'queued' },
+        { $set: { sendAt: retryAt, sendClaimedAt: null } },
+      );
       logger.warn(
         { err, jobPostId: data.jobPostId, attempts, retryAt },
         'send-email failed — scheduled retry',
@@ -249,7 +255,14 @@ export async function initQueue(): Promise<void> {
     // @agendajs/mongo-backend's mongodb peer (6.21.x) differ at the type level
     // only — the runtime Db API is identical.
     backend: new MongoBackend({ mongo: db as unknown as Db }),
-    processEvery: '30 seconds',
+    // Fallback poll only. Sends are picked up instantly through the notification
+    // channel below; this just re-checks for jobs that were already due at boot
+    // or were scheduled by another instance.
+    processEvery: '15 seconds',
+    // Wakes the processor the moment agenda.schedule() is called in this process,
+    // instead of waiting for the next poll (measured 28.5 s → 10 ms). Single-instance
+    // deploys (Render free) get real-time sends; extra instances degrade to polling.
+    notificationChannel: new InMemoryNotificationChannel(),
     // Completed one-off jobs (sends, follow-ups, reminders) are deleted instead
     // of piling up forever in agendaJobs; failed ones stay for debugging.
     removeOnComplete: true,
@@ -316,21 +329,64 @@ export async function stopQueue(): Promise<void> {
   }
 }
 
-/** Count emails sent by this user since `since` (drives the send caps). */
-async function countSendsSince(userId: string, since: Date): Promise<number> {
-  return Application.countDocuments({ userId, 'emails.sentAt': { $gte: since } });
-}
-
 export interface ScheduleSendResult {
-  /** Final send time after jitter + daily/hourly caps (SPEC §5). */
+  /** When the email goes out — ≈ now unless the user scheduled it or a cap / burst spacing applies. */
   scheduledAt: Date;
 }
 
+interface SendLoad {
+  sentToday: number;
+  sentThisHour: number;
+  recentSends: number;
+  lastActivityAt: Date | null;
+}
+
 /**
- * Enqueue the initial outreach email for a JobPost. Applies 2–8 min jitter,
- * the user's dailySendCap, and the 10/hour cap; overflow lands next day 9–11 AM.
- * In QUEUE_INLINE mode the job runs immediately (scheduledAt is still honored
- * in the persisted record).
+ * How busy this user's sending is: emails already sent PLUS emails queued for the
+ * same window (so ten "Send now" clicks in a row can't all slip under a cap that
+ * only counts finished sends).
+ */
+async function loadSendLoad(userId: string, now: Date): Promise<SendLoad> {
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const hourStart = new Date(now);
+  hourStart.setMinutes(0, 0, 0);
+  const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+  const burstStart = new Date(now.getTime() - BURST_WINDOW_MS);
+  const burstEnd = new Date(now.getTime() + BURST_WINDOW_MS);
+
+  const [sentToday, sentThisHour, queuedToday, queuedThisHour, recentApps, recentQueued] = await Promise.all([
+    Application.countDocuments({ userId, 'emails.sentAt': { $gte: dayStart } }),
+    Application.countDocuments({ userId, 'emails.sentAt': { $gte: hourStart } }),
+    JobPost.countDocuments({ userId, status: 'queued', sendAt: { $gte: dayStart, $lt: dayEnd } }),
+    JobPost.countDocuments({ userId, status: 'queued', sendAt: { $gte: hourStart, $lt: hourEnd } }),
+    Application.find({ userId, 'emails.sentAt': { $gte: burstStart } }).select('emails.sentAt'),
+    JobPost.find({ userId, status: 'queued', sendAt: { $gte: burstStart, $lt: burstEnd } }).select('sendAt'),
+  ]);
+
+  const activity: Date[] = [];
+  for (const app of recentApps) {
+    for (const e of app.emails) if (e.sentAt && e.sentAt >= burstStart) activity.push(e.sentAt);
+  }
+  for (const j of recentQueued) if (j.sendAt) activity.push(j.sendAt);
+
+  return {
+    sentToday: sentToday + queuedToday,
+    sentThisHour: sentThisHour + queuedThisHour,
+    recentSends: activity.length,
+    lastActivityAt: activity.length ? new Date(Math.max(...activity.map((d) => d.getTime()))) : null,
+  };
+}
+
+/**
+ * Enqueue the initial outreach email for a JobPost. "Send now" goes out now:
+ * the only holds are the user's own scheduled time, burst spacing (3+ sends in
+ * 10 min trail each other by 30–90 s), the 10/hour cap, and the user's
+ * dailySendCap (overflow lands next day 9–11 AM). The due time is stored on the
+ * JobPost (`sendAt`) so the UI can show exactly what is queued and when.
+ * In QUEUE_INLINE mode the job runs immediately.
  */
 export async function scheduleSendEmail(
   jobPostId: string,
@@ -342,22 +398,17 @@ export async function scheduleSendEmail(
 
   const now = new Date();
   const base = requestedAt && requestedAt > now ? requestedAt : now;
-  const dayStart = new Date(now);
-  dayStart.setHours(0, 0, 0, 0);
-  const hourStart = new Date(now);
-  hourStart.setMinutes(0, 0, 0);
-
-  const [sentToday, sentThisHour] = await Promise.all([
-    countSendsSince(userId, dayStart),
-    countSendsSince(userId, hourStart),
-  ]);
+  const load = await loadSendLoad(userId, now);
 
   const scheduledAt = computeSendTime({
     base,
-    sentToday,
-    sentThisHour,
+    now,
+    sentToday: load.sentToday,
+    sentThisHour: load.sentThisHour,
     dailyCap,
     hourlyCap: HOURLY_SEND_CAP,
+    recentSends: load.recentSends,
+    lastActivityAt: load.lastActivityAt,
   });
 
   const data: SendEmailJobData = {
@@ -366,6 +417,9 @@ export async function scheduleSendEmail(
     scheduledAt: scheduledAt.toISOString(),
     attempts: 0,
   };
+
+  // Persist the due time BEFORE the job can run (the job clears it on completion).
+  await JobPost.updateOne({ _id: jobPostId, status: 'queued' }, { $set: { sendAt: scheduledAt, sendClaimedAt: null } });
 
   if (env.QUEUE_INLINE || !agenda) {
     if (!env.QUEUE_INLINE && !agenda) {
@@ -383,4 +437,28 @@ export async function scheduleSendEmail(
   }
 
   return { scheduledAt };
+}
+
+/**
+ * Take a still-queued (not yet sending) email back to the draft stage.
+ * Returns false when it is too late — already claimed by a worker, or sent.
+ * The Agenda job is removed too; even if that misses, the processor skips any
+ * job whose JobPost is no longer 'queued'.
+ */
+export async function cancelQueuedSend(jobPostId: string, userId: string): Promise<boolean> {
+  const cancelled = await JobPost.findOneAndUpdate(
+    { _id: jobPostId, userId, status: 'queued', sendClaimedAt: null },
+    { $set: { status: 'email_drafted', sendAt: null, error: null, failureCode: null } },
+    { new: true },
+  );
+  if (!cancelled) return false;
+  if (agenda) {
+    try {
+      await agenda.cancel({ name: SEND_EMAIL_JOB, data: { jobPostId } });
+    } catch (err) {
+      logger.warn({ err, jobPostId }, 'cancelQueuedSend: could not remove Agenda job (processor will skip it)');
+    }
+  }
+  logger.info({ jobPostId }, 'Queued send cancelled by user');
+  return true;
 }

@@ -494,7 +494,7 @@ function ToneStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
           className="slider w-full"
         />
         <p className="font-sans text-xs text-text-2-dark">
-          We never exceed this, and we pace sends with human-like jitter. Lower caps keep deliverability high.
+          We never exceed this, and we space out bursts to protect your Gmail. Lower caps keep deliverability high.
         </p>
       </StaggerItem>
 

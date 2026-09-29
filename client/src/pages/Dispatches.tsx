@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '@/components/EmptyState';
 import { Ledger } from '@/components/Ledger';
 import { Mono } from '@/components/Mono';
+import { QueuedSends } from '@/components/QueuedSends';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -116,6 +117,10 @@ export function Dispatches() {
           <span aria-hidden>→</span>
         </Link>
       </div>
+
+      <StaggerItem>
+        <QueuedSends />
+      </StaggerItem>
 
       {/* Search */}
       <StaggerItem className="flex flex-wrap items-center gap-3">

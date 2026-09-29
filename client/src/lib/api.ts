@@ -254,6 +254,11 @@ export function sendJob(id: string, input: SendJobInput = {}) {
   return api<SendJobResponse>(`/jobs/${id}/send`, { method: 'POST', body: input });
 }
 
+/** Pull a queued (not yet sending) email back to the draft stage. */
+export function cancelJobSend(id: string) {
+  return api<{ job: JobPostResponse }>(`/jobs/${id}/cancel-send`, { method: 'POST' });
+}
+
 /* ── M3: Gmail OAuth ────────────────────────────────────────────── */
 
 export function connectGmail() {

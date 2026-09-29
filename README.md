@@ -61,7 +61,7 @@ Job seekers spend **hours** manually copying job details, crafting personalized 
 ### 🔁 Automated Follow-ups
 - Configurable follow-up emails on **Day 3** and **Day 7**
 - Auto-stops on: reply, bounce, stage change to `rejected` or `offer`
-- Smart jitter (2–8 min between sends) for natural sending patterns
+- Instant sends (seconds), with burst spacing (30–90 s) and hourly/daily caps to protect deliverability
 
 ### 🛡️ Deliverability Guardrails
 - Daily send cap (default 30) with 10/hour ceiling
@@ -232,7 +232,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | **Human-in-the-loop by default** | Emails are drafted and queued only after explicit review; auto-send is opt-in |
 | **Gemini Vision over OCR** | Directly reads screenshots via multimodal AI — far more reliable than raw OCR on LinkedIn UI |
 | **Own Gmail as sender** | Sending from user's own account maximizes deliverability vs. shared SMTP |
-| **Deliverability jitter** | 2–8 min random delays between sends mimics natural human sending patterns |
+| **Burst spacing** | Sends go out instantly; only 4th+ sends within 10 min are spaced 30–90 s apart |
 
 ---
 
@@ -269,5 +269,5 @@ You are responsible for complying with anti-spam laws (CAN-SPAM, GDPR) and platf
 ---
 
 <p align="center">
-  Built with ❤️ by <a href="https://github.com/Ankuu0217">Ankit Singh</a>
+  Built with ❤️ by <a href="https://github.com/your-username">Ankit Singh</a>
 </p>

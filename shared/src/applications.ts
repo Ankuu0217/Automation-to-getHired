@@ -205,7 +205,7 @@ export type SendJobInput = z.infer<typeof sendJobSchema>;
 
 export interface SendJobResponse {
   queued: true;
-  /** ISO timestamp the email is scheduled for (includes caps + jitter). */
+  /** ISO timestamp the email goes out (≈ now unless the user scheduled it or a cap/burst spacing applies). */
   scheduledAt: string;
 }
 

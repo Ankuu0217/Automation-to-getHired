@@ -38,6 +38,10 @@ export interface IJobPost extends Document {
   match: JobMatch | null;
   /** EmailTemplate chosen at generation time (M5), copied to the Application at send. */
   templateId: Types.ObjectId | null;
+  /** When the queued send is due (null unless status is 'queued'). Drives the UI. */
+  sendAt: Date | null;
+  /** Set while a worker is sending — the atomic claim that makes double-sends impossible. */
+  sendClaimedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,6 +122,8 @@ const jobPostSchema = new Schema<IJobPost>(
     draft: { type: draftSubSchema, default: () => ({ subject: '', bodyText: '', bodyHtml: '' }) },
     match: { type: matchSubSchema, default: null },
     templateId: { type: Schema.Types.ObjectId, ref: 'EmailTemplate', default: null },
+    sendAt: { type: Date, default: null },
+    sendClaimedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

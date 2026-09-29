@@ -38,7 +38,7 @@ const BLOCKS = [
   {
     index: '03 DISPATCH',
     title: 'Sent from your Gmail.',
-    body: 'OAuth sending with your resume attached, addresses MX-checked, timing jittered, volume capped. Follow-ups fire on day 3 and day 7 and stop the moment a reply lands.',
+    body: 'OAuth sending with your resume attached, addresses MX-checked, bursts spaced, volume capped. Follow-ups fire on day 3 and day 7 and stop the moment a reply lands.',
     Icon: IconDispatch,
     cell: 'bg-bone text-ink',
     idle: 'text-graphite',

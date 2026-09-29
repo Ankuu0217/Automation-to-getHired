@@ -169,6 +169,8 @@ export interface JobPostResponse {
   templateId: string | null;
   /** Reference link supplied on text import — stored only, never fetched (SSRF). */
   sourceUrl: string | null;
+  /** When a queued send is due (ISO). Null unless status is 'queued'. */
+  sendAt: string | null;
   /** False for pasted-text imports (no screenshot to serve). */
   hasScreenshot: boolean;
   /**
@@ -190,7 +192,13 @@ export interface JobPostSummary {
   hrEmail: string | null;
   source: ExtractionSource | null;
   confidence: number | null;
+  /** When a queued send is due (ISO). Null unless status is 'queued'. */
+  sendAt: string | null;
+  /** Why a send failed (status 'failed'), for the Dispatches failed list. */
+  error: string | null;
+  failureCode: SendFailureCode | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface UploadJobResponse {

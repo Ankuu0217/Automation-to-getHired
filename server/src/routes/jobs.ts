@@ -34,7 +34,7 @@ import { requireAuth } from '../middleware/auth';
 import { generateLimiter, sendLimiter, uploadLimiter } from '../middleware/rateLimit';
 import { uploadGate } from '../middleware/uploadGate';
 import { runExtraction, runTextExtraction } from '../services/extractionRunner';
-import { scheduleSendEmail } from '../services/queue';
+import { cancelQueuedSend, scheduleSendEmail } from '../services/queue';
 import { getAIProvider } from '../services/ai/provider';
 import { emailBodyToHtml } from '../services/emailRules';
 import { sniffImageMime } from '../utils/imageMime';
@@ -78,6 +78,7 @@ function toDto(job: IJobPost): JobPostResponse {
     failureCode: job.failureCode,
     templateId: job.templateId ? String(job.templateId) : null,
     sourceUrl: job.sourceUrl,
+    sendAt: job.status === 'queued' && job.sendAt ? job.sendAt.toISOString() : null,
     hasScreenshot: Boolean(job.screenshotPath),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
@@ -94,7 +95,11 @@ function toSummary(job: IJobPost): JobPostSummary {
     hrEmail: job.hrEmail,
     source: job.extraction?.source ?? null,
     confidence: job.extraction?.confidence ?? null,
+    sendAt: job.status === 'queued' && job.sendAt ? job.sendAt.toISOString() : null,
+    error: job.status === 'failed' ? job.error : null,
+    failureCode: job.status === 'failed' ? job.failureCode : null,
     createdAt: job.createdAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
   };
 }
 
@@ -536,7 +541,8 @@ jobsRouter.put('/:id/draft', validate(draftUpdateSchema), async (req, res, next)
 /**
  * POST /jobs/:id/send (SPEC §5/§6) — human approval happened by clicking
  * send, so this enqueues immediately regardless of settings.autoSend (which
- * only gates future UI auto-flows). The queue applies jitter + send caps;
+ * only gates future UI auto-flows). The email goes out right away; the queue
+ * only holds it for a user-chosen time, burst spacing, or the send caps.
  * MX was already re-validated when the HR email was saved via PUT /extraction.
  */
 jobsRouter.post('/:id/send', sendLimiter, validate(sendJobSchema), async (req, res, next) => {
@@ -567,7 +573,7 @@ jobsRouter.post('/:id/send', sendLimiter, validate(sendJobSchema), async (req, r
     // transaction can flip the status from a non-terminal state to 'queued'.
     const queued = await JobPost.findOneAndUpdate(
       { _id: job._id, userId: req.userId!, status: { $nin: ['queued', 'sent'] } },
-      { $set: { status: 'queued', error: null, failureCode: null } },
+      { $set: { status: 'queued', error: null, failureCode: null, sendAt: null, sendClaimedAt: null } },
       { new: true },
     );
     if (!queued) {
@@ -581,6 +587,24 @@ jobsRouter.post('/:id/send', sendLimiter, validate(sendJobSchema), async (req, r
     const { scheduledAt } = await scheduleSendEmail(String(job._id), req.userId!, requestedAt);
     const body: SendJobResponse = { queued: true, scheduledAt: scheduledAt.toISOString() };
     res.json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /jobs/:id/cancel-send — pull a queued (not yet sending) email back to
+ * the draft stage. 409 when it is already going out or sent.
+ */
+jobsRouter.post('/:id/cancel-send', async (req, res, next) => {
+  try {
+    const job = await findOwnJob(req.userId!, req.params.id);
+    const cancelled = await cancelQueuedSend(String(job._id), req.userId!);
+    if (!cancelled) {
+      throw new AppError(409, ErrorCodes.CONFLICT, 'This email is already being sent or has been sent');
+    }
+    const fresh = await findOwnJob(req.userId!, req.params.id);
+    res.json({ job: toDto(fresh) });
   } catch (err) {
     next(err);
   }

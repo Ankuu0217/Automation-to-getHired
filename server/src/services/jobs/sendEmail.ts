@@ -28,7 +28,7 @@ export const MAX_SEND_ATTEMPTS = 3;
 export interface SendEmailJobData {
   jobPostId: string;
   userId: string;
-  /** ISO timestamp of when this send was scheduled (caps + jitter applied). */
+  /** ISO timestamp of when this send was scheduled (caps + burst spacing applied). */
   scheduledAt: string;
   attempts: number;
 }
@@ -41,7 +41,7 @@ export async function failJob(
 ): Promise<void> {
   await JobPost.updateOne(
     { _id: jobPostId },
-    { $set: { status: 'failed', failureCode: code, error: message } },
+    { $set: { status: 'failed', failureCode: code, error: message, sendAt: null, sendClaimedAt: null } },
   );
   logger.warn({ jobPostId, failureCode: code }, 'Send job marked failed');
 }
@@ -149,22 +149,52 @@ async function recordInitialBounce(
   logger.warn({ jobPostId: data.jobPostId }, 'Initial outreach bounced (permanent SMTP error)');
 }
 
+/** A claim older than this belongs to a worker that died mid-send — safe to take over. */
+const CLAIM_STALE_MS = 5 * 60 * 1000;
+
 /**
  * Send the queued initial outreach email for one JobPost.
- * Idempotent: already-sent jobs (or existing Applications) are skipped.
+ * Idempotent: already-sent jobs (or existing Applications) are skipped, and an
+ * atomic claim guarantees only one worker can be sending a given JobPost — even
+ * if a retry, a duplicate Agenda job, or a second instance fires at the same time.
  */
 export async function processSendEmail(data: SendEmailJobData): Promise<SendEmailOutcome> {
-  const job = await JobPost.findById(data.jobPostId);
-  if (!job || String(job.userId) !== data.userId) {
+  const existingJob = await JobPost.findById(data.jobPostId);
+  if (!existingJob || String(existingJob.userId) !== data.userId) {
     logger.warn({ jobPostId: data.jobPostId }, 'send-email: JobPost not found — dropping job');
     return { status: 'skipped' };
   }
-  if (job.status === 'sent') return { status: 'skipped' };
-  if (job.status !== 'queued') {
-    logger.warn({ jobPostId: data.jobPostId, status: job.status }, 'send-email: job not queued — skipping');
+  if (existingJob.status === 'sent') return { status: 'skipped' };
+  if (existingJob.status !== 'queued') {
+    // Includes "cancelled by the user" (back to email_drafted).
+    logger.warn({ jobPostId: data.jobPostId, status: existingJob.status }, 'send-email: job not queued — skipping');
     return { status: 'skipped' };
   }
 
+  const job = await JobPost.findOneAndUpdate(
+    {
+      _id: existingJob._id,
+      status: 'queued',
+      $or: [{ sendClaimedAt: null }, { sendClaimedAt: { $lt: new Date(Date.now() - CLAIM_STALE_MS) } }],
+    },
+    { $set: { sendClaimedAt: new Date() } },
+    { new: true },
+  );
+  if (!job) {
+    logger.info({ jobPostId: data.jobPostId }, 'send-email: already being sent by another worker — skipping');
+    return { status: 'skipped' };
+  }
+
+  try {
+    return await sendClaimedJob(data, job);
+  } catch (err) {
+    // Transient failure: release the claim so the queue's retry can take it.
+    await JobPost.updateOne({ _id: job._id, status: 'queued' }, { $set: { sendClaimedAt: null } }).catch(() => undefined);
+    throw err;
+  }
+}
+
+async function sendClaimedJob(data: SendEmailJobData, job: IJobPost): Promise<SendEmailOutcome> {
   // ── Terminal guard 0: the sending gate (email verification). The request
   //    boundary blocks this, but defend in depth right before we send — never
   //    send outreach on behalf of an unverified account. ──
@@ -321,6 +351,8 @@ export async function processSendEmail(data: SendEmailJobData): Promise<SendEmai
   job.status = 'sent';
   job.error = null;
   job.failureCode = null;
+  job.sendAt = null;
+  job.sendClaimedAt = null;
   await job.save();
   // A successful send clears any stale mid-queue error banner.
   await User.updateOne({ _id: data.userId, lastSendError: { $ne: null } }, { $set: { lastSendError: null } });

@@ -485,7 +485,7 @@ function SendingSection() {
             aria-label="Daily send cap"
           />
           <p className="font-sans text-xs text-text-3-dark">
-            Hard limit per day, with 2–8 minute human-like jitter between sends and a 10/hour ceiling.
+            Hard limit per day, with a 10/hour ceiling. Bursts are spaced 30–90 seconds apart so your Gmail stays safe.
             Overflow rolls to the next morning.
           </p>
         </div>

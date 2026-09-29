@@ -31,6 +31,7 @@ import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ApiRequestError,
+  cancelJobSend,
   generateJobEmail,
   getJob,
   getProfile,
@@ -197,8 +198,6 @@ export function EmailPreviewStep({
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile });
   const queueHealthQuery = useQuery({ queryKey: ['queue-health'], queryFn: getQueueHealth });
 
-  const [pendingSend, setPendingSend] = useState<'now' | 'scheduled' | null>(null);
-  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editSubject, setEditSubject] = useState('');
   const [editBody, setEditBody] = useState('');
@@ -211,11 +210,12 @@ export function EmailPreviewStep({
    */
   const [dismissFailure, setDismissFailure] = useState(false);
 
-  /* Poll the job while it is queued (the parent only polls 'processing'). */
+  /* Poll the job while it is queued (the parent only polls 'processing'). Fast poll:
+     an immediate send finishes within seconds and the card should flip to "Sent" right away. */
   const liveQuery = useQuery({
     queryKey: ['job', job.id],
     queryFn: () => getJob(job.id),
-    refetchInterval: (query) => (query.state.data?.job.status === 'queued' ? 2000 : false),
+    refetchInterval: (query) => (query.state.data?.job.status === 'queued' ? 1000 : false),
   });
   const current = liveQuery.data?.job ?? job;
   const match = current.match;
@@ -270,9 +270,11 @@ export function EmailPreviewStep({
     onMutate: () => {
       setDismissFailure(false);
     },
-    onSuccess: (data, input) => {
-      setScheduledAt(data.scheduledAt);
-      setPendingSend(input.scheduledAt ? 'scheduled' : 'now');
+    onSuccess: (data) => {
+      // Show "queued" instantly from the server's answer, then let polling take over.
+      queryClient.setQueryData<{ job: JobPostResponse }>(['job', job.id], (old) => ({
+        job: { ...(old?.job ?? job), status: 'queued', sendAt: data.scheduledAt, error: null, failureCode: null },
+      }));
       void queryClient.invalidateQueries({ queryKey: ['job', job.id] });
       void queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
@@ -282,6 +284,18 @@ export function EmailPreviewStep({
         return;
       }
       toast.error(error instanceof ApiRequestError ? error.message : 'Could not queue the email.');
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelJobSend(job.id),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['job', job.id], data);
+      void queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.success('Send cancelled — your draft is safe.');
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiRequestError ? error.message : 'Could not cancel — it may already be sending.');
     },
   });
 
@@ -327,24 +341,42 @@ export function EmailPreviewStep({
   }
 
   if (current.status === 'queued') {
-    if (pendingSend === 'scheduled' && scheduledAt) {
+    const dueMs = current.sendAt ? new Date(current.sendAt).getTime() : null;
+    // "Scheduled" = due more than a minute out (user-picked time, or spacing/caps).
+    const isScheduled = dueMs !== null && dueMs - Date.now() > 60_000;
+    const cancelButton = (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => cancelMutation.mutate()}
+        disabled={cancelMutation.isPending}
+      >
+        Cancel send
+      </Button>
+    );
+    if (isScheduled && current.sendAt) {
       return (
         <SendStatusCard
           icon={<CalendarClock className="size-6 text-paper" />}
-          title={`SCHEDULED FOR ${formatDateTime(scheduledAt)}`}
+          title={`SCHEDULED FOR ${formatDateTime(current.sendAt)}`}
         >
-          It goes out automatically — send caps and human-like jitter are already applied.
+          It goes out automatically at that time. You can track it under Dispatches.
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            {cancelButton}
+            <Link to="/dispatches" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+              View dispatches
+            </Link>
+          </div>
         </SendStatusCard>
       );
     }
     return (
       <div className="rounded-card border border-graphite bg-ink-2 p-10 text-center">
         <StatusLabel status="queued" className="mx-auto" />
-        <Mono size="sm" color="pure" className="mt-4 block">SENDING</Mono>
+        <Mono size="sm" color="pure" className="mt-4 block">SENDING NOW</Mono>
         <p className="mx-auto mt-1 max-w-sm font-sans text-sm font-normal text-text-2-dark">
-          Queued with human-like jitter — usually out within a few minutes. We poll the
-          status automatically; if it stays here longer, check your Gmail connection or
-          server logs.
+          Your email is on its way — this usually takes a few seconds. The page updates by itself.
+          If it stays here, check your Gmail connection in Settings.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Button
@@ -356,8 +388,8 @@ export function EmailPreviewStep({
             <RefreshCw className={cn('size-4', liveQuery.isFetching && 'animate-spin')} />
             Check status
           </Button>
-          <Link to="/dashboard" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-            Go to dashboard
+          <Link to="/dispatches" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+            View dispatches
           </Link>
         </div>
       </div>
