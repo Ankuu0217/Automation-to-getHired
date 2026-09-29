@@ -30,6 +30,7 @@ Respond with ONLY a JSON object matching this exact schema (no markdown, no pros
 WHAT EACH FIELD MEANS:
 - company: the organisation that is HIRING — from the post's wording (e.g. "We're hiring at X", "join <company>") or the author's company. It is NOT "LinkedIn", NOT any footer word, and NOT the name of the person who took the screenshot.
 - role: the FULL job title exactly as written, e.g. "React Intern", "Senior Frontend Engineer", "Backend Developer (Node.js)". NEVER a bare keyword like "React" or "Backend".
+  If the post lists SEVERAL openings, put every title separated by " | " (e.g. "Senior Full Stack Developer | Full Stack Developer | AI Engineer") — the app picks the best fit for the candidate.
 - hrName: the person who WROTE the hiring post — the author name shown directly above the post text — i.e. the recruiter / hiring contact.
 - hrEmails: every real email address written inside the post (e.g. "share your CV at name@company.com"). Score higher when the local-part matches the author's name, then role mailboxes (careers@, hr@, jobs@, talent@), then generic (info@, contact@).
 - location: the job location if stated (city / "Remote" / "Hybrid"), else null.
@@ -65,7 +66,7 @@ Respond with ONLY a JSON object matching this exact schema (no markdown, no pros
 }
 
 Rules:
-- company: the organisation hiring. role: the FULL job title as written (e.g. "React Intern"), never a bare keyword. hrName: the recruiter / hiring contact named in the post. location: city / Remote / Hybrid if stated.
+- company: the organisation hiring. role: the FULL job title as written (e.g. "React Intern"), never a bare keyword; several openings → all titles separated by " | ". hrName: the recruiter / hiring contact named in the post. location: city / Remote / Hybrid if stated.
 - IGNORE page chrome the paste may have dragged along: navigation, cookie banners, "similar jobs", ads, footer links (About, Accessibility, Help Center, Privacy & Terms). Only real job content belongs in jdText.
 - hrEmails: every email address present in the job content. Score confidence higher for emails tied to a named recruiter/hiring manager, then role-based mailboxes (careers@, jobs@, hr@, talent@), then generic ones (info@).
 - If the text is truncated or noisy, still extract what you can and lower "confidence" accordingly.
@@ -339,4 +340,13 @@ export async function extractResumeWithGemini(
     throw new Error(`Résumé parse failed schema validation: ${parsed.error.issues[0]?.message ?? 'unknown'}`);
   }
   return parsed.data;
+}
+
+/** Generic strict-JSON text call (used by features that share one prompt across engines). */
+export async function generateJsonWithGemini(prompt: string, temperature = 0.3): Promise<unknown> {
+  const model = jsonModel(temperature);
+  const raw = await withGeminiRetry(() => model.generate(prompt), 2);
+  const candidate = findFirstJsonObject(raw.replace(/```(?:json)?/gi, ' '));
+  if (!candidate) throw new Error('No JSON object in Gemini response');
+  return JSON.parse(candidate);
 }

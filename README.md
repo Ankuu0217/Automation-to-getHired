@@ -271,3 +271,14 @@ You are responsible for complying with anti-spam laws (CAN-SPAM, GDPR) and platf
 <p align="center">
   Built with ❤️ by <a href="https://github.com/your-username">Ankit Singh</a>
 </p>
+
+## Growth features
+
+| Feature | How it works |
+|---|---|
+| **Inbox tracking (replies + bounces)** | With the optional Gmail read permission, a 5-minute poller finds recruiter replies (→ HR screen, follow-ups stop, notification) and mailer-daemon bounces (→ address flagged, follow-ups stop). "Check replies now" in Settings runs it on demand. |
+| **Chrome extension** (`/extension`) | Select a post on LinkedIn → right-click *Send to GetHired* (or `Alt+Shift+G`), or capture the visible screen. Uses a least-privilege `ghx_` token that can only capture posts. |
+| **Recruiter email finder** | No email in the post? Suggests addresses from the company's mail domain (MX-checked): recruiter-name patterns, hiring mailboxes, and Hunter.io results when `HUNTER_API_KEY` is set. |
+| **What gets replies** | Every send records its style (tone, length, bullets vs paragraphs, subject format, time of day); Analytics shows reply rate per choice with plain-language takeaways. |
+| **Résumé tailoring** | Per job: a summary and bullets rewritten toward the posting (facts unchanged) plus keywords the résumé is missing. |
+| **CSV import** | Upload a sheet of openings (any column names) → validated applications → draft all → review → send, within send caps. |

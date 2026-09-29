@@ -16,7 +16,11 @@ export type GoogleOAuthClient = InstanceType<typeof google.auth.OAuth2>;
 export const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/userinfo.email',
-  // NOTE: gmail.readonly (restricted scope) is intentionally NOT requested. Reply
+  // Reply detection: lets the app notice when a recruiter answers, move the
+  // application to "HR screen" and stop follow-ups. Optional on Google's
+  // consent screen — sending works without it.
+  'https://www.googleapis.com/auth/gmail.readonly',
+  // (historical note) gmail.readonly (restricted scope) is intentionally NOT requested. Reply
   // detection (SPEC §5) is a stub; asking for full inbox read now would tank
   // consent conversion and force the paid restricted-scope CASA assessment. When
   // Phase 2 ships, add it back via INCREMENTAL authorization (a second consent
@@ -84,6 +88,8 @@ export interface ExchangedGmailTokens {
   refreshTokenEnc: string | null;
   expiry: Date | null;
   connectedEmail: string;
+  /** User also granted gmail.readonly (reply detection). */
+  canReadReplies: boolean;
 }
 
 /** Exchange the authorization code for tokens and resolve the account email. */
@@ -108,6 +114,8 @@ export async function exchangeCode(code: string): Promise<ExchangedGmailTokens> 
     refreshTokenEnc: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
     expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
     connectedEmail: data.email.toLowerCase(),
+    canReadReplies:
+      typeof tokens.scope === 'string' && tokens.scope.split(/\s+/).includes('https://www.googleapis.com/auth/gmail.readonly'),
   };
 }
 

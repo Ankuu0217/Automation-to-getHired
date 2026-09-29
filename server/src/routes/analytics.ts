@@ -5,6 +5,7 @@ import {
   getResponseTimeAnalytics,
   getTemplateAnalytics,
   getTimingAnalytics,
+  getStyleAnalytics,
   getToneAnalytics,
 } from '../services/analytics';
 
@@ -40,6 +41,15 @@ analyticsRouter.get('/timing', async (req, res, next) => {
 analyticsRouter.get('/by-template', async (req, res, next) => {
   try {
     res.json(await getTemplateAnalytics(req.userId!));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /analytics/by-style — reply rate per writing choice + takeaways. */
+analyticsRouter.get('/by-style', async (req, res, next) => {
+  try {
+    res.json(await getStyleAnalytics(req.userId!));
   } catch (err) {
     next(err);
   }

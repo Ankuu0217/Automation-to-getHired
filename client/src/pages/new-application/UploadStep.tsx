@@ -6,7 +6,7 @@ import { type ImportJobInput } from '@jobmail/shared';
 import { ImageOff, ImagePlus, RefreshCw, UploadCloud, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Mono } from '@/components/Mono';
@@ -54,6 +54,7 @@ export function UploadStep({
   onReset,
   onManualEntry,
 }: UploadStepProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<UploadMode>('screenshot');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -89,8 +90,13 @@ export function UploadStep({
       );
       return;
     }
+    // Several screenshots at once → the batch flow reads them in parallel.
+    if (accepted.length > 1) {
+      navigate('/apps/batch', { state: { files: accepted } });
+      return;
+    }
     if (accepted[0]) setFile(accepted[0]);
-  }, []);
+  }, [navigate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -100,7 +106,7 @@ export function UploadStep({
       'image/webp': ['.webp'],
     },
     maxSize: MAX_SCREENSHOT_BYTES,
-    multiple: false,
+    multiple: true,
   });
 
   const trimmedLength = pasteText.trim().length;
@@ -209,6 +215,19 @@ export function UploadStep({
         <div role="group" aria-label="Job post source" className="flex items-center gap-2">
           {modeTab('screenshot', 'Screenshot')}
           {modeTab('paste', 'Paste text')}
+          <Link to="/apps/import" className="focus-ring rounded-nav border border-graphite px-3 py-1.5 font-mono text-[13px] uppercase tracking-[-0.02em] text-text-2-dark transition-quick hover:bg-ink-3">
+            CSV
+          </Link>
+        </div>
+
+        <div className="rounded-btn border border-graphite bg-ink-2 p-4">
+          <Mono size="xs" color="fog">WHEN TO USE THIS</Mono>
+          <p className="mt-1.5 font-sans text-sm font-normal text-text-2-dark">
+            The job isn’t an image: a LinkedIn post you copied, a Naukri / Indeed / company-site job
+            description, a WhatsApp or Telegram forward, or a recruiter’s email. Paste it as-is — the AI
+            reads company, role, location, recruiter name and email exactly like it does from a
+            screenshot, and you review everything before any email is written.
+          </p>
         </div>
 
         <div className="space-y-1.5">
@@ -269,10 +288,12 @@ export function UploadStep({
         <div role="group" aria-label="Job post source" className="flex items-center gap-2">
           {modeTab('screenshot', 'Screenshot')}
           {modeTab('paste', 'Paste text')}
+          <Link to="/apps/import" className="focus-ring rounded-nav border border-graphite px-3 py-1.5 font-mono text-[13px] uppercase tracking-[-0.02em] text-text-2-dark transition-quick hover:bg-ink-3">
+            CSV
+          </Link>
         </div>
-        {/* Phase 8: bulk upload lives on its own page — no main-nav entry. */}
         <Link to="/apps/batch" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          Batch
+          Many screenshots
         </Link>
       </div>
 
@@ -315,11 +336,11 @@ export function UploadStep({
         ) : (
           <>
             <p className="font-sans text-sm font-normal text-paper">
-              Drag &amp; drop a job post screenshot, or{' '}
+              Drag &amp; drop one or more job post screenshots, or{' '}
               <span className="text-paper underline underline-offset-4">browse</span>
             </p>
             <Mono size="xs" color="fog">
-              PNG, JPEG, or WebP — up to {formatBytes(MAX_SCREENSHOT_BYTES)}
+              PNG, JPEG, or WebP — up to {formatBytes(MAX_SCREENSHOT_BYTES)} each · several at once open the batch view
             </Mono>
           </>
         )}

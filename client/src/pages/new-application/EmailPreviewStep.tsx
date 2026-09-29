@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Mono } from '@/components/Mono';
 import { ProofSheet } from '@/components/ProofSheet';
 import { SchedulePicker } from '@/components/SchedulePicker';
+import { TailorCard } from '@/components/TailorCard';
 import { StatusLabel } from '@/components/StatusLabel';
 import { ArrowSquare } from '@/components/ui/arrow-square';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -504,6 +505,7 @@ export function EmailPreviewStep({
 
   return (
     <div className="space-y-5">
+      <TailorCard job={current} />
       {current.lowMatch && match && (
         <div className="rounded-card border border-warn/40 bg-ink-2 p-4">
           <div className="flex items-start gap-3">

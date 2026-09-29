@@ -1,3 +1,4 @@
+import type { EmailStyle } from '../services/emailStyle';
 import mongoose, { Schema, type Document, type Types } from 'mongoose';
 import type {
   ApplicationEmailKind,
@@ -35,6 +36,8 @@ export interface IApplication extends Document {
   stage: ApplicationStage;
   /** EmailTemplate used for the initial outreach (drives per-template stats). */
   templateId: Types.ObjectId | null;
+  /** How the initial email was written — powers "which style gets replies". */
+  style: EmailStyle | null;
   emails: IApplicationEmail[];
   notes: string;
   /** Scheduled interview time (Phase 3) — drives the 24h reminder email. */
@@ -87,6 +90,7 @@ const applicationSchema = new Schema<IApplication>(
       default: 'applied',
     },
     templateId: { type: Schema.Types.ObjectId, ref: 'EmailTemplate', default: null },
+    style: { type: Schema.Types.Mixed, default: null },
     emails: { type: [emailSubSchema], default: [] },
     notes: { type: String, default: '' },
     interviewAt: { type: Date, default: null },

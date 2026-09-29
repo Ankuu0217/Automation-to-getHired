@@ -42,6 +42,10 @@ export interface IJobPost extends Document {
   sendAt: Date | null;
   /** Set while a worker is sending — the atomic claim that makes double-sends impossible. */
   sendClaimedAt: Date | null;
+  /** Résumé tailored to this posting (summary, bullets, keyword gaps). */
+  tailoring: { summary: string; highlights: string[]; keywordsCovered: string[]; keywordsMissing: string[]; source: 'ai' | 'basic'; createdAt: Date } | null;
+  /** Tone the current draft was written in (drives the "which style gets replies" analytics). */
+  draftTone: string | null;
   /** Reason the last attempt failed while a retry is pending (shown in the UI). */
   lastAttemptError: string | null;
   createdAt: Date;
@@ -64,7 +68,7 @@ const extractionSubSchema = new Schema(
     jdText: { type: String, default: '' },
     hrName: { type: String, default: null },
     hrEmails: { type: [hrEmailSubSchema], default: [] },
-    source: { type: String, enum: ['vision', 'ocr'], required: true },
+    source: { type: String, enum: ['vision', 'ocr', 'csv'], required: true },
     confidence: { type: Number, required: true, min: 0, max: 1 },
   },
   { _id: false },
@@ -127,6 +131,8 @@ const jobPostSchema = new Schema<IJobPost>(
     sendAt: { type: Date, default: null },
     sendClaimedAt: { type: Date, default: null },
     lastAttemptError: { type: String, default: null },
+    tailoring: { type: Schema.Types.Mixed, default: null },
+    draftTone: { type: String, default: null },
   },
   { timestamps: true },
 );

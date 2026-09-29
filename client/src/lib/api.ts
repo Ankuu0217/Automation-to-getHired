@@ -12,6 +12,8 @@ import type {
   FunnelAnalyticsResponse,
   GmailConnectResponse,
   GmailStatusResponse,
+  FindEmailResponse,
+  ImportCsvResult,
   ImportJobInput,
   JobPostResponse,
   JobPostSummary,
@@ -224,6 +226,58 @@ export function importJob(input: ImportJobInput) {
 
 export function getJob(id: string) {
   return api<{ job: JobPostResponse }>(`/jobs/${id}`);
+}
+
+/** Spreadsheet import: rows already mapped to company/role/hrEmail/… by the client. */
+export function importJobsCsv(rows: Array<Record<string, string>>) {
+  return api<ImportCsvResult>('/jobs/import-csv', { method: 'POST', body: { rows } });
+}
+
+/** Check the inbox for recruiter replies now (needs reply access on the Gmail grant). */
+export function checkReplies() {
+  return api<{ checked: number; newReplies: number; newBounces: number; enabled: boolean }>('/applications/check-replies', { method: 'POST' });
+}
+
+export interface AiHealth {
+  provider: string;
+  ocrEnabled: boolean;
+  openrouter: {
+    configured: boolean;
+    key?: { label?: string; freeTier?: boolean; limitRemaining?: number | null; usage?: number } | { error: string };
+    text: Array<{ model: string; ok: boolean; ms: number; error?: string }>;
+    vision: Array<{ model: string; ok: boolean; ms: number; error?: string }>;
+  };
+  gemini: { configured: boolean; ok?: boolean; ms?: number; model?: string; error?: string };
+}
+
+export function getAiHealth() {
+  return api<AiHealth>('/ai/health');
+}
+
+export function findRecruiterEmail(id: string, input: { company?: string; hrName?: string; domain?: string }) {
+  return api<FindEmailResponse>(`/jobs/${id}/find-email`, { method: 'POST', body: input });
+}
+
+export function tailorJob(id: string) {
+  return api<{ job: JobPostResponse }>(`/jobs/${id}/tailor`, { method: 'POST' });
+}
+
+export interface StyleAnalytics {
+  totalSent: number;
+  dimensions: Array<{ key: string; label: string; groups: Array<{ value: string; label: string; sent: number; replied: number; replyRate: number }> }>;
+  insights: string[];
+}
+
+export function getStyleAnalytics() {
+  return api<StyleAnalytics>('/analytics/by-style');
+}
+
+export function createExtensionToken() {
+  return api<{ token: string }>('/auth/extension-token', { method: 'POST' });
+}
+
+export function revokeExtensionToken() {
+  return api<{ revoked: true }>('/auth/extension-token', { method: 'DELETE' });
 }
 
 export function listJobs() {

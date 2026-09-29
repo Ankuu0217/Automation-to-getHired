@@ -20,7 +20,8 @@ export const jobStatusSchema = z.enum([
 ]);
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 
-export const extractionSourceSchema = z.enum(['vision', 'ocr']);
+/** vision = AI read a screenshot/text · ocr = fallback reader · csv = typed/imported by the user */
+export const extractionSourceSchema = z.enum(['vision', 'ocr', 'csv']);
 export type ExtractionSource = z.infer<typeof extractionSourceSchema>;
 
 /* ── AI extraction output (SPEC §4 Step A) ──────────────────────── */
@@ -77,6 +78,27 @@ export const importJobSchema = z.object({
 });
 export type ImportJobInput = z.infer<typeof importJobSchema>;
 
+/** POST /jobs/import-csv — rows already mapped to our fields by the client. */
+export const MAX_CSV_ROWS = 200;
+const csvCell = (max: number) => z.string().trim().max(max).optional().or(z.literal('')).transform((v) => (v ? v : null));
+export const csvRowSchema = z.object({
+  company: z.string().trim().min(1, 'Company is required').max(200),
+  role: z.string().trim().min(1, 'Role is required').max(200),
+  hrEmail: z.string().trim().toLowerCase().email('Not a valid email'),
+  hrName: csvCell(120),
+  location: csvCell(120),
+  jdText: csvCell(15000),
+  sourceUrl: csvCell(2000),
+});
+export type CsvRowInput = z.input<typeof csvRowSchema>;
+export const importCsvSchema = z.object({
+  rows: z.array(z.record(z.unknown())).min(1, 'The file has no rows').max(MAX_CSV_ROWS, `Import up to ${MAX_CSV_ROWS} rows at a time`),
+});
+export interface ImportCsvResult {
+  created: Array<{ row: number; jobId: string; company: string; role: string; hrEmail: string }>;
+  skipped: Array<{ row: number; reason: string }>;
+}
+
 /** Draft placeholder shape; M3 fills it via generate-email / PUT draft. */
 export const emailDraftSchema = z.object({
   subject: z.string().max(300).default(''),
@@ -112,6 +134,8 @@ export interface OutreachProfileSnapshot {
   phone: string;
   links: { linkedin: string; github: string; portfolio: string };
   signature: string;
+  /** Sender address shown in the signature (connected Gmail or account email). */
+  email?: string;
 }
 
 export interface MatchAnalysisInput {
@@ -126,6 +150,10 @@ export interface OutreachEmailInput {
   match: JobMatch;
   profile: OutreachProfileSnapshot;
   tone: Tone;
+  /** Recruiter address — a role mailbox (hr@, careers@) means "Dear Hiring Team". */
+  hrEmail?: string | null;
+  /** When the post advertised several openings: all of them (extraction.role is the one applied for). */
+  allRoles?: string[];
   /** Optional template steering (SPEC §4 Step C) — style/structure guidance for the model. */
   template?: TemplateGuidance | null;
 }
@@ -147,6 +175,27 @@ export const draftUpdateSchema = z
     { message: 'Provide draft fields to save, or a tone to regenerate with' },
   );
 export type DraftUpdateInput = z.infer<typeof draftUpdateSchema>;
+
+export interface JobTailoring {
+  summary: string;
+  highlights: string[];
+  keywordsCovered: string[];
+  keywordsMissing: string[];
+  source: 'ai' | 'basic';
+  createdAt: string;
+}
+
+/** POST /jobs/:id/find-email */
+export interface EmailSuggestion {
+  email: string;
+  confidence: number;
+  source: 'hunter' | 'pattern' | 'role';
+  note: string;
+}
+export interface FindEmailResponse {
+  domains: string[];
+  suggestions: EmailSuggestion[];
+}
 
 export interface JobPostResponse {
   id: string;
@@ -175,6 +224,8 @@ export interface JobPostResponse {
   lastAttemptError: string | null;
   /** False for pasted-text imports (no screenshot to serve). */
   hasScreenshot: boolean;
+  /** Résumé tailored to this posting, when generated. */
+  tailoring: JobTailoring | null;
   /**
    * Non-blocking double-outreach flag (Phase 4): set when the chosen HR email
    * was contacted within the last 14 days on a different application.

@@ -12,6 +12,7 @@ import { injectTrackingPixel } from '../tracking';
 import { hasMxRecord } from '../../utils/emailValidation';
 import { logger } from '../../utils/logger';
 import { getFile, StorageNotFoundError } from '../storage';
+import { describeStyle } from '../emailStyle';
 
 /**
  * The `send-email` job payload and processor (SPEC §5).
@@ -315,6 +316,7 @@ async function sendClaimedJob(data: SendEmailJobData, job: IJobPost): Promise<Se
       role: job.extraction?.role ?? null,
       stage: 'applied',
       templateId: job.templateId ?? null,
+      style: describeStyle(job.draft, job.draftTone ?? null, sentAt),
       emails: [
         {
           subject: job.draft.subject,
@@ -345,6 +347,7 @@ async function sendClaimedJob(data: SendEmailJobData, job: IJobPost): Promise<Se
     existing.company = job.extraction?.company ?? existing.company;
     existing.role = job.extraction?.role ?? existing.role;
     existing.templateId = job.templateId ?? existing.templateId;
+    existing.style = describeStyle(job.draft, job.draftTone ?? null, sentAt);
     await existing.save();
   }
   // Per-template A/B stats: the templated email actually went out (SPEC §6).

@@ -2,7 +2,7 @@ import type { JobPostResponse } from '@jobmail/shared';
 import { ImagePlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Mono } from '@/components/Mono';
@@ -289,6 +289,18 @@ export function BatchUpload() {
     },
     [pump],
   );
+
+  /* Screenshots handed over from the single New Application drop zone (several dropped at once). */
+  const location = useLocation();
+  const navigate = useNavigate();
+  const handedOver = useRef(false);
+  useEffect(() => {
+    const files = (location.state as { files?: File[] } | null)?.files;
+    if (handedOver.current || !files?.length) return;
+    handedOver.current = true;
+    onDrop(files.slice(0, MAX_BATCH_FILES), []);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate, onDrop]);
 
   /* Same accepted types + size cap as the single flow. */
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

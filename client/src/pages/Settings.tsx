@@ -1,3 +1,5 @@
+import { ExtensionCard } from '@/components/ExtensionCard';
+import { AiHealthCard } from '@/components/AiHealthCard';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { profileUpdateSchema, type ResumePrefill, type UpdateProfileInput } from '@jobmail/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -416,7 +418,11 @@ function GmailSection() {
           Outreach is sent from your own Gmail account, so recruiters see you — not a tool.
         </p>
       </div>
-      <GmailConnectPanel />
+      <div className="space-y-4">
+        <GmailConnectPanel />
+        <ExtensionCard />
+        <AiHealthCard />
+      </div>
     </StaggerItem>
   );
 }

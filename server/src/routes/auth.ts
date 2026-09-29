@@ -17,14 +17,15 @@ import { EmailTemplate } from '../models/EmailTemplate';
 import { EmailEvent } from '../models/EmailEvent';
 import { AppError, errorBody } from '../middleware/error';
 import { validate } from '../middleware/validate';
-import { requireAuth } from '../middleware/auth';
+import crypto from 'node:crypto';
+import { EXTENSION_TOKEN_PREFIX, requireAuth } from '../middleware/auth';
 import {
   accountActionLimiter,
   authIpLimiter,
   loginLimiter,
   registerLimiter,
 } from '../middleware/rateLimit';
-import { decrypt } from '../utils/crypto';
+import { decrypt, sha256 } from '../utils/crypto';
 import { logger } from '../utils/logger';
 import { removeFile } from '../services/storage';
 import { isOAuthConfigured, revokeToken } from '../services/gmail/oauth';
@@ -67,6 +68,8 @@ function toPublicUser(user: IUser): PublicUser {
       : user.gmailAuth.needsReconnect
         ? 'needs_reconnect'
         : 'connected',
+    replyDetection: Boolean(user.gmailAuth?.canReadReplies) && !user.gmailAuth?.needsReconnect,
+    extensionConnectedAt: user.extensionTokenCreatedAt ? user.extensionTokenCreatedAt.toISOString() : null,
     lastSendError: user.lastSendError ?? null,
     emailVerified: Boolean(user.emailVerified),
     settings: {
@@ -298,6 +301,32 @@ authRouter.patch('/settings', requireAuth, validate(settingsUpdateSchema), async
  * posts, applications, templates, tracking events), queued send/follow-up
  * jobs, and the upload files (screenshots + resume). Ends the session.
  */
+/**
+ * POST /auth/extension-token — create (or rotate) the token the GetHired Chrome
+ * extension uses. Shown ONCE; only its hash is stored. DELETE revokes it.
+ */
+authRouter.post('/extension-token', requireAuth, accountActionLimiter, async (req, res, next) => {
+  try {
+    const token = `${EXTENSION_TOKEN_PREFIX}${crypto.randomBytes(32).toString('hex')}`;
+    await User.updateOne(
+      { _id: req.userId },
+      { $set: { extensionTokenHash: sha256(token), extensionTokenCreatedAt: new Date() } },
+    );
+    res.status(201).json({ token });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.delete('/extension-token', requireAuth, async (req, res, next) => {
+  try {
+    await User.updateOne({ _id: req.userId }, { $set: { extensionTokenHash: null, extensionTokenCreatedAt: null } });
+    res.json({ revoked: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 authRouter.delete('/account', requireAuth, accountActionLimiter, async (req, res, next) => {
   try {
     const userId = req.userId!;

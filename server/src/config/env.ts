@@ -48,6 +48,8 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: z.string().optional().or(z.literal('')),
   OPENROUTER_MODELS: z.string().optional().or(z.literal('')),
   OPENROUTER_VISION_MODELS: z.string().optional().or(z.literal('')),
+  // Optional: Hunter.io key (free 25 searches/month) — real published recruiter emails in the finder.
+  HUNTER_API_KEY: z.string().optional().or(z.literal('')),
   // M3+ (Gmail OAuth) — optional: /gmail/connect returns 503 OAUTH_NOT_CONFIGURED without these
   GMAIL_CLIENT_ID: z.string().optional().or(z.literal('')),
   GMAIL_CLIENT_SECRET: z.string().optional().or(z.literal('')),

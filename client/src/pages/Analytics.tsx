@@ -26,7 +26,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Mono } from '@/components/Mono';
 import { buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
+import { getStyleAnalytics,
   getFunnelAnalytics,
   getResponseTimeAnalytics,
   getTemplateAnalytics,
@@ -647,6 +647,53 @@ function ResponseTimePanel() {
 
 /* ── Page ────────────────────────────────────────────────────────────────── */
 
+/* ── What gets replies (writing style) ── */
+
+function StylePanel() {
+  const query = useQuery({ queryKey: ['analytics', 'by-style'], queryFn: getStyleAnalytics });
+  const data = query.data;
+  return (
+    <Panel kicker="Writing style" title="What gets replies." meta={data ? `${data.totalSent} tracked sends` : undefined}>
+      {!data || data.totalSent === 0 ? (
+        <PanelQuiet>Style tracking starts with your next send — tone, length, format, subject and send time are recorded per email.</PanelQuiet>
+      ) : (
+        <div className="space-y-5">
+          {data.insights.length > 0 && (
+            <ul className="space-y-1.5">
+              {data.insights.map((i) => (
+                <li key={i} className="flex gap-2 font-sans text-sm text-bone">
+                  <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-lime" />
+                  {i}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {data.dimensions.filter((d) => d.groups.length > 0).map((d) => (
+              <div key={d.key}>
+                <Mono size="xs" color="fog">{d.label}</Mono>
+                <div className="mt-2 space-y-2">
+                  {d.groups.map((g, idx) => (
+                    <div key={g.value}>
+                      <div className="flex items-baseline justify-between gap-2 font-sans text-xs">
+                        <span className={idx === 0 && g.sent >= 3 ? 'text-paper' : 'text-text-2-dark'}>{g.label}</span>
+                        <span className="font-mono tabular-nums text-text-2-dark">{Math.round(g.replyRate * 100)}% · {g.replied}/{g.sent}</span>
+                      </div>
+                      <div className="mt-1 h-1 rounded-full bg-ink-3">
+                        <div className="h-1 rounded-full bg-lime" style={{ width: `${Math.max(2, Math.round(g.replyRate * 100))}%`, opacity: g.sent >= 3 ? 1 : 0.4 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 export function Analytics() {
   const funnelQuery = useQuery({ queryKey: ['analytics', 'funnel'], queryFn: getFunnelAnalytics });
   const templatesQuery = useQuery({ queryKey: ['templates'], queryFn: listTemplates });
@@ -755,6 +802,10 @@ export function Analytics() {
               </Mono>
             </div>
             <ActivityChart data={funnel.trend} />
+          </StaggerItem>
+
+          <StaggerItem>
+            <StylePanel />
           </StaggerItem>
 
           {/* Phase 5: timing, template, tone, response-time panels */}

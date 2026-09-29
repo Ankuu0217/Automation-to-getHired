@@ -232,15 +232,17 @@ const TONE_ORDER: Tone[] = ['formal', 'confident', 'friendly'];
  */
 export async function getToneAnalytics(userId: string): Promise<ToneAnalyticsResponse> {
   const applications = await Application.find({ userId })
-    .select('templateId emails.sentAt emails.repliedAt')
+    .select('templateId style emails.sentAt emails.repliedAt')
     .lean();
   const templates = await EmailTemplate.find({ userId }).select('tone').lean();
   const toneById = new Map(templates.map((t) => [String(t._id), t.tone]));
 
   const counts = new Map<Tone, { sent: number; replied: number }>();
   for (const application of applications) {
-    if (!application.templateId || !application.emails.some((e) => e.sentAt)) continue;
-    const tone = toneById.get(String(application.templateId));
+    if (!application.emails.some((e) => e.sentAt)) continue;
+    // Template tone when a template was used, else the tone the draft was written in.
+    const tone = (application.templateId ? toneById.get(String(application.templateId)) : undefined) ??
+      ((application as { style?: { tone?: Tone | null } }).style?.tone ?? undefined);
     if (!tone) continue; // deleted template — tone unknown
     const group = counts.get(tone) ?? { sent: 0, replied: 0 };
     group.sent += 1;
@@ -304,4 +306,65 @@ export async function getResponseTimeAnalytics(
   }
 
   return { buckets, medianHours };
+}
+
+/* ── Which writing style gets replies ─────────────────────────────── */
+
+const STYLE_DIMENSIONS = [
+  { key: 'tone', label: 'Tone' },
+  { key: 'length', label: 'Length' },
+  { key: 'format', label: 'Format' },
+  { key: 'subject', label: 'Subject line' },
+  { key: 'dayPart', label: 'Time sent' },
+] as const;
+
+const STYLE_VALUE_LABEL: Record<string, string> = {
+  formal: 'Formal', friendly: 'Friendly', confident: 'Confident',
+  short: 'Short (<110 words)', medium: 'Medium (110–170)', long: 'Long (170+)',
+  bullets: 'With bullet points', paragraphs: 'Paragraphs only',
+  'application-for': '"Application for <Role> - <Name>"', 'role-name': '"<Role> - <Name>"', other: 'Other subject',
+  morning: 'Morning (6–12)', afternoon: 'Afternoon (12–17)', evening: 'Evening (17–22)', night: 'Night',
+};
+
+export interface StyleAnalyticsResponse {
+  totalSent: number;
+  dimensions: Array<{
+    key: string;
+    label: string;
+    groups: Array<{ value: string; label: string; sent: number; replied: number; replyRate: number }>;
+  }>;
+  insights: string[];
+}
+
+/** GET /analytics/by-style — reply rate per writing choice, with plain-language takeaways. */
+export async function getStyleAnalytics(userId: string): Promise<StyleAnalyticsResponse> {
+  const apps = await Application.find({ userId, style: { $ne: null } }).select('style emails.sentAt emails.repliedAt').lean();
+  const sent = apps.filter((a) => a.emails.some((e) => e.sentAt));
+  const MIN = 3;
+  const dimensions = STYLE_DIMENSIONS.map(({ key, label }) => {
+    const m = new Map<string, { sent: number; replied: number }>();
+    for (const a of sent) {
+      const v = (a.style as unknown as Record<string, string | null>)?.[key];
+      if (!v) continue;
+      const g = m.get(v) ?? { sent: 0, replied: 0 };
+      g.sent += 1;
+      if (a.emails.some((e) => e.repliedAt)) g.replied += 1;
+      m.set(v, g);
+    }
+    const groups = [...m.entries()]
+      .map(([value, g]) => ({ value, label: STYLE_VALUE_LABEL[value] ?? value, sent: g.sent, replied: g.replied, replyRate: rate(g.replied, g.sent) }))
+      .sort((a, b) => b.replyRate - a.replyRate || b.sent - a.sent);
+    return { key, label, groups };
+  });
+  const insights: string[] = [];
+  for (const d of dimensions) {
+    const eligible = d.groups.filter((g) => g.sent >= MIN);
+    if (eligible.length < 2) continue;
+    const [best, next] = eligible;
+    if (best.replyRate - next.replyRate >= 0.05) {
+      insights.push(`${d.label}: ${best.label} gets ${Math.round(best.replyRate * 100)}% replies vs ${Math.round(next.replyRate * 100)}% for ${next.label.toLowerCase()} (${best.sent} vs ${next.sent} sent).`);
+    }
+  }
+  if (sent.length < 10) insights.push(`Early data: ${sent.length} tracked sends so far — trends firm up after about 20.`);
+  return { totalSent: sent.length, dimensions, insights };
 }

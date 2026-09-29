@@ -31,9 +31,9 @@ import { buildEmailPrompt, draftQualityProblem, emailDraftSchema, type RawEmailD
  */
 
 const BASE_URL = 'https://openrouter.ai/api/v1';
-const PER_MODEL_TIMEOUT_MS = 25_000;
+const PER_MODEL_TIMEOUT_MS = 22_000;
 /** Whole-chain budget — generate-email is a synchronous request behind a 120 s proxy. */
-const DEFAULT_DEADLINE_MS = 80_000;
+const DEFAULT_DEADLINE_MS = 55_000;
 const MAX_MODELS_PER_CALL = 6;
 const DISCOVERY_TTL_MS = 6 * 60 * 60 * 1000;
 const BENCH_MS = 3 * 60 * 1000;
@@ -160,7 +160,7 @@ export class OpenRouterError extends Error {
   }
 }
 
-async function callModel(model: string, parts: ContentPart[], kind: Kind, temperature: number, timeoutMs: number) {
+async function callModel(model: string, parts: ContentPart[], kind: Kind, temperature: number, timeoutMs: number, signal?: AbortSignal) {
   const body: Record<string, unknown> = {
     model,
     messages: [{ role: 'user', content: parts }],
@@ -183,7 +183,7 @@ async function callModel(model: string, parts: ContentPart[], kind: Kind, temper
         'X-Title': 'GetHired',
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
     throw new OpenRouterError(`network/timeout: ${err instanceof Error ? err.message : String(err)}`, null, false);
@@ -235,42 +235,86 @@ export interface ChainOptions<T> {
   label: string;
 }
 
+/**
+ * Hedged model race. Starts HEDGE models at once; whenever one fails (or gives
+ * a weak answer) the next candidate starts, and the first good answer wins —
+ * the rest are aborted. Free models are individually slow or rate-limited, so
+ * racing two turns "25 s timeout, then try the next" into "whichever answers
+ * first, usually in 3–8 s".
+ */
+const HEDGE = 2;
+
 export async function runChain<T>(opts: ChainOptions<T>): Promise<{ value: T; model: string }> {
   if (!isOpenRouterConfigured()) throw new Error('OPENROUTER_API_KEY is not set');
   if (Date.now() < accountPausedUntil) throw new Error('OpenRouter daily free quota reached — skipping');
   const deadline = Date.now() + (opts.deadlineMs ?? DEFAULT_DEADLINE_MS);
-  const models = await candidateModels(opts.kind);
+  const queue = await candidateModels(opts.kind);
   const failures: string[] = [];
   let fallback: { value: T; model: string } | null = null;
+  const controllers = new Set<AbortController>();
 
-  for (const model of models) {
-    const left = deadline - Date.now();
-    if (left < 4_000) break;
-    try {
-      const raw = await callModel(model, opts.parts, opts.kind, opts.temperature ?? 0.2, Math.min(PER_MODEL_TIMEOUT_MS, left));
-      const value = opts.parse(raw);
-      const problem = opts.judge?.(value) ?? null;
-      if (problem) {
-        failures.push(`${model}: ${problem}`);
-        fallback ??= { value, model }; // usable, just not great — keep as last resort
-        continue;
+  return await new Promise<{ value: T; model: string }>((resolve, reject) => {
+    let running = 0;
+    let settled = false;
+
+    const finish = (result: { value: T; model: string } | null, err?: Error) => {
+      if (settled) return;
+      settled = true;
+      for (const c of controllers) c.abort();
+      if (result) resolve(result);
+      else reject(err ?? new Error('no result'));
+    };
+
+    const launchNext = () => {
+      if (settled) return;
+      while (running < HEDGE && queue.length > 0) {
+        const left = deadline - Date.now();
+        if (left < 3_000 || Date.now() < accountPausedUntil) break;
+        const model = queue.shift()!;
+        running += 1;
+        const ctrl = new AbortController();
+        controllers.add(ctrl);
+        callModel(model, opts.parts, opts.kind, opts.temperature ?? 0.2, Math.min(PER_MODEL_TIMEOUT_MS, left), ctrl.signal)
+          .then((raw) => {
+            const value = opts.parse(raw);
+            const problem = opts.judge?.(value) ?? null;
+            if (problem) {
+              failures.push(`${model}: ${problem}`);
+              fallback ??= { value, model };
+              return;
+            }
+            logger.info({ task: opts.label, model, failedBefore: failures.length }, 'OpenRouter call succeeded');
+            finish({ value, model });
+          })
+          .catch((err: unknown) => {
+            if (settled) return;
+            const e = err as OpenRouterError;
+            failures.push(`${model}: ${(e?.message ?? String(err)).slice(0, 160)}`);
+            if (e instanceof OpenRouterError && e.bench) benchedUntil.set(model, Date.now() + BENCH_MS);
+            if (e instanceof OpenRouterError && (e.status === 401 || e.status === 402)) queue.length = 0;
+          })
+          .finally(() => {
+            controllers.delete(ctrl);
+            running -= 1;
+            if (settled) return;
+            launchNext();
+            if (running === 0) {
+              if (fallback) {
+                logger.warn({ task: opts.label, failures }, 'OpenRouter: using best available answer');
+                finish(fallback);
+              } else {
+                logger.warn({ task: opts.label, failures }, 'OpenRouter: every model failed');
+                finish(null, new Error(`OpenRouter ${opts.label} failed on ${failures.length} model(s): ${failures.join(' | ')}`));
+              }
+            }
+          });
       }
-      logger.info({ task: opts.label, model, tried: failures.length + 1 }, 'OpenRouter call succeeded');
-      return { value, model };
-    } catch (err) {
-      const e = err as OpenRouterError;
-      failures.push(`${model}: ${e.message?.slice(0, 160)}`);
-      if (e instanceof OpenRouterError && e.bench) benchedUntil.set(model, Date.now() + BENCH_MS);
-      if (e instanceof OpenRouterError && (e.status === 401 || e.status === 402)) break;
-      if (Date.now() < accountPausedUntil) break;
-    }
-  }
-  if (fallback) {
-    logger.warn({ task: opts.label, failures }, 'OpenRouter: using best available draft');
-    return fallback;
-  }
-  logger.warn({ task: opts.label, failures }, 'OpenRouter: every model failed');
-  throw new Error(`OpenRouter ${opts.label} failed on ${failures.length} model(s): ${failures.join(' | ')}`);
+      if (running === 0 && !settled) {
+        finish(fallback, fallback ? undefined : new Error(`OpenRouter ${opts.label}: no model available (${failures.join(' | ') || 'none tried'})`));
+      }
+    };
+    launchNext();
+  });
 }
 
 /* ── Engine operations ──────────────────────────────────────────── */
@@ -357,6 +401,70 @@ export async function extractResumeOR(input: { pdf?: Buffer; text?: string }, to
       return parsed.data;
     },
     judge: (v) => (!v.fullName && v.skills.length === 0 ? 'empty result' : null),
+  });
+  return value;
+}
+
+/* ── Diagnostics (GET /api/v1/ai/health) ─────────────────────────── */
+
+export interface ModelProbe {
+  model: string;
+  ok: boolean;
+  ms: number;
+  error?: string;
+}
+
+/** Key status + a tiny JSON call against the first few models of each chain. */
+export async function probeOpenRouter(): Promise<{
+  configured: boolean;
+  key?: { label?: string; freeTier?: boolean; limitRemaining?: number | null; usage?: number } | { error: string };
+  text: ModelProbe[];
+  vision: ModelProbe[];
+}> {
+  if (!isOpenRouterConfigured()) return { configured: false, text: [], vision: [] };
+  let key: { label?: string; freeTier?: boolean; limitRemaining?: number | null; usage?: number } | { error: string };
+  try {
+    const res = await fetch(`${BASE_URL}/key`, {
+      headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      data?: { label?: string; is_free_tier?: boolean; limit_remaining?: number | null; usage?: number };
+      error?: { message?: string };
+    };
+    key = res.ok
+      ? { label: body.data?.label, freeTier: body.data?.is_free_tier, limitRemaining: body.data?.limit_remaining ?? null, usage: body.data?.usage }
+      : { error: `HTTP ${res.status}: ${body.error?.message ?? 'key rejected'}` };
+  } catch (err) {
+    key = { error: err instanceof Error ? err.message : String(err) };
+  }
+  const probe = async (model: string): Promise<ModelProbe> => {
+    const t0 = Date.now();
+    try {
+      const raw = await callModel(model, [{ type: 'text', text: 'Reply with the JSON object {"ok": true} and nothing else.' }], 'text', 0, 20_000);
+      const ok = (extractJson(raw) as { ok?: unknown }).ok === true;
+      return { model, ok, ms: Date.now() - t0, ...(ok ? {} : { error: 'unexpected reply' }) };
+    } catch (err) {
+      return { model, ok: false, ms: Date.now() - t0, error: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
+    }
+  };
+  const [textModels, visionModels] = await Promise.all([candidateModels('text'), candidateModels('vision')]);
+  const [text, vision] = await Promise.all([
+    Promise.all(textModels.slice(0, 4).map(probe)),
+    Promise.all(visionModels.slice(0, 3).map(probe)),
+  ]);
+  return { configured: true, key, text, vision };
+}
+
+/** Generic strict-JSON text call through the hedged model chain. */
+export async function generateJsonOR<T>(prompt: string, parse: (v: unknown) => T, label: string, temperature = 0.3): Promise<T> {
+  const { value } = await runChain({
+    label,
+    kind: 'text',
+    temperature,
+    deadlineMs: 45_000,
+    parts: [{ type: 'text', text: prompt }],
+    parse: (r) => parse(extractJson(r)),
   });
   return value;
 }

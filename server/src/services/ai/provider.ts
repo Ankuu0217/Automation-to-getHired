@@ -142,17 +142,60 @@ class ChainProvider implements AIProvider {
     this.name = engines.map((e) => e.name).join('+');
   }
 
-  private async first<T>(op: string, run: (e: Engine) => Promise<T>): Promise<T> {
-    let last: unknown = new Error('no AI engine configured');
-    for (const engine of this.engines) {
-      try {
-        return await run(engine);
-      } catch (err) {
-        last = err;
-        logger.warn({ op, engine: engine.name, err: errMsg(err) }, 'AI engine failed — trying the next one');
-      }
-    }
-    throw last;
+  /**
+   * Run the engines as a hedged race: the first engine starts now; if it has
+   * not answered within HEDGE_AFTER_MS (or it fails), the next one starts too.
+   * First success wins. Keeps the common case on the primary engine while a
+   * slow/overloaded provider can never hold the user hostage.
+   */
+  private first<T>(op: string, run: (e: Engine) => Promise<T>): Promise<T> {
+    const HEDGE_AFTER_MS = 12_000;
+    const engines = [...this.engines];
+    return new Promise<T>((resolve, reject) => {
+      let pending = 0;
+      let done = false;
+      let lastErr: unknown = new Error('no AI engine configured');
+      let timer: NodeJS.Timeout | null = null;
+      const startNext = () => {
+        if (done) return;
+        const engine = engines.shift();
+        if (!engine) {
+          if (pending === 0) {
+            done = true;
+            reject(lastErr);
+          }
+          return;
+        }
+        pending += 1;
+        const started = Date.now();
+        if (timer) clearTimeout(timer);
+        if (engines.length > 0) timer = setTimeout(startNext, HEDGE_AFTER_MS);
+        run(engine)
+          .then((v) => {
+            if (done) return;
+            done = true;
+            if (timer) clearTimeout(timer);
+            logger.info({ op, engine: engine.name, ms: Date.now() - started }, 'AI engine answered');
+            resolve(v);
+          })
+          .catch((err) => {
+            lastErr = err;
+            logger.warn({ op, engine: engine.name, ms: Date.now() - started, err: errMsg(err) }, 'AI engine failed — trying the next one');
+          })
+          .finally(() => {
+            pending -= 1;
+            if (!done) {
+              if (engines.length > 0) startNext();
+              else if (pending === 0) {
+                done = true;
+                if (timer) clearTimeout(timer);
+                reject(lastErr);
+              }
+            }
+          });
+      };
+      startNext();
+    });
   }
 
   async extractJobFromImage(buffer: Buffer, mimeType: string) {

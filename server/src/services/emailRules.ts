@@ -8,8 +8,8 @@ import type { EmailDraft } from '@jobmail/shared';
  * a draft is persisted.
  */
 
-export const MAX_BODY_WORDS = 180;
-export const MAX_SUBJECT_WORDS = 7;
+export const MAX_BODY_WORDS = 230;
+export const MAX_SUBJECT_WORDS = 10;
 
 /** Stock phrases that make HR outreach sound templated (SPEC banned list + close variants). */
 const BANNED_PHRASES: RegExp[] = [

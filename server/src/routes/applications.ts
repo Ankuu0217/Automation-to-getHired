@@ -1,3 +1,4 @@
+import { checkRepliesForUser } from '../services/replyDetection';
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import {
@@ -230,6 +231,15 @@ applicationsRouter.patch('/:id', validate(applicationUpdateSchema), async (req, 
  * bumps the template's replied stat, and cancels pending follow-ups.
  * Idempotent: a second call is a no-op beyond returning the same state.
  */
+/** POST /applications/check-replies — check the inbox for recruiter replies right now. */
+applicationsRouter.post('/check-replies', async (req, res, next) => {
+  try {
+    res.json(await checkRepliesForUser(req.userId!));
+  } catch (err) {
+    next(err);
+  }
+});
+
 applicationsRouter.post('/:id/mark-replied', async (req, res, next) => {
   try {
     const application = await findOwnApplication(req.userId!, req.params.id);

@@ -24,3 +24,7 @@ server/test/
 client/src/test/
 server/uploads/test-resumes/
 **/vitest.config.ts
+
+# Local media / assistant outputs (large binaries, keep out of git)
+promo/
+Claude outputs/

@@ -328,6 +328,8 @@ export async function initQueue(): Promise<void> {
   // Daily sweep: flag Gmail connections whose grant was revoked/expired at Google
   // so the user is prompted to reconnect before their next campaign (Gap H).
   await agenda.every('1 day', GMAIL_HEALTH_JOB);
+  // Recruiter replies: users who granted gmail.readonly get auto-detected replies.
+  await agenda.every('5 minutes', POLL_REPLIES_JOB);
   logger.info('Agenda v6 queue started with MongoBackend');
 }
 

@@ -15,6 +15,7 @@ const named = <K extends string>(loader: () => Promise<Record<K, ComponentType>>
 
 const Analytics = named(() => import('@/pages/Analytics'), 'Analytics');
 const BatchUpload = named(() => import('@/pages/BatchUpload'), 'BatchUpload');
+const ImportCsv = named(() => import('@/pages/ImportCsv'), 'ImportCsv');
 const Contacts = named(() => import('@/pages/Contacts'), 'Contacts');
 const Dashboard = named(() => import('@/pages/Dashboard'), 'Dashboard');
 const Dispatches = named(() => import('@/pages/Dispatches'), 'Dispatches');
@@ -59,6 +60,7 @@ export function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/apps/new" element={<NewApplication />} />
         <Route path="/apps/batch" element={<BatchUpload />} />
+        <Route path="/apps/import" element={<ImportCsv />} />
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/dispatches" element={<Dispatches />} />
         <Route path="/contacts" element={<Contacts />} />

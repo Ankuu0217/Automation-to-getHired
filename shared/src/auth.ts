@@ -43,6 +43,10 @@ export interface PublicUser {
    *  - 'disconnected'    — no Gmail linked
    */
   gmailStatus: 'connected' | 'needs_reconnect' | 'disconnected';
+  /** Recruiter replies are detected automatically (gmail.readonly granted). */
+  replyDetection: boolean;
+  /** When the Chrome-extension token was created (null = no extension linked). */
+  extensionConnectedAt: string | null;
   /** Last send-pipeline error (e.g. Gmail disconnected mid-queue) — drives the UI banner. */
   lastSendError: string | null;
   /** Whether the account's email is verified — the send pipeline is gated on this. */

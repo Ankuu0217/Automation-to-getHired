@@ -128,6 +128,7 @@ gmailRouter.get('/callback', async (req, res, next) => {
     }
     user.gmailAuth.expiry = tokens.expiry ?? undefined;
     user.gmailAuth.connectedEmail = tokens.connectedEmail;
+    user.gmailAuth.canReadReplies = tokens.canReadReplies;
     user.gmailAuth.needsReconnect = false; // a fresh (re)connect clears the reconnect state
     user.lastSendError = null; // reconnect clears the mid-queue pause banner
     await user.save();

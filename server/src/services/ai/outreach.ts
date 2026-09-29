@@ -5,7 +5,7 @@ import {
   type MatchAnalysisInput,
   type OutreachEmailInput,
 } from '@jobmail/shared';
-import { emailBodyToHtml, repairOutreachEmail } from '../emailRules';
+import { finalizeOutreachEmail, yearsPhrase } from './emailWriter';
 
 /**
  * Deterministic match + email fallback (SPEC §2 fallback chain): used when
@@ -65,72 +65,44 @@ export function analyzeMatchHeuristic(input: MatchAnalysisInput): JobMatch {
 
   const topSkill = matchedSkills[0];
   const years = profile.yearsExp;
+  const yp = yearsPhrase(years);
   const angle = topSkill
-    ? `${years ? `${years}+ years of` : 'Hands-on'} ${topSkill} experience that maps directly onto the ${role ?? 'role'} requirements`
+    ? `${yp ? `${yp} of` : 'Hands-on'} ${topSkill} experience that maps directly onto the ${role ?? 'role'} requirements`
     : `Broad, fast-ramping background suited to the ${role ?? 'role'} opening`;
 
   return { score, matchedSkills, gaps, angle };
 }
 
-/** Sign-off line + signature block (profile.signature wins when set). */
-function closingBlock(input: OutreachEmailInput): string {
-  const { profile, tone } = input;
-  const signOff = tone === 'formal' ? 'Best regards,' : 'Thanks,';
-  if (profile.signature.trim()) return `${signOff}\n${profile.signature.trim()}`;
-  const lines = [profile.fullName || 'JobMail Autopilot user'];
-  if (profile.phone) lines.push(profile.phone);
-  if (profile.links.linkedin) lines.push(profile.links.linkedin);
-  if (profile.links.portfolio) lines.push(profile.links.portfolio);
-  return `${signOff}\n${lines.join('\n')}`;
-}
-
 /**
- * Template email honoring the hard rules: JD-specific hook, 2-3 proof
- * points, one soft CTA, signature block. Output is passed through
- * repairOutreachEmail so caps/banned-phrase rules hold even for odd inputs.
- * Note (M5): this deterministic fallback ignores `input.template` guidance —
- * template steering happens in the model prompt only; the fallback's own
- * fixed structure is already rule-compliant.
+ * Deterministic, professional template email (used when every AI engine is
+ * down). Structure mirrors what a strong candidate writes by hand: purpose →
+ * background → 2 evidence bullets → attachment + ask. Finished by the same
+ * pass as AI drafts (exact greeting + signature + hard rules).
  */
+const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
+
 export function generateEmailFromTemplate(input: OutreachEmailInput): EmailDraft {
-  const { extraction, match, profile, tone } = input;
-  const role = extraction.role ?? 'Software Engineer';
-  const company = extraction.company ? ` at ${extraction.company}` : '';
-  const firstName = extraction.hrName?.trim().split(/\s+/)[0];
-  const greeting =
-    tone === 'formal'
-      ? `Dear ${extraction.hrName ?? 'Hiring Manager'},`
-      : `Hi ${firstName ?? 'there'},`;
+  const { extraction, match, profile } = input;
+  const role = extraction.role ?? 'open';
+  const company = extraction.company ?? 'your company';
+  const yrs = yearsPhrase(profile.yearsExp);
+  const skills = (match.matchedSkills.length ? match.matchedSkills : profile.skills).slice(0, 3);
+  const cleanHeadline = profile.headline && !/[·|]|technical skills/i.test(profile.headline) ? profile.headline : '';
 
-  const topSkills = match.matchedSkills.slice(0, 3);
-  const years = profile.yearsExp;
+  const subject = `Application for ${role} - ${profile.fullName || 'Candidate'}`;
 
-  const subject = `${role} role - ${profile.fullName || (topSkills[0] ?? 'application')}`;
+  const p1 = `I came across the ${role} opening at ${company} and would like to be considered for the role.`;
+  const who = cleanHeadline ? `I am a ${cleanHeadline.replace(/^(a|an)\s+/i, '')}` : 'I am a developer';
+  const p2 = skills.length
+    ? `${who}${yrs ? ` with ${yrs} of experience` : ''}, working mainly with ${list(skills)}. The requirements in your post line up closely with the work I have been doing.`
+    : `${who}${yrs ? ` with ${yrs} of experience` : ''}, and the requirements in your post line up closely with the work I have been doing.`;
+  const bullets: string[] = [];
+  if (skills.length) bullets.push(`- Hands-on experience with ${list(skills)}, the core of the stack in your post`);
+  const firstFact = profile.summary.split(/(?<=[.!?])\s+/).find((x) => x.length > 30 && x.length < 170);
+  bullets.push(`- ${firstFact ? firstFact.replace(/\.$/, '') : `${match.angle.charAt(0).toUpperCase()}${match.angle.slice(1).replace(/\.$/, '')}`}`);
+  const close = `I have attached my resume for your reference. Would you be open to a short 15-minute call this week to discuss the role? Thank you for your time and consideration.`;
 
-  // Hook: something specific from the post, in plain words — never a pleasantry.
-  const hook = topSkills.length > 0
-    ? `Saw your post about the ${role} role${company}. You mentioned ${topSkills
-        .slice(0, 2)
-        .join(' and ')}, which is what I've been working with day to day.`
-    : `Saw your post about the ${role} role${company}. ${match.angle.charAt(0).toUpperCase()}${match.angle.slice(1)}.`;
-
-  const proof: string[] = [];
-  if (topSkills.length > 0) {
-    proof.push(`- ${years ? `${years}+ years` : 'Hands-on experience'} with ${topSkills.join(', ')}`);
-  }
-  if (profile.headline) {
-    proof.push(`- Currently working as ${profile.headline.replace(/^(a|an)\s+/i, '')}`);
-  } else if (topSkills.length >= 2) {
-    proof.push(`- Built and shipped features end to end using ${topSkills[0]} and ${topSkills[1]}`);
-  }
-  if (proof.length < 2) proof.push('- Delivered projects from first draft to production');
-
-  const cta =
-    tone === 'friendly'
-      ? "I've attached my resume. Would you be up for a quick 15-minute call this week?"
-      : "I've attached my resume. Would you be open to a short 15-minute call this week?";
-
-  const bodyText = [greeting, hook, proof.join('\n'), cta, closingBlock(input)].join('\n\n');
-
-  return repairOutreachEmail({ subject, bodyText, bodyHtml: emailBodyToHtml(bodyText) });
+  const bodyText = ['Dear Hiring Team,', p1, p2, bullets.join('\n'), close].join('\n\n');
+  return finalizeOutreachEmail({ subject, bodyText }, input);
 }
+

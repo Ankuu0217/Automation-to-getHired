@@ -7,6 +7,9 @@ import {
   extractionUpdateSchema,
   generateEmailSchema,
   importJobSchema,
+  importCsvSchema,
+  csvRowSchema,
+  type ImportCsvResult,
   LOW_MATCH_THRESHOLD,
   RECENT_CONTACT_WINDOW_DAYS,
   sendJobSchema,
@@ -42,6 +45,9 @@ import { emailBodyToHtml } from '../services/emailRules';
 import { sniffImageMime } from '../utils/imageMime';
 import { hasMxRecord, isValidEmail } from '../utils/emailValidation';
 import { computeDedupeHash } from '../utils/dedupe';
+import { pickBestRole, splitRoles } from '../services/ai/rolePicker';
+import { findRecruiterEmails } from '../services/emailFinder';
+import { tailorResume } from '../services/ai/tailor';
 import { getFile, isRemoteKey, putFile, signedUrl, StorageNotFoundError } from '../services/storage';
 
 export const jobsRouter = Router();
@@ -83,6 +89,9 @@ function toDto(job: IJobPost): JobPostResponse {
     sendAt: job.status === 'queued' && job.sendAt ? job.sendAt.toISOString() : null,
     lastAttemptError: job.status === 'queued' ? (job.lastAttemptError ?? null) : null,
     hasScreenshot: Boolean(job.screenshotPath),
+    tailoring: job.tailoring
+      ? { ...job.tailoring, createdAt: new Date(job.tailoring.createdAt).toISOString() }
+      : null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };
@@ -183,6 +192,139 @@ jobsRouter.post('/import', uploadLimiter, validate(importJobSchema), async (req,
 
     const body: UploadJobResponse = { jobPostId: String(job._id) };
     res.status(202).json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /jobs/import-csv — a spreadsheet of openings (company, role, HR email…)
+ * becomes ready-to-draft applications with no AI reading step: every row is
+ * validated (email format + MX), de-duplicated against the user's history and
+ * within the file, and saved as an 'extracted' JobPost. The client then drafts
+ * emails (generate-email) and the user reviews/sends as usual.
+ */
+jobsRouter.post('/import-csv', uploadLimiter, validate(importCsvSchema), async (req, res, next) => {
+  try {
+    const { rows } = req.body as { rows: Array<Record<string, unknown>> };
+    const result: ImportCsvResult = { created: [], skipped: [] };
+    const seen = new Set<string>();
+    const mxCache = new Map<string, Promise<boolean>>();
+    const mx = (domain: string) => {
+      if (!mxCache.has(domain)) mxCache.set(domain, hasMxRecord(domain));
+      return mxCache.get(domain)!;
+    };
+
+    // Validate in parallel (bounded by the per-domain MX cache), save sequentially.
+    const checked = await Promise.all(
+      rows.map(async (raw, i) => {
+        const row = i + 2; // spreadsheet line number (header is line 1)
+        const parsed = csvRowSchema.safeParse(raw);
+        if (!parsed.success) {
+          const issue = parsed.error.issues[0];
+          return { row, error: `${issue?.path.join('.') || 'row'}: ${issue?.message ?? 'invalid'}` };
+        }
+        const domain = parsed.data.hrEmail.split('@')[1];
+        if (!isValidEmail(parsed.data.hrEmail) || !(await mx(domain))) {
+          return { row, error: `No mail server found for "${domain}"` };
+        }
+        return { row, data: parsed.data };
+      }),
+    );
+
+    for (const item of checked) {
+      if (!('data' in item) || !item.data) {
+        result.skipped.push({ row: item.row, reason: item.error ?? 'invalid row' });
+        continue;
+      }
+      const d = item.data;
+      const dedupeHash = computeDedupeHash(req.userId!, d.hrEmail, d.company, d.role);
+      if (seen.has(dedupeHash)) {
+        result.skipped.push({ row: item.row, reason: 'Duplicate of an earlier row in this file' });
+        continue;
+      }
+      seen.add(dedupeHash);
+      if (await JobPost.exists({ userId: req.userId!, dedupeHash })) {
+        result.skipped.push({ row: item.row, reason: 'Already in your applications (same HR email, company and role)' });
+        continue;
+      }
+      const jdText = d.jdText ?? `${d.role} at ${d.company}${d.location ? ` (${d.location})` : ''}.`;
+      try {
+        const job = await JobPost.create({
+          userId: req.userId!,
+          sourceUrl: d.sourceUrl && /^https?:\/\//i.test(d.sourceUrl) ? d.sourceUrl : null,
+          rawExtractedText: jdText,
+          extraction: {
+            company: d.company,
+            role: d.role,
+            location: d.location,
+            jdText,
+            hrName: d.hrName,
+            hrEmails: [{ email: d.hrEmail, confidence: 1 }],
+            source: 'csv',
+            confidence: 1,
+          },
+          hrEmail: d.hrEmail,
+          needsEmail: false,
+          status: 'extracted',
+          dedupeHash,
+        });
+        result.created.push({ row: item.row, jobId: String(job._id), company: d.company, role: d.role, hrEmail: d.hrEmail });
+      } catch (err) {
+        if ((err as { code?: number }).code === 11000) {
+          result.skipped.push({ row: item.row, reason: 'Already in your applications (same HR email, company and role)' });
+        } else {
+          throw err;
+        }
+      }
+    }
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /jobs/:id/find-email — suggest recruiter addresses when the post has
+ * none. Uses the (possibly unsaved) company / recruiter name from the review
+ * form, or a domain the user typed. Suggestions only; the user picks one.
+ */
+jobsRouter.post('/:id/find-email', generateLimiter, async (req, res, next) => {
+  try {
+    const job = await findOwnJob(req.userId!, req.params.id);
+    const body = (req.body ?? {}) as { company?: unknown; hrName?: unknown; domain?: unknown };
+    const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+    const company = str(body.company, 200) ?? job.extraction?.company ?? null;
+    const hrName = str(body.hrName, 120) ?? job.extraction?.hrName ?? null;
+    const domain = str(body.domain, 253);
+    if (!company && !domain) {
+      throw new AppError(400, ErrorCodes.BAD_REQUEST, 'Add the company name (or its website) first');
+    }
+    res.json(await findRecruiterEmails({ company, hrName, domain }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /jobs/:id/tailor — résumé summary + bullets rewritten toward this
+ * posting, and the posting's keywords the résumé is missing. Stored on the
+ * job so it survives reloads; regenerate by calling again.
+ */
+jobsRouter.post('/:id/tailor', generateLimiter, async (req, res, next) => {
+  try {
+    const job = await findOwnJob(req.userId!, req.params.id);
+    assertDraftable(job);
+    const profile = await requireProfile(req.userId!);
+    const allRoles = splitRoles(job.extraction.role);
+    const snapshot = profileSnapshot(profile);
+    const role = allRoles.length > 1
+      ? pickBestRole(allRoles, { ...snapshot, preferredRoles: profile.preferredRoles ?? [] }, job.extraction.jdText)
+      : job.extraction.role;
+    const t = await tailorResume({ role, company: job.extraction.company, jdText: job.extraction.jdText || job.rawExtractedText, profile: snapshot });
+    job.tailoring = { ...t, createdAt: new Date() };
+    await job.save();
+    res.json({ job: toDto(job) });
   } catch (err) {
     next(err);
   }
@@ -370,7 +512,7 @@ jobsRouter.put('/:id/extraction', validate(extractionUpdateSchema), async (req, 
 
 /* ── M3: match analysis + outreach email generation ─────────────── */
 
-function profileSnapshot(profile: IProfile): OutreachProfileSnapshot {
+function profileSnapshot(profile: IProfile, senderEmail?: string | null): OutreachProfileSnapshot {
   return {
     fullName: profile.fullName,
     headline: profile.headline,
@@ -385,6 +527,7 @@ function profileSnapshot(profile: IProfile): OutreachProfileSnapshot {
       portfolio: profile.links.portfolio,
     },
     signature: profile.signature,
+    email: senderEmail ?? undefined,
   };
 }
 
@@ -445,7 +588,8 @@ async function generateDraft(
 ): Promise<void> {
   assertDraftable(job);
   const provider = getAIProvider();
-  const snapshot = profileSnapshot(profile);
+  const sender = await User.findById(job.userId).select('email gmailAuth.connectedEmail');
+  const snapshot = profileSnapshot(profile, sender?.gmailAuth?.connectedEmail || sender?.email);
 
   const match =
     job.match ??
@@ -456,10 +600,18 @@ async function generateDraft(
       profile: snapshot,
     }));
 
+  // A post with several openings → apply for the one that fits this candidate.
+  const allRoles = splitRoles(job.extraction.role);
+  const role = allRoles.length > 1
+    ? pickBestRole(allRoles, { ...snapshot, preferredRoles: profile.preferredRoles ?? [] }, job.extraction.jdText)
+    : job.extraction.role;
+
   const draft = await provider.generateOutreachEmail({
+    hrEmail: job.hrEmail,
+    allRoles: allRoles.length > 1 ? allRoles : undefined,
     extraction: {
       company: job.extraction.company,
-      role: job.extraction.role,
+      role,
       location: job.extraction.location,
       jdText: job.extraction.jdText,
       hrName: job.extraction.hrName,
@@ -472,6 +624,7 @@ async function generateDraft(
 
   job.match = match;
   job.draft = draft;
+  job.draftTone = tone;
   job.templateId = template?._id ?? null;
   job.status = 'email_drafted';
   job.error = null;

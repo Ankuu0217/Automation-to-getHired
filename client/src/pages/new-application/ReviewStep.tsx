@@ -2,6 +2,7 @@
  * Step 2 of the New Application flow — review/edit the extracted job fields,
  * pick or enter the HR email, see the screenshot and match score.
  */
+import { FindEmailPanel } from '@/components/FindEmailPanel';
 import { ErrorCodes, type JobPostResponse } from '@jobmail/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -43,7 +44,11 @@ function HrEmailSection({
   emailError,
   onSelect,
   onCustomChange,
+  company,
+  hrName,
 }: {
+  company: string;
+  hrName: string;
   job: JobPostResponse;
   selectedEmail: string;
   customEmail: string;
@@ -64,11 +69,12 @@ function HrEmailSection({
             <div className="min-w-0 flex-1">
               <Mono size="xs" color="warn">NO CONTACT FOUND</Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
-                Paste the HR email manually — you can continue either way.
+                The post has no email. Find the recruiter’s address below, or paste one you know.
               </p>
             </div>
           </div>
         </div>
+        <FindEmailPanel jobId={job.id} company={company} hrName={hrName} onPick={onCustomChange} />
         <div className="space-y-1.5">
           <Mono size="xs" color="fog">HR EMAIL</Mono>
           <Input
@@ -468,7 +474,7 @@ export function ReviewStep({
               </Mono>
               <p className="mt-1 font-sans text-sm font-normal text-text-2-dark">
                 {extractionEmpty
-                  ? 'We couldn’t read this screenshot automatically. Type the company, role and HR email below, then continue.'
+                  ? 'The AI couldn’t read this screenshot (all engines were busy or unavailable). Type the company, role and HR email below — or go back and use Paste text with the post’s text. Settings → AI engines shows what’s wrong.'
                   : 'Please verify the fields below — the screenshot may have been blurry or cropped.'}
               </p>
             </div>
@@ -587,6 +593,8 @@ export function ReviewStep({
               )}
             </div>
             <HrEmailSection
+              company={company}
+              hrName={hrName}
               job={job}
               selectedEmail={selectedEmail}
               customEmail={customEmail}

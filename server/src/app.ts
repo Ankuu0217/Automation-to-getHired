@@ -1,3 +1,4 @@
+import { aiRouter } from './routes/ai';
 import express from 'express';
 import mongoose from 'mongoose';
 import fs from 'node:fs';
@@ -54,10 +55,16 @@ export function createApp(): express.Express {
       crossOriginResourcePolicy: { policy: 'same-origin' },
     }),
   );
+  // The web app (cookies) + the GetHired Chrome extension (Bearer token only —
+  // never cookies, so an extension origin can't ride a logged-in session).
   app.use(
-    cors({
-      origin: env.CLIENT_URL,
-      credentials: true,
+    cors((req, cb) => {
+      const origin = req.header('Origin');
+      if (origin && origin.startsWith('chrome-extension://')) {
+        cb(null, { origin: true, credentials: false, allowedHeaders: ['Authorization', 'Content-Type'] });
+        return;
+      }
+      cb(null, { origin: env.CLIENT_URL, credentials: true });
     }),
   );
   // gzip JSON + the built client (~3–4× smaller over the wire). Tiny bodies
@@ -96,6 +103,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/notifications', notificationsRouter);
   app.use('/api/v1/templates', templatesRouter);
   app.use('/api/v1/analytics', analyticsRouter);
+  app.use('/api/v1/ai', aiRouter);
   // Tracking pixel: no auth, outside /api/v1 — loaded by mail clients (SPEC §5).
   app.use('/api/t', trackingRouter);
 

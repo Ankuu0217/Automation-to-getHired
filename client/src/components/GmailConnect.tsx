@@ -8,7 +8,7 @@ import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Mono } from '@/components/Mono';
-import { ApiRequestError, connectGmail, disconnectGmail, me, testGmail } from '@/lib/api';
+import { ApiRequestError, checkReplies, connectGmail, disconnectGmail, me, testGmail } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 
@@ -65,6 +65,22 @@ export function GmailConnectPanel() {
         .then(({ user: fresh }) => setUser(fresh))
         .catch(() => undefined);
     },
+  });
+
+  const repliesMutation = useMutation({
+    mutationFn: checkReplies,
+    onSuccess: (r) =>
+      toast.success(
+        !r.enabled
+          ? 'Reply detection is off — reconnect Gmail and allow reading email.'
+          : r.newReplies > 0 || r.newBounces > 0
+            ? [
+                r.newReplies > 0 && `${r.newReplies} new ${r.newReplies === 1 ? 'reply' : 'replies'} — moved to HR screen.`,
+                r.newBounces > 0 && `${r.newBounces} bounced ${r.newBounces === 1 ? 'address' : 'addresses'} — follow-ups stopped.`,
+              ].filter(Boolean).join(' ')
+            : `No new replies or bounces across ${r.checked} open applications.`,
+      ),
+    onError: (error) => toast.error(error instanceof ApiRequestError ? error.message : 'Could not check replies.'),
   });
 
   const status = user?.gmailStatus ?? 'disconnected';
@@ -184,6 +200,26 @@ export function GmailConnectPanel() {
           disconnectMutation.mutate();
         }}
       />
+
+      {connected && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-btn border border-graphite p-3">
+          <p className="font-sans text-sm text-text-2-dark">
+            {user?.replyDetection
+              ? 'Inbox tracking is on: a recruiter reply moves the application to HR screen, a bounced address is flagged, and follow-ups stop in both cases.'
+              : 'Reply detection is off. Reconnect Gmail and allow “View your email messages” so replies are tracked automatically.'}
+          </p>
+          {user?.replyDetection ? (
+            <Button variant="outline" size="sm" onClick={() => repliesMutation.mutate()} disabled={repliesMutation.isPending}>
+              {repliesMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              Check replies now
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending}>
+              Enable
+            </Button>
+          )}
+        </div>
+      )}
 
       {testResult && (
         <div className={cn('rounded-btn border p-3', testResult.ok ? 'border-ok/40' : 'border-danger/40')}>
